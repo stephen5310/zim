@@ -1,0 +1,115 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T11:57:21+00:00
+
+====== 4. Composants essentiels ======
+Créée le jeudi 25 novembre 2021
+
+===== Modèle d'objet =====
+
+Kubernetes dispose d'un modèle d'objet très riche, représentant différentes entités persistantes dans le cluster Kubernetes. Ces entités décrivent :
+* Les applications conteneurisées que nous exécutons.
+* Les nœuds où les applications conteneurisées sont déployées
+* La consommation des ressources des applications
+* Les politiques attachées aux applications, comme les politiques de redémarrage/mise à niveau, la tolérance aux pannes, etc.
+
+Avec chaque objet, nous déclarons notre intention, ou l'état souhaité de l'objet, dans la section **spec**. Le système Kubernetes gère la section **status** des objets, où il enregistre l'état réel de l'objet. À tout moment, le plan de contrôle Kubernetes tente de faire correspondre l'état réel de l'objet à l'état désiré de l'objet.
+
+Les configurations de déploiement sont définies en YAML comme dans l'exemple ci-dessous
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+	app: nginx
+spec:
+  replicas: 3
+  selector:
+	matchLabels:
+	  app: nginx
+  template:
+	metadata:
+	  labels:
+		app: nginx
+	spec:
+	  containers:
+	  - name: nginx
+		image: nginx:1.15.11
+		ports:
+		- containerPort: 80
+```
+
+Les champs requis sont:
+* apiVersion : endpoint d'API sur le serveur auquel on veut se connecter
+* kind : type de l'objet (Deployment, Pod, Replicaset, Namespace, Service, etc)
+* metadata : informations de base sur l'objet (name, labels, namespace)
+* spec : description de l'état désiré
+
+Une fois l'objet Déploiement créé, le système Kubernetes attache le champ d'état (**status**) à l'objet et le remplit avec tous les champs d'état nécessaires. 
+
+===== Pods =====
+
+Un Pod est une collection logique d'un ou plusieurs conteneurs, qui :
+* sont programmés ensemble sur le même hôte que le Pod
+* partagent le même espace de noms de réseau, c'est-à-dire qu'ils partagent une seule adresse IP attribuée à l'origine au pod
+* ont accès au montage du même stockage externe (volumes).
+
+Les pods sont éphémères par nature, et ils n'ont pas la capacité de s'auto-réparer. 
+C'est la raison pour laquelle ils sont utilisés avec des contrôleurs qui gèrent la réplication, la tolérance aux pannes, l'autoréparation, etc. des pods. 
+Les exemples de contrôleurs sont Deployments, ReplicaSets, ReplicationControllers, etc.
+
+===== ReplicaSets =====
+
+Un ReplicaSet est, en partie, la nouvelle génération de ReplicationController, car il met en œuvre les aspects de réplication et d'autoréparation du ReplicationController. 
+Les ReplicaSets prennent en charge les sélecteurs basés sur l'égalité et les ensembles, alors que les ReplicationControllers ne prennent en charge que les sélecteurs basés sur l'égalité. 
+À l'aide d'un ReplicaSet, nous pouvons faire évoluer le nombre de pods exécutant une image de conteneur d'application spécifique. La mise à l'échelle peut être réalisée manuellement ou à l'aide d'un autoscaler.
+
+===== Deployments =====
+
+Les objets Deployment fournissent des mises à jour déclaratives aux Pods et ReplicaSets. 
+Le DeploymentController fait partie du gestionnaire de contrôleurs du nœud maître et, en tant que contrôleur, il garantit que l'état actuel correspond toujours à l'état souhaité. 
+Il permet des mises à jour et des retours en arrière transparents de l'application grâce aux rollouts et rollbacks, et il gère directement ses ReplicaSets pour la mise à l'échelle de l'application. 
+
+Une mise à jour continue est déclenchée lorsque nous mettons à jour des propriétés spécifiques du modèle de pod pour un déploiement. 
+Si la mise à jour de l'image du conteneur, du port du conteneur, des volumes et des montages déclenche une nouvelle révision, d'autres opérations telles que la mise à l'échelle ou l'étiquetage du déploiement ne déclenchent pas de mise à jour continue et ne modifient donc pas le numéro de révision.
+
+===== Namespaces =====
+
+Si plusieurs utilisateurs et équipes utilisent le même cluster Kubernetes, nous pouvons partitionner le cluster en sous-clusters virtuels à l'aide des Namespaces. Les noms des ressources/objets créés à l'intérieur d'un Namespace sont uniques, mais pas entre les Namespaces du cluster.
+
+Pour lister tous les Namespaces, nous pouvons exécuter la commande suivante :
+```
+kubectl get namespaces
+```
+
+En général, Kubernetes crée quatre espaces de noms dès le départ : 
+* kube-system : objets créés par le système kubernetes (agents du plan de contrôle)
+* kube-public : non sécurisé et lisible par tous, utilisé à des fins particulières telles que l'exposition d'informations publiques (non sensibles) sur le cluster
+* kube-node-lease : objets de location de nœuds utilisés pour les données de battement de cœur des nœuds
+* default : objets et ressources créés par les administrateurs et les développeurs, et les objets lui sont attribués par défaut, à moins qu'un autre nom d'espace de nommage ne soit fourni par l'utilisateur.
+
+Les quotas de ressources (**Resource Quotas**) aident les utilisateurs à limiter les ressources globales consommées dans les espaces de nommage, tandis que les plages de limites (**Limit Range**) aident à limiter les ressources consommées par les pods ou les conteneurs dans un espace de nommage.
+
+===== Labels =====
+
+Les étiquettes sont des paires clé-valeur attachées aux objets Kubernetes (par exemple, Pods, ReplicaSets, Nodes, Namespaces, Persistent Volumes). 
+Les étiquettes sont utilisées pour organiser et sélectionner un sous-ensemble d'objets, en fonction des exigences en vigueur. 
+De nombreux objets peuvent avoir la même étiquette (ou les mêmes). 
+Les étiquettes ne confèrent pas d'unicité aux objets. 
+Les contrôleurs utilisent les étiquettes pour regrouper logiquement des objets découplés, plutôt que d'utiliser les noms ou les identifiants des objets.
+
+===== Selectors =====
+
+Les contrôleurs utilisent des sélecteurs d'étiquettes pour sélectionner un sous-ensemble d'objets. Kubernetes prend en charge deux types de sélecteurs :
+
+==== Sélecteurs basés sur l'égalité ====
+Les sélecteurs basés sur l'égalité permettent de filtrer les objets en fonction des clés et des valeurs des étiquettes. 
+La correspondance est réalisée à l'aide des opérateurs =, == (égaux, utilisés de manière interchangeable) ou != (non égaux). 
+Par exemple, avec env==dev ou env=dev, nous sélectionnons les objets dont la clé d'étiquette env a la valeur dev. 
+
+==== Sélecteurs basés sur des ensembles ====
+Les sélecteurs basés sur un ensemble permettent de filtrer les objets en fonction d'un ensemble de valeurs. 
+Nous pouvons utiliser les opérateurs in, notin pour les valeurs d'étiquettes, et les opérateurs exist/does not exist pour les clés d'étiquettes. 
+Par exemple, avec env in (dev,qa), nous sélectionnons les objets dont l'étiquette env est définie sur dev ou qa ; avec !app, nous sélectionnons les objets dont la clé d'étiquette app n'existe pas.

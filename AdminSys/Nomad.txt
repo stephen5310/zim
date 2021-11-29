@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-03T13:54:57+00:00
+
+====== Nomad ======
+Créée le mercredi 03 novembre 2021
+
+Nomad est un orchestrateur de charge de travail flexible qui permet à une organisation de déployer et de gérer facilement n'importe quelle application conteneurisée ou ancienne en utilisant un flux de travail unique et unifié. Nomad peut exécuter une charge de travail diversifiée composée d'applications Docker, non conteneurisées, de microservices et de lots.
+
+Fonctionnalités :
+* Déploiement de conteneurs et d'applications patrimoniales
+* Simple et fiable
+* Plugins pour périphériques et support GPU
+* Fédération pour multi-régions
+* Évolutivité éprouvée
+* Écosystème HashiCorp

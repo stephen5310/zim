@@ -1,0 +1,45 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T11:51:15+00:00
+
+====== b. Serveur de base de données ======
+
+Exécuter les commandes suivantes:
+
+* Mise à jour du système et désactivation de SELinux
+```
+yum update -y
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+reboot
+```
+
+* Configuration du firewall et installation des composants
+```
+getenforce
+firewall-cmd --zone=public --add-service=ssh --permanent
+firewall-cmd --zone=public --add-service=mysql --permanent
+firewall-cmd --reload
+yum install -y centos-release-scl
+yum install -y http://yum.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
+yum install -y centreon-database
+systemctl daemon-reload
+systemctl restart mariadb
+systemctl enable mariadb
+mysql_secure_installation
+```
+
+* Créer un utilisateur mariadb distant avec les droits root pour l'installation de Centreon
+```
+CREATE USER 'user'@'centreon-central.dev01.smile.lan' IDENTIFIED BY 'pass';
+CREATE DATABASE centreon;
+CREATE DATABASE centreon_storage;
+GRANT ALL PRIVILEGES ON centreon.* TO 'user'@'centreon-central.dev01.smile.lan' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON centreon_storage.* TO 'user'@'centreon-central.dev01.smile.lan' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'user'@'centreon-central.dev01.smile.lan' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+```
+
+* Suprimer l'utilisateur après l'installation de Centreon
+```
+DROP USER  'centreon'@'centreon-central.dev01.smile.lan';
+```

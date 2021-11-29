@@ -1,0 +1,24 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-24T19:41:32+00:00
+
+====== Kubernetes ======
+Créée le mercredi 24 novembre 2021
+
+Kubernetes est un outil open source d'orchestration de conteneurs.
+
+Les fonctionnalités de Kubernetes sont :
+* Planification automatique des conteneurs en tenant compte des besoins et ressources sans sacrifier la disponibilité
+* Auto réparation (kill et redémarre les conteneurs défaillants et évite de router le trafic vers eux)
+* Mise à l'échelle horizontale
+* Découverte automatique de services et load balancing
+* Déploiement et annulation transparente des mises à jour en tenant compte de la santé du service
+* Gestion des données sensibles et des configurations séparément des applications
+* Gestion du stockage (Software Defined Storage)
+* Exécutions par lot
+* RBAC (seulement dans la version 1.8)
+
+Some advantages are:
+* Supported by many platforms
+* Open source
+* Large community

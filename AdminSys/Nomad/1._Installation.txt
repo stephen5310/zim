@@ -1,0 +1,172 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-03T16:28:44+00:00
+
+====== 1. Installation ======
+Créée le mercredi 03 novembre 2021
+
+* Installer nomad
+```
+yum install -y yum-utils
+yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+yum -y install nomad
+```
+
+===== Démarrage et exécution de jobs =====
+
+* Installer et démarrer docker
+
+* Démarrer l'agent en mode dev
+```
+nomad agent -dev -bind 0.0.0.0 -log-level INFO
+```
+
+* Obtenir les infos sur l'agent client
+```
+nomad node status
+```
+
+* Obtenir la liste des agents serveurs (membres du gossip)
+```
+nomad server members
+```
+
+* Générer un fichier de job "example" (ce fichier décrit un job pour créer un conteneur redis)
+```
+nomad job init
+```
+
+* Exécuter le job 
+```
+nomad job run example.nomad
+```
+
+* Inspecter le statut du job "example"
+```
+nomad job status example
+```
+
+* Inspecter une allocation
+```
+nomad alloc status 173c3169
+```
+
+* Récupérer les logs du job (récupérer les logs d'une tâche spécifique dans une allocation)
+```
+nomad alloc logs 173c3169 redis
+```
+
+===== Mise à l'échelle et mise à jour de jobs =====
+
+* Pour mettre à l'échelle un job, il faut changer le paramètre **count** dans la section **cache**
+```
+- count = 1
++ count = 3
+```
+
+* Pour effectuer une simulation d'exécution de job et ainsi avoir des prévisions
+```
+nomad job plan example.nomad
+```
+
+* Pour mettre le job à jour avec une vérification de version et ainsi éviter de l'exécuter une nouvelle fois s'il a déjà été exécuté par quelqu'un d'autre (cette commande fait partie de l'output de la commande précédente)
+```
+nomad job run -check-index 20 example.nomad
+```
+
+* Pour mettre à jour la version de l'application, changer la version à l'aide du paramètre **image** dans la section **config**
+```
+	  config {
+-        image = "redis:3.2"
++        image = "redis:4.0"
+```
+
+* Effectuer une simulation d'exécution : Noter que Nomad spécifie qu'il mettra les conteneurs à jour l'un à la suite de l'autre, et non simultanément. C'est dû à la valeur du paramètre **max_parallel** dans la section **update** qui est à 1
+* Mettre à jour avec une vérification de version
+* Vérifier le statut du job
+
+===== Visiter l'interface web =====
+
+* Ouvrir le port 4646
+```
+firewall-cmd --add-port=4646/tcp --permanent
+firewall-cmd --reload
+```
+
+* Se connecter à http://adresse_serveur:4646
+
+* L'interface permet:
+	* d'inspecter un job
+	* de voir les informations du cluster
+	* de superviser en visualisant les logs
+
+===== Arrêter nomad =====
+
+* Arrêter un job
+```
+nomad job stop example
+```
+
+* Vérifier le statut du job
+* Arrêter l'agent de dev (faire ctrl-C)
+
+===== Créer un fichier unit pour gérer l'agent de dev =====
+
+* Créer un fichier **/etc/systemd/system/nomad.service** avec le contenu suivant
+```
+[Unit]
+Description=Nomad
+Documentation=https://www.nomadproject.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+# When using Nomad with Consul it is not necessary to start Consul first. These
+# lines start Consul before Nomad as an optimization to avoid Nomad logging
+# that Consul is unavailable at startup.
+#Wants=consul.service
+#After=consul.service
+
+[Service]
+User=nomad
+Group=nomad
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/bin/nomad agent -dev -config /etc/nomad.d
+KillMode=process
+KillSignal=SIGINT
+LimitNOFILE=65536
+LimitNPROC=infinity
+Restart=on-failure
+RestartSec=2
+
+## Configure unit start rate limiting. Units which are started more than
+## *burst* times within an *interval* time span are not permitted to start any
+## more. Use `StartLimitIntervalSec` or `StartLimitInterval` (depending on
+## systemd version) to configure the checking interval and `StartLimitBurst`
+## to configure how many starts per interval are allowed. The values in the
+## commented lines are defaults.
+
+# StartLimitBurst = 5
+
+## StartLimitIntervalSec is used for systemd versions >= 230
+# StartLimitIntervalSec = 10s
+
+## StartLimitInterval is used for systemd versions < 230
+# StartLimitInterval = 10s
+
+TasksMax=infinity
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
+```
+
+* Ajouter l'utilisateur nomad au groupe docker
+```
+usermod nomad -aG docker
+```
+
+* Recharger le daemon systemd et démarrer le service
+```
+systemctl daemon-reload
+systemctl start nomad
+```

@@ -1,0 +1,197 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T09:19:28+00:00
+
+====== 1. Architecture ======
+
+Centreon permet plusieurs choix dans la composition de l'architecture de votre outil de surveillance. Dans une architecture relativement simple avec un serveur hébergeant tous les services, l'architecture peut également être organisée autour d'une division stratégique qui répartit la charge sur plusieurs serveurs de collecte avec l'établissement de points de collecte sur plusieurs continents.
+
+===== __Architecture simple__ =====
+
+==== Description ====
+
+L'architecture simple a toutes les entités de surveillance dans le même serveur, c'est-à-dire :
+* Interface web Centreon
+* Bases de données (MariaDB + RRD)
+* Moteur de surveillance
+* Broker
+
+Cette architecture est la plus simple qu'un utilisateur puisse rencontrer.
+
+==== Composants ====
+
+De nombreux composants sont utilisés pour construire cette architecture :
+* Serveur web Apache pour l'interface web de Centreon
+* Des bases de données MariaDB pour stocker les paramètres de configuration de Centreon ainsi que les données de surveillance et de performance.
+* Un moteur de surveillance pour collecter les données
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+* Centreon Broker SQL permet de stocker les informations dans les bases de données MariaDB et de les transmettre à Centreon Broker RRD (Round Robin Database).
+* Centreon Broker RRD génère et met à jour les fichiers RRD avec les données afin d'afficher les graphiques de performance.
+
+==== Architecture ====
+
+Le schéma ci-dessous résume l'architecture :
+
+{{./pasted_image.png?width=700}}
+
+===== __Architecture distribuée__ =====
+
+==== Description ====
+
+L'architecture distribuée doit comporter deux types d'entités :
+* Un serveur central Centreon pour afficher les informations.
+* Un ou plusieurs serveurs distants pour collecter les données
+Le serveur central Centreon comprend les éléments suivants :
+* L'interface web Centreon
+* Bases de données (MariaDB + RRD)
+* Moteur de surveillance
+* Broker
+
+Le Poller comprend les éléments suivants :
+* Moteur de surveillance
+* Module Broker pour transmettre les données collectées à un broker central
+
+Cette architecture est utilisée pour :
+* Permettre l'équilibrage de la charge entre plusieurs serveurs de surveillance distants.
+* isoler les flux réseau : si votre architecture de surveillance doit surveiller une zone démilitarisée, il est plus facile (et plus sûr) de placer un serveur distant dans le réseau démilitarisé.
+
+==== Composants ====
+
+=== Serveur central Centreon ===
+
+De nombreux composants sont utilisés pour construire un serveur central Centreon :
+* Serveur web Apache pour l'interface web de Centreon
+* Bases de données MariaDB pour stocker les paramètres de configuration de Centreon ainsi que les données de surveillance et de performance.
+* Le processus Centreon Gorgone est utilisé pour envoyer la configuration de surveillance au serveur distant et pour la gérer.
+* Un moteur de surveillance pour collecter les données
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+* Centreon Broker SQL permet de stocker les informations dans des bases de données MariaDB et de les transmettre à Centreon Broker RRD.
+* Centreon Broker RRD génère et met à jour les fichiers RRD avec les données afin d'afficher les graphiques de performance.
+
+=== Poller ===
+
+Plusieurs composants sont utilisés pour construire un poller :
+* Un moteur de surveillance pour collecter les données.
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+
+==== Architecture ====
+
+Le schéma ci-dessous résume l'architecture :
+
+{{./pasted_image001.png?width=1000}}
+
+===== __Architecture distribuée avec serveur de base de données distant__ =====
+
+==== Description ====
+
+L'architecture distribuée avec des SGBD distants consiste à disposer de trois types d'entités :
+* Un serveur central Centreon pour afficher les informations
+* Un serveur SGBD pour stocker les données collectées
+* Un ou plusieurs serveurs distants pour collecter les données
+
+Le serveur central Centreon comprend les éléments suivants :
+* L'interface web Centreon
+* Moteur de surveillance
+* Broker
+* Fichiers RRD
+* Le serveur SGBD stocke les informations dans des bases de données MariaDB.
+
+Le poller comprend les éléments suivants :
+* Moteur de surveillance
+* Module Broker pour transmettre les données collectées à un broker central
+
+Cette architecture est utilisée pour :
+* Permettre l'équilibrage de la charge entre plusieurs serveurs de surveillance distants.
+* Isoler les flux réseau : si votre architecture de surveillance doit surveiller une zone démilitarisée, il est plus facile (et plus sûr) de placer un serveur distant dans le réseau démilitarisé.
+* Disposer d'un SGBD distant
+
+==== Composants ====
+
+=== Serveur SGBD ===
+
+Le serveur SGBD est utilisé uniquement pour stocker les paramètres de configuration de Centreon ainsi que les données de surveillance et de performance dans des bases de données MariaDB.
+
+=== Serveur central Centreon ===
+
+De nombreux composants sont utilisés pour construire un serveur central Centreon :
+* Serveur web Apache pour l'interface web de Centreon
+* Le serveur central Centreon récupère la configuration et les données collectées à partir du serveur SGBD.
+* Le processus Centreon Gorgone est utilisé pour envoyer la configuration du monitoring au serveur distant et pour le gérer.
+* Un moteur de surveillance pour collecter les données
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+* Centreon Broker SQL permet de stocker les informations dans des bases de données MariaDB et de les transmettre à Centreon Broker RRD.
+* Centreon Broker RRD génère et met à jour les fichiers RRD avec les données afin d'afficher les graphiques de performance.
+
+=== Poller ===
+
+Plusieurs composants sont utilisés pour construire un poller :
+* Un moteur de surveillance pour collecter les données.
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+
+==== Architecture ====
+
+Le schéma ci-dessous résume l'architecture :
+
+{{./pasted_image002.png?width=1000}}
+
+===== Architecture distribuée avec serveur de monitoring distant =====
+
+==== Description ====
+
+L'architecture distribuée avec Remote sever est d'avoir trois types d'entités :
+* Un serveur Centreon Central pour configurer la surveillance et pour afficher et exploiter les données collectées.
+* Un ou plusieurs serveurs Centreon Remote pour afficher et exploiter un sous-ensemble de données collectées.
+* un ou plusieurs pollers pour collecter les données.
+
+Le serveur central Centreon comprend les éléments suivants :
+* Interface web Centreon (configuration, affichage et exploitation)
+* Moteur de surveillance
+* Broker
+* Bases de données (MariaDB + RRD)
+
+Les serveurs distants comprennent les éléments suivants :
+* Interface web Centreon (affichage et exploitation d'un sous-ensemble de données)
+* Moteur de surveillance
+* Bases de données (MariaDB + RRD)
+* Module Broker pour transmettre les données collectées à un broker central.
+
+Cette architecture est utilisée pour :
+* Permettre l'équilibrage de la charge entre plusieurs serveurs de surveillance distants.
+* Isoler les flux réseau : si votre architecture de surveillance doit surveiller une zone démilitarisée, il est plus facile (et plus sûr) de placer un serveur distant dans le réseau démilitarisé.
+* disposer d'une interface web dédiée pour afficher et exploiter un sous-ensemble de données.
+
+==== Composants ====
+
+=== Serveur central Centreon ===
+
+De nombreux composants sont utilisés pour construire un serveur Centreon :
+* Serveur web Apache pour l'interface web Centreon
+* Bases de données MariaDB pour stocker les paramètres de configuration de Centreon ainsi que les données de surveillance et de performance.
+* Le processus Centreon Gorgone est utilisé pour envoyer la configuration de surveillance au serveur distant et pour la gérer.
+* Un moteur de surveillance pour collecter les données
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+* Centreon Broker SQL permet de stocker les informations dans des bases de données MariaDB et de les transmettre à Centreon Broker RRD.
+* Centreon Broker RRD génère et met à jour les fichiers RRD avec les données afin d'afficher les graphiques de performance.
+
+=== Serveur de surveillance à distance ===
+
+De nombreux composants sont utilisés pour construire un serveur distant :
+* Serveur web Apache pour l'interface web de Centreon
+* Bases de données MariaDB pour stocker les données de surveillance et de performance
+* Le processus Centreon Gorgone est utilisé pour opérer sur les données collectées
+* Un moteur de surveillance pour collecter les données
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+* Centreon Broker SQL permet de stocker les informations dans des bases de données MariaDB et de les transmettre localement à Centreon Broker RRD. Toutes les informations sont transmises au serveur central Centreon.
+* Centreon Broker RRD génère et met à jour les fichiers RRD avec les données afin d'afficher les graphiques de performance.
+
+=== Poller ===
+
+Plusieurs composants sont utilisés pour construire un poller :
+* Un moteur de surveillance pour collecter les données.
+* Les données collectées sont envoyées à Centreon Broker SQL en utilisant cbmod par le moteur de surveillance.
+
+==== Architecture ====
+
+Le schéma ci-dessous résume l'architecture :
+
+{{./pasted_image003.png?width=1000}}

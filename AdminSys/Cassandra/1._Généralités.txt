@@ -1,0 +1,53 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-01T09:24:42+00:00
+
+====== 1. Généralités ======
+
+===== Vue d'ensemble =====
+
+Apache Cassandra est une base de données open source, distribuée et NoSQL. Elle présente un modèle de stockage à larges colonnes partitionnées avec une sémantique éventuellement cohérente.
+
+Des systèmes comme Cassandra sont conçus pour relever ces défis et visent les objectifs de conception suivants :
+
+* Réplication complète de la base de données multi-maîtres
+* Disponibilité globale à faible latence
+* Mise à l'échelle sur du matériel de basei
+* Augmentation linéaire du débit avec chaque processeur supplémentaire
+* Équilibrage de charge en ligne et croissance du cluster
+* Requêtes orientées clé partitionnées
+* Schéma flexible
+
+===== Fonctionnalités =====
+
+Cassandra fournit le Cassandra Query Language (CQL), un langage semblable au SQL, pour créer et mettre à jour un schéma de base de données. CQL permet aux utilisateurs d'organiser les données sur le cluster en utilisant:
+
+* Keyspace : définit la manière dont un jeu de données est répliqué, par exemple dans quels centres de données et combien de copies. Les Keyspaces contiennent des tables.
+* Table : définit le schéma typé d'une collection de partitions. Les tables Cassandra permettent l'ajout flexible de nouvelles colonnes aux tables sans aucun temps d'arrêt. Les tables contiennent des partitions, qui contiennent des partitions, qui contiennent des colonnes.
+* Partition : définit la partie obligatoire de la clé primaire que toutes les lignes de Cassandra doivent avoir. Toutes les requêtes performantes fournissent la clé de partition dans la requête.
+* Row : contient une collection de colonnes identifiées par une clé primaire unique composée de la clé de partition et éventuellement de clés de clustering supplémentaires.
+* Column : Une donnée unique avec un type qui appartient à une Row.
+
+CQL supporte de nombreuses fonctionnalités avancées sur les ensembles de données partitionnés telles que:
+
+* Transactions légères à partition unique avec sémantique de comparaison et de jeu atomique.
+* Types, fonctions et agrégats définis par l'utilisateur
+* Types de collections incluant les ensembles, les cartes et les listes.
+* Indices secondaires locaux
+* Vues matérialisées (expérimentales)
+Cassandra choisit explicitement de ne pas implémenter les opérations qui nécessitent une coordination entre les partitions car elles sont généralement lentes et difficiles à fournir une sémantique globale hautement disponible. Par exemple, Cassandra ne prend pas en charge :
+
+* Les transactions inter-partitions
+* Les jointures distribuées
+* Les clés étrangères ou l'intégrité référentielle.
+
+===== Exploitation =====
+
+Les paramètres de configuration de Apache Cassandra se trouvent dans le fichier //cassandra.yml// qui peut être éditer manuellement ou par le biais de l'outil de gestion de configuration. Certaines configurations peuvent être effectuées en live via l'interface web, d'autres par contre nécessitent le redémarrage de la base de données pour prendre effet.
+
+Cassandra fournit des outils pour gérer un cluster. La commande //**nodetool**// interagit avec l'interface de contrôle en live de Cassandra, permettant la manipulation en service de plusieurs configurations de //cassandra.yml//.
+L' //**auditlogviewer**// est utilisé pour voir les journaux d'audit. Le //**fqltool**// est utilisé pour voir, réexécuter et comparer les journaux de requêtes complètes. L' auditlogviewer et le fqltool sont de nouveaux outils de la version 4.0.
+
+En outre, Cassandra prend en charge la fonctionnalité de snapshot atomique, qui présente un snapshot ponctuel des données de Cassandra pour une intégration facile avec de nombreux outils de sauvegarde. Cassandra prend également en charge les sauvegardes incrémentielles, qui permettent de sauvegarder les données au fur et à mesure de leur écriture.
+
+Apache Cassandra 4.0 a ajouté plusieurs nouvelles fonctionnalités, notamment les tables virtuelles, la réplication transitoire, la journalisation des audits, la journalisation complète des requêtes et la prise en charge de Java 11. Deux de ces fonctionnalités sont expérimentales : la réplication transitoire et la prise en charge de Java 11.

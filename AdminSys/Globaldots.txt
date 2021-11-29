@@ -1,0 +1,28 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-02T12:06:59+00:00
+
+====== Globaldots ======
+
+===== Who they are? =====
+
+Cloud Optimization and ... :
+* DevOps and anything related (FinOps)
+* Network, Cloud, IT
+* Delivery end to end of solutions
+
+Security and governance
+COntent delivery
+Hosting
+Cloud migration 
+
+CIAM: Marketing side
+Employees: Enterprise side (Okta)
+
+===== OKTA =====
+
+* SSO, MFA, etc
+* Store users accounts
+* Integrations to 3rd parties
+* Complex processes for user provisioning
+* Okta Integration Network (Pre-built applications for security)

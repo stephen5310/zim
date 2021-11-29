@@ -1,0 +1,40 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-08T08:38:02+00:00
+
+====== 1. Installation ======
+
+Installer avec pip permet d'obtenir les versions plus récentes facilement.
+
+```
+sudo pip install --upgrade ansible
+```
+
+Vérifier la réussite de l'installation.
+
+```
+ansible --version
+```
+
+Créer un inventaire basique contenant l'hôte //www.example.com.////
+
+```
+cat "[example]
+www.example.com" >> /etc/ansible/hosts
+```
+
+Si le port pour ssh est différent de celui par défaut sur l'hôte, on peut l'ajouter comme suit.
+
+```
+cat "[example]
+www.example.com:9787" >> /etc/ansible/hosts
+```
+
+Utilisation de ansible en Ad-Hoc
+
+```
+ansible [inventory_group] -m [module_name] -a [options] -u [username]
+ansible example -m ping -u stlig
+ansible [inventory_group] -a [shell_command] -u [username]
+ansible example -a "free -m" -u stlig
+```

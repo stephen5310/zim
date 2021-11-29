@@ -1,0 +1,277 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T09:04:58+00:00
+
+====== 2. Configuration ======
+
+===== Configuration des OSes =====
+
+==== Configuration pour l'installation de CentOS 8 ====
+
+* Créer les répertoires pour servir les fichiers à récupérer par http
+
+```
+mkdir -p /var/www/pxe/images/centos/8/x86_64/
+mkdir -p /var/www/pxe/kickstarts/
+```
+
+* Monter l'image ISO et Copier le fichier *syslinux-tftpboot-version-architecture.rpm*
+
+```
+mount -t iso9660 /path_to_image/name_of_image.iso /var/www/pxe/images/centos/8/x86_64 -o loop,ro
+cp -pr /var/www/pxe/images/centos/8/x86_64/BaseOS/Packages/syslinux-tftpboot-version-architecture.rpm /publicly_available_directory
+```
+
+* Créez un sous-répertoire pour stocker les fichiers d'image de démarrage dans le répertoire /var/lib/tftpboot/, et copiez les fichiers d'image de démarrage dans ce répertoire. Dans cet exemple, nous utilisons le répertoire /var/lib/tftpboot/pxelinux/images/CentOS-8/
+
+```
+mkdir -p /var/lib/tftpboot/pxelinux/images/CentOS-8/
+cp /var/www/pxe/images/centos/8/x86_64/images/pxeboot/{vmlinuz,initrd.img} /var/lib/tftpboot/pxelinux/images/CentOS-8/
+```
+
+* Extraire le paquet
+
+```
+cd /publicly_available_directory
+rpm2cpio syslinux-tftpboot-version-architecture.rpm | cpio -dimv
+```
+
+* Créez un répertoire pxelinux/ dans tftpboot/ et copiez les fichiers nécessaires
+
+```
+mkdir /var/lib/tftpboot/pxelinux
+cp /publicly_available_directory/tftpboot/{pxelinux.0,menu.c32,vesamenu.c32,ldlinux.c32,libcom32.c32,libutil.c32} /var/lib/tftpboot/pxelinux
+```
+
+* Créez le répertoire pxelinux.cfg/ dans le répertoire pxelinux/
+
+```
+mkdir /var/lib/tftpboot/pxelinux/pxelinux.cfg
+```
+
+* Ajoutez un fichier de configuration par défaut dans le répertoire *pxelinux.cfg/*. Un exemple de fichier de configuration dans */var/lib/tftpboot/pxelinux/pxelinux.cfg/default* pourrait ressembler à ceci
+
+```
+default vesamenu.c32
+prompt 1
+timeout 60
+
+display boot.msg
+
+label Install CentOS 8 minimal
+  menu label ^Install CentOS 8 minimal
+  menu default
+  kernel images/CentOS-8/vmlinuz
+  append initrd=images/CentOS-8/initrd.img ip=dhcp inst.repo=http://192.168.1.2/pxeboot/images/centos/8/x86_64/ ks=http://192.168.1.2/pxeboot/kickstarts/ks.cfg
+label Install Ubuntu 20.04
+  menu label ^Install Ubuntu 20.04
+  menu default
+  kernel images/Ubuntu-20.04/vmlinuz
+  initrd images/Ubuntu-20.04/initrd
+  append root=/dev/ram0 ramdisk_size=1500000 ip=dhcp ipv6.disable=1 url=http://192.168.1.2/pxeboot/images/ubuntu/20_04/x86_64/ubuntu-20.04.2-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://192.168.1.2/pxeboot/kickstarts/
+```
+
+Le modèle suivant montre les options modifiables.
+
+```
+default vesamenu.c32
+prompt 1
+timeout 60
+
+display boot.msg
+
+label [Nom de l'option du menu]
+  menu label ^[Chaîne de caractères à afficher dans le menu]
+  menu default
+  kernel [Chemin vers le kernel (relatif à tftpboot/)]
+  append initrd=[Chemin vers initrd.img (relatif à tftpboot/)] ip=[Moyen de configuration de l'adresse ip] inst.repo=[Url d'accès au point de montage de l'image de CentOS 8] ks=[Url d'accès au fichier d'automatisation de l'installation]
+```
+
+* **Optionnel**: Définir un fichier kickstart pour l'automatisation de l'installation. Le moyen le plus simple d'obtenir un fichier kickstart est de récupérer le fichier */root/anaconda-ks.cfg* généré par CentOS après l'installation du système. Un exemple de fichier se trouve ci-dessous. Se rendre à l'URL (https://docs.centos.org/en-US/8-docs/advanced-install/assembly_creating-kickstart-files/) pour obtenir de plus amples informations.
+
+Exemple de fichier kickstart
+
+```
+#version=RHEL8
+ignoredisk --only-use=sda
+# Partition clearing information
+clearpart --all --initlabel --drives=sda
+# Use graphical install
+graphical
+# Keyboard layouts
+keyboard --vckeymap=fr --xlayouts='fr','us'
+# System language
+lang en_US.UTF-8
+
+# Network information
+network  --bootproto=dhcp --device=enp2s0 --ipv6=auto --activate
+network  --hostname=acepc1.payap.oci
+repo --name="Minimal" --baseurl=http://192.168.1.2/images/centos/8/x86_64/Minimal
+# Use network installation
+url --url="http://192.168.1.2/images/centos/8/x86_64"
+# Root password
+rootpw --iscrypted $6$dK1jHmK1K.XQSFhE$TApZWlMoSlzHwz4PyFiRfExcGNtDuwTxRT3uWQid4ZE804.Kp.2pUNp1eMSlczTQNekBMmI.feDA788GuNOMg0
+# Run the Setup Agent on first boot
+firstboot --enable
+# Do not configure the X Window System
+skipx
+# System services
+services --enabled="chronyd"
+# System timezone
+timezone Africa/Abidjan --isUtc
+# Disk partitioning information
+part pv.581 --fstype="lvmpv" --ondisk=sda --size=243172
+part /boot --fstype="ext4" --ondisk=sda --size=1024
+volgroup vg --pesize=4096 pv.581
+logvol /tmp --fstype="ext4" --size=2048 --name=tmp --vgname=vg
+logvol /srv --fstype="ext4" --size=187870 --name=srv --vgname=vg
+logvol / --fstype="ext4" --size=20480 --name=root --vgname=vg
+logvol swap --fstype="swap" --size=2048 --name=swap --vgname=vg
+logvol /var --fstype="ext4" --size=30720 --name=var --vgname=vg
+
+%packages
+@^server-product-environment
+kexec-tools
+
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
+
+%anaconda
+pwpolicy root --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+pwpolicy user --minlen=6 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+%end
+```
+
+* **Optionnel**: Mettre le fichier kickstart dans le répertoire */var/www/pxe/kickstarts* et le renommer en *ks.cfg*.
+
+==== Configuration pour l'installation de Ubuntu 20.04 ====
+
+* Créer les répertoires pour servir les fichiers à récupérer par http
+
+```
+mkdir -p /var/www/pxe/images/ubuntu/20_04/x86_64/
+mkdir -p /var/www/pxe/kickstarts/
+```
+
+* Créez un sous-répertoire pour stocker les fichiers d'image de démarrage dans le répertoire /var/lib/tftpboot/, et copiez les fichiers d'image de démarrage dans ce répertoire. Dans cet exemple, nous utilisons le répertoire /var/lib/tftpboot/pxelinux/images/Ubuntu-20_04/
+
+```
+mount -t iso9660 /path_to_image/name_of_image.iso /var/www/pxe/images/ubuntu/20_04/x86_64 -o loop,ro
+mkdir -p /var/lib/tftpboot/pxelinux/images/Ubuntu-20_04/
+cp /var/www/pxe/images/ubuntu/20_04/x86_64/casper/{vmlinuz,initrd} /var/lib/tftpboot/pxelinux/images/Ubuntu-20_04/
+umount /var/www/pxe/images/ubuntu/20_04/x86_64
+```
+
+* Déplacer l'image dans le répertoire prévu pour permettre aux machines de les récupérer par http
+
+```
+mv /path_to_image/name_of_image.iso /var/www/pxe/images/ubuntu/20_04/x86_64
+```
+
+* Créez un répertoire pxelinux/ dans tftpboot/ et télécharger le fichier *pxelinux.0* à l'intérieur
+
+```
+mkdir /var/lib/tftpboot/pxelinux
+wget http://archive.ubuntu.com/ubuntu/dists/focal/main/installer-amd64/current/legacy-images/netboot/pxelinux.0 -O /var/lib/tftpboot/pxelinux/pxelinux.0
+```
+
+* Créez le répertoire pxelinux.cfg/ dans le répertoire pxelinux/
+
+```
+mkdir /var/lib/tftpboot/pxelinux/pxelinux.cfg
+```
+
+* Ajoutez un fichier de configuration par défaut dans le répertoire *pxelinux.cfg/*. Un exemple de fichier de configuration dans */var/lib/tftpboot/pxelinux/pxelinux.cfg/default* pourrait ressembler à ceci
+
+```
+default vesamenu.c32
+prompt 1
+timeout 60
+
+display boot.msg
+
+label Install CentOS 8 minimal
+  menu label ^Install CentOS 8 minimal
+  menu default
+  kernel images/CentOS-8/vmlinuz
+  append initrd=images/CentOS-8/initrd.img ip=dhcp inst.repo=http://192.168.1.2/pxeboot/images/centos/8/x86_64/ ks=http://192.168.1.2/pxeboot/kickstarts/ks.cfg
+label Install Ubuntu 20.04
+  menu label ^Install Ubuntu 20.04
+  menu default
+  kernel images/Ubuntu-20.04/vmlinuz
+  initrd images/Ubuntu-20.04/initrd
+  append root=/dev/ram0 ramdisk_size=1500000 ip=dhcp ipv6.disable=1 url=http://192.168.1.2/pxeboot/images/ubuntu/20_04/x86_64/ubuntu-20.04.2-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://192.168.1.2/pxeboot/kickstarts/
+```
+
+Le modèle suivant montre les options modifiables.
+
+```
+default vesamenu.c32
+prompt 1
+timeout 60
+
+display boot.msg
+
+label [Nom de l'option du menu]
+  menu label ^[Chaîne de caractères à afficher dans le menu]
+  menu default
+  kernel [Chemin vers le kernel (relatif à tftpboot/)]
+  initrd=[Chemin vers initrd.img (relatif à tftpboot/)]
+  append root=/dev/ram0 ramdisk_size=1500000 ip=[Moyen de configuration de l'adresse ip] url=[Url d'accès à l'image live de Ubuntu 20.04] autoinstall ds=nocloud-net;s=[Url d'accès au répertoire contenant le fichier d'automatisation de l'installation]
+```
+
+* **Optionnel**: Définir un fichier autoinstall pour l'automatisation de l'installation. Le moyen le plus simple d'obtenir un fichier autoinstall est de récupérer le fichier */var/log/installer/autoinstall-user-data* généré par Ubuntu après l'installation du système. Un exemple de fichier se trouve ci-dessous. Se rendre à l'URL (https://ubuntu.com/server/docs/install/autoinstall#:~:text=When%20any%20system%20is%20installed,%2Fautoinstall%2Duser%2Ddata%20) pour obtenir de plus amples informations.
+
+Exemple de fichier autoinstall
+
+```
+#cloud-config
+autoinstall:
+  identity: {hostname: acepc, password: $6$Z/9ctXuzNBcLqjeW$nJECjv5XyONwOks6RVDgD2dIWuhI9CoXeSFzt13OE48bRnX//iNGrRIS6IkfWTIWlx5354jLUqKaa6.Q0xhHo1,
+	realname: Patrick Yapi, username: payap}
+  keyboard: {layout: fr, toggle: null, variant: ''}
+  locale: fr
+  network:
+	ethernets:
+	  enp2s0:
+		dhcp4: yes
+		dhcp-identifier: mac
+	version: 2
+  ssh:
+	allow-pw: true
+	authorized-keys: []
+	install-server: true
+  user-data:
+	disable_root: false
+  packages:
+	- ubuntu-desktop
+  storage:
+	config:
+	- {ptable: gpt, path: /dev/sda,
+	  wipe: superblock, preserve: false, name: '', grub_device: true, type: disk,
+	  id: disk-sda}
+	- {device: disk-sda, size: 1048576, flag: bios_grub, number: 1, preserve: false,
+	  grub_device: false, type: partition, id: partition-3}
+	- {device: disk-sda, size: 1073741824, wipe: superblock, flag: '', number: 2,
+	  preserve: false, grub_device: false, type: partition, id: partition-4}
+	- {fstype: ext4, volume: partition-4, preserve: false, type: format, id: format-3}
+	- {device: disk-sda, size: 254983274496, wipe: superblock, flag: '', number: 3,
+	  preserve: false, grub_device: false, type: partition, id: partition-5}
+	- name: ubuntu-vg
+	  devices: [partition-5]
+	  preserve: false
+	  type: lvm_volgroup
+	  id: lvm_volgroup-1
+	- {name: ubuntu-lv, volgroup: lvm_volgroup-1, size: 127490064384B, preserve: false,
+	  type: lvm_partition, id: lvm_partition-1}
+	- {fstype: ext4, volume: lvm_partition-1, preserve: false, type: format, id: format-4}
+	- {device: format-4, path: /, type: mount, id: mount-4}
+	- {device: format-3, path: /boot, type: mount, id: mount-3}
+  version: 1
+```
+
+* **Optionnel**: Mettre le fichier autoinstall dans le répertoire */var/www/pxe/kickstarts* et le renommer en *user-data*. Créer aussi un fichier vide nommé *meta-data* dans le même répertoire.

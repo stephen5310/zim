@@ -1,0 +1,23 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-29T09:32:15+00:00
+
+====== Tout en un ======
+
+L'installation consiste en les étapes suivantes:
+* Installer Java (version >= 8)
+* Télécharger l'archive et l'extraire
+* Utiliser un des scripts de démarrage pour mettre Druid en service
+
+Le démarrage en profil nano demande 2 vCPU et 6GB de RAM.
+Les commandes suivantes servent à installer la version 0.20.1 et démarrer en nano-quickstart:
+
+yum install -y java wget
+wget https://downloads.apache.org/druid/0.20.1/apache-druid-0.20.1-bin.tar.gz
+tar xf apache-druid-0.20.1-bin.tar.gz
+./apache-druid-0.20.1-bin/bin/start-nano-quickstsart &
+firewall-cmd --add-port=8888/tcp --permanent
+firewall-cmd --reload
+
+Une fois les services démarrés, vous pouvez accéder à la console par l'url http://server_ip_address:8888.
+Vous pourrez effectuer le quickstart pour l'ingestion des données (https://druid.apache.org/docs/latest/tutorials/index.html#step-4-load-data).

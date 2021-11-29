@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-10-29T15:17:22+00:00
+
+====== 1. Tricks ======
+Créée le vendredi 29 octobre 2021
+
+===== Ajouter des modifications à un commit sans faire un nouveau commit si on n'a pas encore fais de push =====
+
+git commit --amend --no-edit
+

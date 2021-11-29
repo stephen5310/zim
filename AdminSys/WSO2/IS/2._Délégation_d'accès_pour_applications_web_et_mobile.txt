@@ -1,0 +1,63 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-07T10:37:04+00:00
+
+====== 2. Délégation d'accès pour applications web et mobile ======
+
+===== Délégation d'accès =====
+
+* Autoriser une application à accéder à nos ressources en notre nom
+* Permettre d'accorder l'accès pour exécuter des actions limitées en fonction du besoin
+* Les permission accordées peuvent être retirées des bénéficiaires facilement
+
+===== Délégation d'accès avec OAuth2 =====
+
+* Protocole standard léger utilisé en industrie pour la délégation d'accès sécurisée
+* Permet aux applications d'accéder aux ressources sans utiliser les informations d'un compte de l'application
+* Génère des tokens avec des accès limités pour faciliter l'accès sécurisé aux ressources
+* Protocole extensible pour implémenter de nouveaux cas d'utilisation de délégation d'accès
+* Quatre roles:
+	* Resource owner
+	* Client application
+	* Authorization server
+	* Resource server
+
+{{./pasted_image.png?width=1200}}
+
+* Trois types de token:
+	* Access
+	* Refresh
+	* Authorization code
+* Type d'accès aux autorisations:
+	* Refresh token
+	* Authorization code
+	* Implicit (déconseillé)
+	* Password (déconseillé)
+	* Client credential
+	* SAML2 bearer
+	* JWT Bearer
+	* Extended
+
+===== Délégation d'accès avec UMA =====
+
+* Protocole de gestion d'accès basé sur OAuth et approuvé par l'initiative Kantara
+* Supporte le partage pair-à-pair
+* Facilite la définition des polices d'autorisation par les resource owners pour contrôler les accès des tiers
+* Cinq roles:
+	* Resource owner
+	* Client application
+	* Authorization server
+	* Resource server
+	* Requesting party
+
+==== Etape 1 ====
+
+{{./pasted_image001.png?width=1000}}
+
+==== Etape 2 ====
+
+{{./pasted_image002.png?width=1000}}
+
+==== Etape 3 ====
+
+{{./pasted_image003.png?width=1000}}

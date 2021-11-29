@@ -1,0 +1,33 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-01T15:21:52+00:00
+
+====== 1. Modèle de nommage ======
+
+===== Le modèle de nommage =====
+
+Le modèle de nommage est la manière dont sont organisées les données dans l'annuaire.
+Un annuaire est un arbre d'entrées. Voici un exemple d'arborescence LDAP pour la société de la COGIP, qui a deux utilisateurs, Jean-Christian Ranu et Felix Lechat, et 2 groupes, compta et ventes.
+
+{{./pasted_image.png}}
+
+Cette arborescence est liée au nommage de chaque élément. Un élément marque son appartenance à l'élément supérieur en reprenant le nom, qu'il complète par le sien.
+Par exemple, si on prend "cn=ventes,ou=groups,dc=cogip,dc=fr", on a ventes > groups > cogip.fr
+La racine choisie ici est composée du nom du domaine où est hébergé notre serveur LDAP, cogip.fr, décomposé en "dc" (Domain Components) pour obtenir dc=cogip,dc=fr. L'arbre se découpe ensuite en deux "ou" (Organisational Units) qui constituent deux branches : "users" et "groups", dans lesquels nous trouvons ensuite les entrées feuilles de notre arbre, les utilisateurs et les groupes.
+C'est une convention que sur un annuaire LDAP la racine soit toujours composée des attributs "dc" (Domain Component) associés à chacune des parties du nom de domaine où est hébergé le serveur ("dc=cofig,dc=fr").
+
+===== Notions à connaître =====
+
+* Chaque élément est appelé une entrée (an entry). Une entrée peut être une branche (a node) ou un élément terminal (a leaf).
+* Chaque élément possède un DN (Distinguished Name). Le DN est le nom complet de l'élément qui permet de le positionner dans l'arborescence. Il est unique dans l'annuaire : cn=ventes,ou=groups,dc=cogip,dc=fr
+* Chaque élément possède également un RDN (Relative Distinguished Name). Le RDN est la partie du DN de l'élément qui est relative au DN supérieur. Le RDN d'un élément ne permet pas de l'identifier de manière unique dans l'annuaire :  cn=ventes
+* La racine est l'élément supérieur de tous les autres, c'est la base de l'arborescence : dc=cogip,dc=fr
+* Une entrée est constituée d'un ensemble d'attributs. Un attribut possède un nom, un type et une ou plusieurs valeurs. Les attributs sont définis dans des schémas et sont l'une des caractéristiques de cet élément.
+* Dans notre exemple, l'arbre se découpe ensuite en deux "ou" (Organisational Units) qui constituent deux branchements : "users" et "groups", dans lesquels nous trouvons ensuite les entrées : les utilisateurs et les groupes.
+
+===== Règles de nommage =====
+
+La RFC 2253 normalise l'écriture des DN et conseille de ne pas ajouter d'espaces autour du signe "=", ni à la fin du DN. Les espaces sont autorisés par contre pour les valeurs des entrées.
+* DN correct : cn=felix lechat,cn=ventes,ou=groups,dc=cogip,dc=fr
+* DN incorrect : cn = felix lechat, cn = ventes, ou = groups, dc = cogip, dc = fr
+Les majuscules seront ou non prises en compte en fonction du type d'attribut utilisé et de ses particularités.

@@ -1,0 +1,27 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-05T11:21:55+00:00
+
+====== IS ======
+
+Au fur et à mesure que les applications, les services et les API d'une entreprise se développent, la gestion des identités (employés, fournisseurs, partenaires et clients) à travers les services internes, partagés et SaaS devient un défi important. Le serveur d'identité WSO2 est un produit qui peut relever ce défi et également fournir des options pour résoudre les problèmes d'identité que vous pourriez rencontrer à l'avenir.
+WSO2 Identity Server est entièrement open source et est publié sous la licence Apache Software License Version 2.0.
+
+Un système de gestion d'identité comporte généralement les éléments suivants:
+
+* Magasins et répertoires d'utilisateurs
+* Authentification des utilisateurs
+* Autorisation des utilisateurs
+* Authentification unique
+* Approvisionnement
+* Délégation d'accès
+* Réinitialisation du mot de passe
+* Auto-enregistrement
+* Verrouillage du compte
+WSO2 Identity Server (WSO2 IS) est un produit construit au-dessus de WSO2 Carbon. Basé sur la spécification OSGi, il permet une personnalisation et une extension faciles grâce à son architecture en composants. Cette rubrique décrit l'architecture du serveur d'identité. Les utilisateurs ont le choix entre un déploiement sur des serveurs sur site, un cloud privé ou un cloud public sans modification de la configuration.
+
+Le serveur d'identité WSO2 est utilisé directement par de multiples utilisateurs, par le biais de sa console de gestion conviviale. Outre l'utilisateur administrateur par défaut (avec le nom d'utilisateur "admin"), d'autres utilisateurs peuvent être créés ultérieurement par les utilisateurs administrateurs qui ont les privilèges pour créer un nouvel utilisateur, ou en s'inscrivant. Chaque utilisateur peut avoir des rôles, et chaque rôle peut se voir attribuer des privilèges. Les rôles d'un utilisateur peuvent être modifiés à tout moment par l'utilisateur administrateur.
+
+En dehors de ces utilisateurs enregistrés, le serveur d'identité est également utilisé comme fournisseur d'identité pour les applications tierces, qui ont également leurs propres ensembles d'utilisateurs.
+
+{{./pasted_image.png?width=1000}}

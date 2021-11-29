@@ -1,0 +1,196 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-04T11:51:06+00:00
+
+====== 3. Gérer des clusters ======
+Créée le jeudi 04 novembre 2021
+
+===== Mettre des noeuds en cluster =====
+
+* Il faut d'abord installer nomad sur tous les noeuds du cluster. Le fichier Unit diffère de celui de dev par la commande de démarrage du service.
+```
+[Unit]
+Description=Nomad
+Documentation=https://www.nomadproject.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+# When using Nomad with Consul it is not necessary to start Consul first. These
+# lines start Consul before Nomad as an optimization to avoid Nomad logging
+# that Consul is unavailable at startup.
+#Wants=consul.service
+#After=consul.service
+
+[Service]
+User=nomad
+Group=nomad
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/bin/nomad agent -config /etc/nomad.d
+KillMode=process
+KillSignal=SIGINT
+LimitNOFILE=65536
+LimitNPROC=infinity
+Restart=on-failure
+RestartSec=2
+
+## Configure unit start rate limiting. Units which are started more than
+## *burst* times within an *interval* time span are not permitted to start any
+## more. Use `StartLimitIntervalSec` or `StartLimitInterval` (depending on
+## systemd version) to configure the checking interval and `StartLimitBurst`
+## to configure how many starts per interval are allowed. The values in the
+## commented lines are defaults.
+
+# StartLimitBurst = 5
+
+## StartLimitIntervalSec is used for systemd versions >= 230
+# StartLimitIntervalSec = 10s
+
+## StartLimitInterval is used for systemd versions < 230
+# StartLimitInterval = 10s
+
+TasksMax=infinity
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
+```
+
+* Recharger le daemon systemd
+```
+systemctl daemon-reload
+```
+
+* Les ports tcp de 4646 à 4648 doivent être ouverts pour la communication entre les noeuds
+```
+firewall-cmd --add-port=4646-4648/tcp --permanent
+firewall-cmd --reload
+```
+
+* Un répertoire pour les logs doit être créé
+```
+mkdir /var/log/nomad
+chown nomad: /var/log/nomad
+```
+
+Il y'a trois manières de mettre des noeuds en cluster:
+* Manuelle
+* Cloud Auto-join
+* Consul
+
+==== Mise en cluster manuelle ====
+
+* Les noeuds (clients et serveurs) du cluster sont informés d'au moins un serveur à joindre
+=== Démarrage de noeuds serveurs ===
+
+* Les noeuds peuvent soit être informé du serveur leader dans leur configuration. Dans ce cas, ce serveur doit être démarré en premier. La configuration des serveurs dans ce cas peut ressembler à celle-ci:
+```
+data_dir = "/opt/nomad/data"
+
+bind_addr = "0.0.0.0"
+
+log_file = "/var/log/nomad/nomad.log"
+
+server {
+
+  # license_path is required as of Nomad v1.1.1+
+
+  #license_path = "/etc/nomad.d/nomad.hcl"
+
+  enabled = true
+
+  bootstrap_expect = 3
+
+  server_join {
+
+	retry_join = ["<primary_server_address>:4648"]
+
+  }
+
+}
+```
+
+* Ils peuvent aussi être informés de l'adresse du serveur leader après le démarrage à l'aide de la commande suivante
+```
+nomad server join <primary_server_address>
+```
+
+=== Démarrage des noeuds clients ===
+
+* Les noeuds clients doivent être informés du serveur (un seul) auquel on veut les rattacher dans leur configuration. La configuration d'un client peut ressembler à celle-ci:
+```
+data_dir = "/opt/nomad/data"
+bind_addr = "0.0.0.0"
+
+client {
+  enabled = true
+  servers = ["<server_address>:4647"]
+}
+```
+
+* Démarrer les clients
+* Installer docker sur les clients
+* Ajouter l'utilistateur nomad au  groupe docker
+
+=== Exécuter un job sur les clients ===
+
+* Les commandes sont à exécuter sur l'un des serveurs
+
+* Voir la liste des clients et leurs statuts
+```
+nomad node status
+```
+
+* Créer un fichier job (redis.nomad) avec une affinité pour un noeud client du cluster
+```
+job "redis" {
+  datacenters = ["<datacenter-1>,<datacenter-2>"]
+  type        = "service"
+
+  affinity {
+	attribute = "<client_address>"
+	value     = "<client_datacenter>"
+	weight    = 100
+  }
+
+  group "cache1" {
+	count = 4
+
+	network {
+	  port "db" {
+		to = 6379
+	  }
+	}
+
+	service {
+	  name = "redis-cache"
+	  port = "db"
+
+	  check {
+		name     = "alive"
+		type     = "tcp"
+		interval = "10s"
+		timeout  = "2s"
+	  }
+	}
+
+
+	task "redis" {
+	  driver = "docker"
+
+	  config {
+		image = "redis:latest"
+		ports = ["db"]
+	  }
+	}
+  }
+}
+```
+
+* Exécuter le job
+```
+nomad job run redis.nomad
+```
+
+* Vérifier le statut du job
+```
+nomad job s

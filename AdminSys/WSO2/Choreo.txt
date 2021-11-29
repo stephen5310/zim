@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-12T09:32:01+00:00
+
+====== Choreo ======
+Créée le vendredi 12 novembre 2021
+
+Choreo connect est une API Gateway pour microservices. C'est un processeur de messages léger pour API.
+Choreo Connect est utilisé pour la sécurité des messages, la sécurité du transport, le routage et d'autres services de qualité liés à la gestion des API.

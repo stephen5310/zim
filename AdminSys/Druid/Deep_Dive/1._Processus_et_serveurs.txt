@@ -1,0 +1,20 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-24T14:26:32+00:00
+
+====== 1. Processus et serveurs ======
+
+Duid a plusieurs types de processus. Ils sont décris brièvement ci-dessous:
+
+* Coordinator: il gère la disponibilité des données sur le cluster.
+* Overlord: il contrôle l'assignation des tâches d'ingestion de données
+* Broker: il gère les requêtes des clients externes
+* Router: (Optionnel) il route les requêtes à des processus Brokers, Coordinator et Overlord
+* Historical: il stocke les données sur lesquelles des requêtes peuvent être effectuées
+* MiddleManager: il est responsable de l'ingestion des données
+
+Les processus Druid peuvent être déployés selon notre convenance. Néamoins l'organisation suivante en trois types de serveurs permet une aisance de déploiement.
+
+* Master: il exécute les processus Coordinator et Overlord. Il gère la disponibilité des données et assigne les tâches d'ingestion
+* Query: il exécute les processus Broker et optionnellement Router. Il gère les requêtes des clients externes
+* Data: il exécute les processus Historical et MiddleManager. Il exécute les tâches d'ingestion et répertorie toutes les données interrogeables

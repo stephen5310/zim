@@ -1,0 +1,90 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-24T20:28:48+00:00
+
+====== 1. Architecture ======
+Créée le mercredi 24 novembre 2021
+
+{{./pasted_image.png}}
+
+Le noeud master fournit un environnement d'exécution pour le plan de contrôle.
+Le plan de contrôle gère l'état du cluster et est le cerveau derrière toutes les opérations dans le cluster.
+On utilise trois outils pour interagir avec le plan de contrôle : CLI, Web UI et API
+La seule HA possible pour le master est Active/Passive
+La persistance de l'état est assurée par etcd (sans les charges de travail des clients)
+
+===== Composants du noeud master =====
+
+* Serveur d'API
+* Planificateurs
+* Gestionnaires de contrôleur
+* Entrepôt de données
+* Agent de noeud
+* Proxy
+
+==== kube-apiserver ====
+
+Composant central du plan de contôle qui coordonne les tâches administratives.
+Le seul à échanger avec etcd. Il récupère les données sur l'état du cluster et les modifie.
+Il est l'intermédiaire entre etcd et les autres composants du plan de contrôle.
+Supporte la mise à l'échelle verticale, et l'ajout de serveurs secondaires pour lesquels il devient comme un proxy.
+
+==== kube-scheduler ====
+
+Assigne de nouveaux objets charge de travail (pods) aux noeuds.
+Tient compte des spécifications de configurations, des ressources disponibles, de la QoS.
+Envoie le résultat du processus de prise de décision au **kube-apiserver** pour la suite.
+Très configurable et personalisable.
+
+==== kube-controller-manager et cloud-controller-manager ====
+
+Les controller manager parcourent le cluster continuellement en comparant l'état désiré et l'état actuel, apportant les correctifs nécessaires.
+Ils agissent généralement quand des noeuds deviennent indisponibles.
+Les **kube** s'assurent que le nombre de pods est celui désiré, créent les endpoints, les comptes de services et les tokens d'accès aux APIs.
+Les **cloud** gèrent les volumes de stockage des services cloud, gèrent le load-balancing et le routage.
+
+==== etcd comme data store ====
+
+Assure la persistance de l'état du cluster (sans les charges de travail).
+Le CLI est **etcdctl**. Il permet d'assurer les fonctionnalités de sauvegarde, de snapshot et de restauration.
+Stocke l'état du cluster, les configurations comme les sous-réseaux, les ConfigMaps, les Secrets, etc.
+
+===== Composants du noeud worker =====
+
+Il fournit l'environnement d'exécution des applications clientes.
+Ce sont des microservices conteneurisés, encapsulés en pods, contrôlés par les composants du plan de contrôle.
+Le pod est la plus petite unité de planification dans kubernetes.
+La communication entre les utilisateurs et les conteneurs est assurée directement par les workers.
+Les composants du worker sont:
+* Container runtime
+* Node Agent (kubelet)
+* Proxy (kube-proxy)
+* Des modules pour le DNS, Dashboard UI, supervision et journalisation niveau cluster
+
+==== Container runtime ====
+
+Permet d'exécuter des conteneurs.
+Docker, CRI-O, containerd et frakti peuvent être utilisés.
+
+==== kubelet ====
+
+Reçoit les définitions de pods de **kube-apiserver** et interagit avec l'exécuteur de conteneurs pour démarrer les conteneurs associés au pod.
+Supervise la santé et les ressources des pods.
+Utilise CRI pour communiquer avec l'exécuteur de conteneurs. CRI est composé d'un **ImageService** et d'un **RuntimeService**.
+Les shims sont des implémentations de CRI. **dockershim, cri-containerd, CRI-O (runc) et frakti** sont les shims utilisables.
+
+==== kube-proxy ====
+
+Mets à jour et maintient de façon dynamique les règles réseau sur les workers.
+
+==== addons ====
+
+Ces composants ne sont pas intégrés. Ils sont à ajouter via d'autres technos.
+Il s'agit du DNS, Dashboard, Monitoring et Logging.
+
+==== défis réseau ====
+
+* Communication de conteneur à conteneur à l'intérieur des pods (Pause container, network namespace)
+* Communication entre pods sur le même nœud et entre les nœuds du cluster (pods as VMs, IP per pod)
+* Communication entre pods au sein d'un même espace de noms et entre espaces de noms de clusters (same as above)
+* Communication externe au service pour que les clients puissent accéder aux applications d'un cluster (Services, iptables, kube-proxy)

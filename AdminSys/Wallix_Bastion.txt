@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-05T14:23:24+00:00
+
+====== Wallix Bastion ======
+
+Wallix Admin Bastion (WAB) est une solution de gestion des comptes à privilège éditée par la société Wallix. 
+WAB permet une Traçabilité des connexions vers les équipements/applications et une Gestion centralisée et simplifiée des accès, des identifiants et mots de passe.
+
+WAB est disponible sous deux  types d’appliance:
+* Appliance physique (serveur dédié prêt à l’emploi)
+* Appliance virtuelle (machine virtuelle pour les environnements VMware ESX et Hyper-V)
+
+Les fonctionnalités sont les suivantes:
+➢ Contrôle d’accès (Aucun accès direct aux équipements)
+➢ Un utilisateur ne voit que les équipements qui lui sont attribués
+➢ Traçabilité (Toutes les actions effectuées sur un équipement sont enregistrées et peuvent être rejouées)
+➢ Aucun agent à installer sur les équipements réseaux (utilise les protocoles):
+	➢ SSH
+	➢ TELNET, RLOGIN
+	➢ RDP, VNC

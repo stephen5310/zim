@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-24T14:27:43+00:00
+
+====== 2. Dépendances externes ======
+
+En plus de ses types de processus natifs, Druid a aussi trois dépendances externes. Ces dernières sont censées tirer parti des infrastructures existantes, le cas échéant.
+
+==== Stockage permanent ====
+
+Il s'agit d'un système de fichiers accessible par tous les serveurs Druid (HDFS, S3,NFS, disque local). Il est utilisé pour conserver toues les données qui ont été ingérées dans le système. 
+Druid l'utilise uniquement comme une sauvegarde pour les données et un moyen de transfère des données en arrière-plan entre les processus Druid. Pour répondre aux requêtes, les processus Historical ne lisent pas le stockage permanent, mais lisent des segments préenregistrés sur leurs disques locaux avant que les requêtes ne soient servies. Cela signifie que Druid n'a jamais besoin d'accéder au stockage permanent pendant une requête, ce qui lui permet d'offrir les meilleures latences de requête possibles. Cela signifie également que vous devez disposer de suffisamment d'espace disque à la fois dans le stockage permanent et dans vos processus Historical pour les données que vous prévoyez de charger. 
+Le stockage permanent est un élément important de la conception élastique et tolérante aux pannes de Druid. Druid peut s'amorcer à partir du stockage permanent même si chaque serveur de données est perdu et réapprovisionné.
+
+==== Stockage des métadonnées ====
+
+Le stockage des métadonnées contient des métadonnées de divers systèmes de fichiers partagés telles que les informations sur l'utilisation des segments et celles sur les tâches. Dans un déploiement en cluster, il s'agira d'un SGBD classique comme PostgreSQL ou MySQL. Dans un déploiement avec un seul serveur, on peut opeter pour une base de données Apache Derby stockée localement.
+
+==== ZooKeeper ====
+
+Il est utilisé pour la découverte interne de services, la coordination et l'élection du leader.

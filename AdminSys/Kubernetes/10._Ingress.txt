@@ -1,0 +1,150 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T18:17:57+00:00
+
+====== 10. Ingress ======
+Créée le jeudi 25 novembre 2021
+
+La ressource **Ingress** permet de découpler les règles de routage de l'application et de centraliser la gestion des règles, pour pouvoir mettre à jour notre application sans nous soucier de son accès externe.
+
+Pour permettre à la connexion entrante d'atteindre les Services du cluster, **Ingress** configure un équilibreur de charge HTTP/HTTPS de couche 7 pour les Services et fournit les éléments suivants :
+* TLS (Transport Layer Security)
+* Hébergement virtuel par nom 
+* Routage en éventail (Fanout routing)
+* Équilibrage de charge
+* Règles personnalisées
+
+{{./pasted_image.png?width=1000}}
+
+===== Hébergement virtuel par nom =====
+
+Exemple de définition :
+```
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata:
+  name: virtual-host-ingress
+  namespace: default
+spec:
+  rules:
+  - host: blue.example.com
+	http:
+	  paths:
+	  - backend:
+		  service:
+			name: webserver-blue-svc
+			port:
+			  number: 80
+		path: /
+		pathType: ImplementationSpecific
+  - host: green.example.com
+	http:
+	  paths:
+	  - backend:
+		  service:
+			name: webserver-green-svc
+			port:
+			  number: 80
+		path: /
+		pathType: ImplementationSpecific
+```
+
+Dans l'exemple ci-dessus, les requêtes des utilisateurs à destination de blue.example.com et green.example.com sont dirigées vers le même point d'entrée (Ingress) et, de là, elles sont transférées respectivement vers webserver-blue-svc et webserver-green-svc. 
+Ceci est un exemple de règle Ingress d'hébergement virtuel basée sur le nom. 
+
+{{./pasted_image001.png?width=1000}}
+
+===== Routage en éventail =====
+
+Nous pouvons également définir des règles Fanout Ingress, lorsque les demandes adressées à exemple.com/bleu et exemple.com/vert seront transmises respectivement à webserver-blue-svc et webserver-green-svc :
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fan-out-ingress
+  namespace: default
+spec:
+  rules:
+  - host: example.com
+	http:
+	  paths:
+	  - path: /blue
+		backend:
+		  service:
+			name: webserver-blue-svc
+			port:
+			  number: 80
+		pathType: ImplementationSpecific
+	  - path: /green
+		backend:
+		  service:
+			name: webserver-green-svc
+			port:
+			  number: 80
+		pathType: ImplementationSpecific
+```
+
+{{./pasted_image002.png?width=1000}}
+
+La ressource Ingress n'effectue aucune transmission de demande par elle-même, elle accepte simplement les définitions des règles d'acheminement du trafic. 
+L'entrée est remplie par un contrôleur d'entrée, qui est un mandataire inverse responsable de l'acheminement du trafic sur la base des règles définies dans la ressource d'entrée. 
+
+===== Ingress Controller =====
+
+Un contrôleur d'entrée est une application qui surveille le serveur API du nœud maître pour détecter les changements dans les ressources d'entrée et met à jour l'équilibreur de charge de couche 7 en conséquence. 
+Les contrôleurs d'entrée sont également appelés contrôleurs, proxy d'entrée, proxy de service, proxy d'inversion, etc. 
+Kubernetes prend en charge un grand nombre de contrôleurs d'entrée et, si nécessaire, nous pouvons également créer les nôtres. 
+Le contrôleur d'équilibreur de charge GCE L7 et le contrôleur d'entrée Nginx sont des contrôleurs d'entrée couramment utilisés. 
+D'autres contrôleurs sont Contour, HAProxy Ingress, Istio, Kong, Traefik, etc.
+
+* Démarrer l'Ingress Controller avec minikube
+```
+minikube addons enable ingress
+```
+
+==== Déployer une ressource Ingress ====
+
+Ceci est possible seulement quand le Controller est démarré.
+* Créer un fichier vhost-ingress.yaml avec le contenu suivant :
+```
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata:
+  name: virtual-host-ingress
+  namespace: default
+spec:
+  rules:
+  - host: blue.example.com
+	http:
+	  paths:
+	  - backend:
+		  service:
+			name: webserver-blue-svc
+			port:
+			  number: 80
+		path: /
+		pathType: ImplementationSpecific
+  - host: green.example.com
+	http:
+	  paths:
+	  - backend:
+		  service:
+			name: webserver-green-svc
+			port:
+			  number: 80
+		path: /
+		pathType: ImplementationSpecific
+```
+* Déployer la ressource
+```
+kubectl create -f vhost-ingress.yaml
+```
+
+==== Accéder aux ressources Ingress ====
+
+* Éditer le fichier /etc/hosts et ajouter l'entrée suivante
+```
+<minikube-ip> blue.example.com green.example.com 
+```
+
+* Accéder à blue.example.com et green.example.com depuis le navigateur

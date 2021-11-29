@@ -1,0 +1,86 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-07T10:58:23+00:00
+
+====== Réplication multi-maîtres: Versionnement de données et cohérance réglable ======
+
+Cassandra réplique chaque partition de données sur de nombreux nœuds du cluster afin de maintenir une haute disponibilité et durabilité. Lorsqu'une mutation se produit, le coordinateur hache la clé de partition pour déterminer la plage de jetons à laquelle les données appartiennent, puis réplique la mutation aux répliques de ces données en fonction de la stratégie de réplication.
+
+Toutes les stratégies de réplication ont la notion d'un facteur de réplication (RF), qui indique à Cassandra combien de copies de la partition doivent exister. Par exemple, avec un espace clé RF=3, les données seront écrites dans trois répliques distinctes. Les répliques sont toujours choisies de manière à ce qu'elles soient des nœuds physiques distincts, ce qui est obtenu en sautant des nœuds virtuels si nécessaire. Les stratégies de réplication peuvent également choisir d'ignorer les nœuds présents dans le même domaine de défaillance, comme les racks ou les centres de données, afin que les clusters Cassandra puissent tolérer les défaillances de racks entiers et même de centres de données de nœuds.
+
+===== Stratégie de réplication =====
+
+Cassandra prend en charge les stratégies de réplication enfichables, qui déterminent quels nœuds physiques agissent comme répliques pour un espace de clés donné. Chaque espace clé de données a sa propre stratégie de réplication. Tous les déploiements de production doivent utiliser la stratégie NetworkTopologyStrategy, tandis que la stratégie de réplication SimpleStrategy n'est utile que pour les clusters de test dont vous ne connaissez pas encore la disposition du centre de données.
+
+==== Stratégie NetworkTopologyStrategy ====
+
+NetworkTopologyStrategy permet de spécifier un facteur de réplication pour chaque centre de données du cluster. Même si votre cluster n'utilise qu'un seul centre de données, NetworkTopologyStrategy doit être préférée à SimpleStrategy pour faciliter l'ajout ultérieur de nouveaux centres de données physiques ou virtuels au cluster.
+
+En plus de permettre de spécifier le facteur de réplication individuellement par centre de données, NetworkTopologyStrategy tente également de choisir des répliques au sein d'un centre de données dans différents racks, comme spécifié par le Snitch. Si le nombre de racks est supérieur ou égal au facteur de réplication du centre de données, chaque réplique est garantie d'être choisie dans un rack différent. Sinon, chaque rack contiendra au moins une réplique, mais certains racks peuvent en contenir plus d'une. Notez que ce comportement tenant compte du rack a des implications potentiellement surprenantes. Par exemple, s'il n'y a pas un nombre égal de nœuds dans chaque rack, la charge de données sur le plus petit rack peut être beaucoup plus élevée. De même, si un seul nœud est démarré dans un tout nouveau rack, il sera considéré comme une réplique pour l'ensemble de l'anneau. Pour cette raison, de nombreux opérateurs choisissent de configurer tous les nœuds d'une zone de disponibilité unique ou d'un domaine de défaillance similaire comme un seul "rack".
+
+==== SimpleStrategy ====
+
+SimpleStrategy permet de définir un seul facteur de réplication (integer replication_factor). Il détermine le nombre de noeuds qui doivent contenir une copie de chaque ligne. Par exemple, si le facteur de réplication est de 3, trois nœuds différents doivent stocker une copie de chaque ligne.
+
+SimpleStrategy traite tous les nœuds de manière identique, en ignorant les centres de données ou les racks configurés. Pour déterminer les répliques d'une plage de jetons, Cassandra parcourt les jetons de l'anneau, en commençant par la plage de jetons qui l'intéresse. Pour chaque jeton, il vérifie si le nœud propriétaire a été ajouté à l'ensemble des répliques, et si ce n'est pas le cas, il est ajouté à l'ensemble. Ce processus se poursuit jusqu'à ce que le facteur de réplication_facteur de nœuds distincts ait été ajouté à l'ensemble des répliques.
+
+==== Réplication transitoire ====
+
+La réplication transitoire est une fonctionnalité expérimentale de Cassandra 4.0 qui n'est pas présente dans l'article original de Dynamo. Elle vous permet de configurer un sous-ensemble de répliques afin de répliquer uniquement les données qui n'ont pas été réparées de manière incrémentielle. Cela vous permet de découpler la redondance des données de la disponibilité. Par exemple, si vous avez un espace clé répliqué à rf 3, et que vous le modifiez à rf 5 avec 2 répliques transitoires, vous passez de la capacité à tolérer une réplique défaillante à la capacité à en tolérer deux, sans augmentation correspondante de l'utilisation du stockage. En effet, 3 nœuds répliqueront toutes les données pour une plage de jetons donnée, et les 2 autres ne répliqueront que les données qui n'ont pas été réparées de manière incrémentielle.
+
+Pour utiliser la réplication transitoire, vous devez d'abord l'activer dans cassandra.yaml. Une fois activée, les stratégies SimpleStrategy et NetworkTopologyStrategy peuvent être configurées pour répliquer les données de manière transitoire. Vous le configurez en spécifiant le facteur de réplication comme <total_replicas>/<transient_replicas SimpleStrategy et NetworkTopologyStrategy prennent toutes deux en charge la configuration de la réplication transitoire.
+
+Les espaces-clés répliqués de manière transitoire ne prennent en charge que les tables créées avec read_repair défini sur NONE et les lectures monotones ne sont pas prises en charge actuellement. Vous ne pouvez pas non plus utiliser LWT, les lots enregistrés ou les compteurs dans la version 4.0. Il est possible que vous ne puissiez jamais utiliser des vues matérialisées avec des espaces clés répliqués de manière transitoire et probablement jamais utiliser des index secondaires avec elles.
+
+La réplication transitoire est une fonctionnalité expérimentale qui n'est peut-être pas prête à être utilisée en production. Le public visé est constitué d'utilisateurs expérimentés de Cassandra, capables de valider pleinement le déploiement de leur application particulière. Cela signifie être capable de vérifier que les opérations comme les lectures, les écritures, le déclassement, la suppression, la reconstruction, la réparation et le remplacement fonctionnent toutes avec vos requêtes, vos données, votre configuration, vos pratiques opérationnelles et vos exigences de disponibilité.
+
+Il est prévu que la version 4.next prenne en charge les lectures monotones avec réplication transitoire ainsi que LWT, les lots enregistrés et les compteurs.
+
+===== Versionnage des données =====
+
+Cassandra utilise le versioning de l'horodatage des mutations pour garantir la cohérence éventuelle des données. Plus précisément, toutes les mutations qui entrent dans le système le font avec un horodatage fourni soit par une horloge client, soit, en l'absence d'un horodatage fourni par le client, par l'horloge du nœud coordinateur. Les mises à jour sont résolues conformément à la règle de résolution des conflits selon laquelle la dernière écriture l'emporte. L'exactitude de Cassandra dépend de ces horloges, il faut donc s'assurer qu'un processus de synchronisation temporelle approprié est en cours d'exécution, tel que NTP.
+
+Cassandra applique des horodatages de mutation distincts à chaque colonne de chaque ligne dans une partition CQL. Les lignes sont garanties uniques par leur clé primaire, et chaque colonne d'une ligne résout les mutations simultanées selon la méthode de résolution des conflits "last-write-wins". Cela signifie que les mises à jour de différentes clés primaires au sein d'une partition peuvent en fait être résolues sans conflit ! En outre, les types de collections CQL tels que les cartes et les ensembles utilisent ce même mécanisme sans conflit, ce qui signifie que les mises à jour concurrentes des cartes et des ensembles sont également garanties.
+
+==== Synchronisation des répliques ====
+Comme les répliques dans Cassandra peuvent accepter des mutations indépendamment, il est possible que certaines répliques aient des données plus récentes que d'autres. Cassandra dispose de nombreuses techniques de best-effort pour favoriser la convergence des répliques, notamment Replica read repair <read-repair> dans le chemin de lecture et Hinted handoff <hints> dans le chemin d'écriture.
+
+Ces techniques ne sont toutefois que des efforts optimaux et, pour garantir la cohérence finale, Cassandra implémente la réparation anti-entropie <repair> où les répliques calculent des arbres de hachage hiérarchiques sur leurs ensembles de données appelés arbres de Merkle qui peuvent ensuite être comparés entre les répliques pour identifier les données non concordantes. Comme l'article original de Dynamo, Cassandra prend en charge les réparations "complètes" où les réplicas hachent l'ensemble de leurs données, créent des arbres de Merkle, se les envoient et synchronisent les plages qui ne correspondent pas.
+
+Contrairement à l'article original de Dynamo, Cassandra implémente également la réparation de sous-gammes et la réparation incrémentale. La réparation de sous-gamme permet à Cassandra d'augmenter la résolution des arbres de hachage (potentiellement jusqu'au niveau de la partition unique) en créant un plus grand nombre d'arbres qui couvrent seulement une partie de la plage de données. La réparation incrémentale permet à Cassandra de ne réparer que les partitions qui ont changé depuis la dernière réparation.
+
+===== Cohérence réglable =====
+
+Cassandra prend en charge un compromis entre la cohérence et la disponibilité pour chaque opération grâce aux niveaux de cohérence. Les niveaux de cohérence de Cassandra sont une version du mécanisme de cohérence R + W > N de Dynamo, dans lequel les opérateurs peuvent configurer le nombre de nœuds qui doivent participer aux lectures (R) et aux écritures (W) pour qu'il soit supérieur au facteur de réplication (N). Dans Cassandra, vous choisissez plutôt dans un menu de niveaux de cohérence communs qui permettent à l'opérateur de choisir le comportement R et W sans connaître le facteur de réplication. En général, les écritures seront visibles pour les lectures suivantes lorsque le niveau de cohérence de lecture contient suffisamment de nœuds pour garantir un quorum à l'intersection avec le niveau de cohérence d'écriture.
+
+Les niveaux de cohérence suivants sont disponibles :
+
+ONE
+Une seule réplique doit répondre.
+TWO
+Deux répliques doivent répondre.
+THREE
+Trois répliques doivent répondre.
+QUORUM
+La majorité (n/2 + 1) des répliques doit répondre.
+TOUS
+Toutes les répliques doivent répondre.
+LOCAL_QUORUM
+La majorité des répliques du centre de données local (quel que soit le centre de données du coordinateur) doivent répondre.
+EACH_QUORUM
+La majorité des répliques de chaque centre de données doit répondre.
+LOCAL_ONE
+Une seule réplique doit répondre. Dans un cluster multi-datacenter, cela garantit également que les demandes de lecture ne sont pas envoyées à des répliques dans un centre de données distant.
+ANY
+Une seule réplique peut répondre, ou le coordinateur peut stocker un indice. Si un indice est stocké, le coordinateur tentera ultérieurement de rejouer l'indice et de transmettre la mutation aux répliques. Ce niveau de cohérence n'est accepté que pour les opérations d'écriture.
+Les opérations d'écriture sont toujours envoyées à toutes les répliques, quel que soit le niveau de cohérence. Le niveau de cohérence contrôle simplement le nombre de réponses que le coordinateur attend avant de répondre au client.
+
+Pour les opérations de lecture, le coordinateur n'envoie généralement des commandes de lecture qu'à un nombre suffisant de répliques pour satisfaire le niveau de cohérence. La seule exception à cette règle est lorsque la relance spéculative peut émettre une demande de lecture redondante à une réplique supplémentaire si les répliques originales n'ont pas répondu dans une fenêtre de temps spécifiée.
+
+==== Choisir les niveaux de cohérence ====
+
+Il est courant de choisir des niveaux de cohérence en lecture et en écriture tels que les ensembles de répliques se chevauchent, de sorte que toutes les écritures reconnues soient visibles pour les lectures ultérieures. Cela s'exprime généralement dans les mêmes termes que Dynamo, à savoir W + R > RF, où W est le niveau de cohérence en écriture, R est le niveau de cohérence en lecture et RF est le facteur de réplication. Par exemple, si RF = 3, une requête QUORUM nécessitera des réponses d'au moins 2/3 répliques. Si QUORUM est utilisé à la fois pour les écritures et les lectures, il est garanti qu'au moins un des réplicas participe à la fois à la demande d'écriture et de lecture, ce qui garantit que les quorums se chevaucheront et que l'écriture sera visible pour la lecture.
+
+Dans un environnement multi-datacenter, LOCAL_QUORUM peut être utilisé pour fournir une garantie plus faible mais néanmoins utile : les lecteurs sont assurés de voir la dernière écriture provenant du même centre de données. Ceci est souvent suffisant car les clients qui se trouvent dans un seul centre de données liront leurs propres écritures.
+
+Si ce type de cohérence forte n'est pas nécessaire, des niveaux de cohérence inférieurs comme LOCAL_ONE ou ONE peuvent être utilisés pour améliorer le débit, la latence et la disponibilité. Avec une réplication couvrant plusieurs centres de données, LOCAL_ONE est généralement moins disponible que ONE mais est plus rapide en règle générale. En effet, ONE réussira si une seule réplique est disponible dans n'importe quel centre de données.

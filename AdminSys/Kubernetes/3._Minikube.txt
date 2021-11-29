@@ -1,0 +1,108 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T09:55:07+00:00
+
+====== 3. Minikube ======
+Créée le jeudi 25 novembre 2021
+
+===== Fonctionnement =====
+
+Une fois installé sur la machine, minikube utilise un hyperviseur ou un exécuteur de conteur pour démarrer un noeud master.
+
+===== Installation =====
+
+* Installer un hyperviseur type 2 ou un gestionnaire de conteneur (docker par exemple)
+
+* Ajouter l'utilisateur au groupe docker
+```
+usermod $USER -aG docker && newgrp docker
+```
+
+* Installer minikube
+```
+sudo pacman -S minikube
+```
+
+* Démarrer minikube
+```
+minikube start
+```
+
+* Installer kubectl
+```
+sudo pacman -S kubectl
+```
+
+* Obtenir la description du pod démarré
+```
+kubectl -n kube-system describe pod kube-scheduler-minikube | grep "Container ID"
+```
+
+* Se connecter à minikube par ssh
+```
+minikube ssh
+```
+
+===== Accès à minikube =====
+
+==== CLI ====
+
+Il s'agit de **kubectl**
+
+* Voir la config qui se trouve dans ~/.kube/config
+```
+kubectl config view
+```
+* Voir les infos sur le cluster
+```
+kubectl cluster-info
+```
+
+==== WEB UI ====
+
+* Ouvrir le dashboard dans un navigateur avec minikube
+```
+minikube dashboard
+```
+
+* Démarrer le service du dashbord avec kubectl
+```
+kubectl proxy
+```
+
+L'URL est [[http://127.0.0.1:<Port>/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/#/workloads?namespace=default]] avec 8001 pour kubectl et 33001 pour minikube
+
+==== API ====
+
+On peut explorer les chemins ci-dessous à http://localhost:8001/ quand kubectl proxy est actif
+Sinon, on doit s'authentifier à l'aide d'un token:
+* Récupérer le token
+```
+TOKEN=$(kubectl describe secret -n kube-system $(kubectl get secrets -n kube-system | grep default | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d '\t' | tr -d " ")
+```
+* Récupérer l'endpoint du serveur d'API
+```
+APISERVER=$(kubectl config view | grep https | cut -f 2- -d ":" | tr -d " ")
+```
+* Appeler l'API
+```
+curl $APISERVER --header "Authorization: Bearer $TOKEN" --insecure
+```
+{{./pasted_image.png}}
+
+Le principal composant du plan de contrôle de Kubernetes est le serveur d'API, chargé d'exposer les API de Kubernetes. 
+Ces API permettent aux opérateurs et aux utilisateurs d'interagir directement avec le cluster.
+
+L'arborescence du répertoire HTTP API de Kubernetes peut être divisée en trois types de groupes indépendants :
+
+* Groupe de base (/api/v1)
+Ce groupe comprend des objets tels que les Pods, les Services, les Nodes, les Namespaces, les ConfigMaps, les Secrets, etc.
+
+* Groupe nommé
+Ce groupe comprend des objets au format /apis/$NAME/$VERSION. Ces différentes versions de l'API impliquent différents niveaux de stabilité et de support :
+	* Niveau alpha - il peut être abandonné à tout moment, sans préavis. Par exemple, /apis/batch/v2alpha1.
+	* Niveau bêta - il est bien testé, mais la sémantique des objets peut changer de manière incompatible dans une version bêta ou stable ultérieure. Par exemple, /apis/certificates.k8s.io/v1beta1.
+	* Niveau stable - apparaît dans le logiciel publié pour de nombreuses versions ultérieures. Par exemple, /apis/networking.k8s.io/v1.
+
+* À l'échelle du système
+Ce groupe est constitué de points de terminaison API pour l'ensemble du système, comme /healthz, /logs, /metrics, /ui, etc.

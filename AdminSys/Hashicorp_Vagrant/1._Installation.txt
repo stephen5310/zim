@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T11:23:18+00:00
+
+====== 1. Installation ======
+
+* Installation de Vagrant
+```
+yum install -y yum-utils
+yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+yum -y install vagrant
+```
+
+* Vagrant fonctionne avec VirtualBox par défaut. D'autres hyperviseurs comme kvm peuvent être utilisés. Pour utiliser vagrant avec kvm, installer le plugin nécessaire.
+```
+vagrant plugin install vagrant-libvirt
+```
+* L'installation échoue parfois lorsque vagrant ne détecte pas libvirt (même si libvirt est installé). Dans ce cas, définir la variable CONFIGURE_ARGS comme suit peut régler le problème.
+```
+CONFIGURE_ARGS="with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib64" vagrant plugin install vagrant-libvirt
+```

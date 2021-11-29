@@ -1,0 +1,62 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-23T14:48:43+00:00
+
+====== 2. Installation ======
+
+===== Chef Workstation =====
+
+Télécharger le rpm et installer
+```
+wget 'https://packages.chef.io/files/stable/chef-workstation/21.9.613/el/7/chef-workstation-21.9.613-1.el7.x86_64.rpm?_ga=2.132644942.1540236311.1632395797-233048004.1632071283' -O chef-workstation-21.9.613-1.el7.x86_64.rpm 
+rpm -Uvh chef-workstation-21.9.613-1.el7.x86_64.rpm
+```
+
+===== Chef Server =====
+
+* La machine doit avoir 3GB de RAM au minimum
+
+* Télécharger le rpm et installer
+```
+wget 'https://packages.chef.io/files/stable/chef-server/14.9.23/el/7/chef-server-core-14.9.23-1.el7.x86_64.rpm?_ga=2.132644942.1540236311.1632395797-233048004.1632071283' -O chef-server-core-14.9.23-1.el7.x86_64.rpm
+rpm -Uvh chef-server-core-14.9.23-1.el7.x86_64.rpm
+```
+
+* Démarrer les services et vérifier leurs statuts
+```
+chef-server-ctl reconfigure
+chef-server-ctl service-list
+chef-server-ctl status
+```
+
+* Créer un utilisateur
+```
+chef-server-ctl user-create admin Admin Admin admin@smile.ci 'adminadmin' --filename /root/admin.pem
+```
+
+* Créer une organisation
+```
+chef-server-ctl org-create smile 'Smile CI' --association_user admin --filename /root/smile-validator.pem
+```
+
+===== Installer **Chef Automate** =====
+
+* La machine doit avoir 2GB de RAM libre et 5GB d'espace libre dans la partition /root au moment de l'installation
+
+* Télécharger l'archive et extraire le script
+```
+curl https://packages.chef.io/files/current/latest/chef-automate-cli/chef-automate_linux_amd64.zip | gunzip - > chef-automate && chmod +x chef-automate
+```
+
+* Générer le fichier de configuration
+```
+./chef-automate init-config
+```
+
+* Éditer le fichier **config.toml** générer pour changer la configuration si nécessaire (fqdn, login, pwd) et déployer Chef Automate
+```
+vim config.toml
+./chef-automate deploy
+```
+
+* Une vérification est effectuée avant l'installation pour préciser les réglages à changer

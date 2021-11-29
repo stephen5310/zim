@@ -1,0 +1,25 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-18T09:35:23+00:00
+
+====== Ceph ======
+
+Ceph est une solution libre de stockage distribué (software-defined storage) très populaire qui propose trois protocoles en un avec : Bloc, Fichiers & Objet (S3). Les objectifs principaux de Ceph sont d'être complètement distribués sans point unique de défaillance, extensible jusqu'à l'exaoctet et librement disponible. Les données sont répliquées, permettant au système d'être tolérant aux pannes.
+Ceph fonctionne sur du matériel standard (serveurs x86) dit commoditaire et de l'Ethernet IP.
+Le système est conçu pour s'autoréparer et automatiser au maximum ses tâches administratives afin de réduire les coûts d'exploitation, et d'être agnostique sur le choix du Hardware associé (disques, serveurs commoditaires).
+
+===== Introduction =====
+
+Que vous souhaitiez fournir des services de Ceph Object Storage et/ou Ceph Block Device à des plates-formes Cloud, déployer un système de fichiers Ceph ou utiliser Ceph dans un autre but, tous les déploiements de Ceph Storage Cluster commencent par la configuration de chaque Ceph Node, de votre réseau et du Ceph Storage Cluster. Un cluster de stockage Ceph nécessite au moins un Ceph Monitor, un Ceph Manager et un Ceph OSD (Object Storage Daemon). Le serveur de métadonnées Ceph est également requis pour l'exécution de clients Ceph File System.
+
+{{./pasted_image.png}}
+
+* Monitors : Un moniteur Ceph (ceph-mon) maintient les cartes de l'état du cluster, y compris la carte du moniteur, la carte du gestionnaire, la carte de l'OSD, la carte du MDS et la carte du CRUSH. Ces cartes constituent l'état critique du cluster nécessaire pour que les démons Ceph puissent se coordonner entre eux. Les moniteurs sont également responsables de la gestion de l'authentification entre les démons et les clients. Au moins trois moniteurs sont normalement nécessaires pour la redondance et la haute disponibilité.
+
+* Managers : Un démon Ceph Manager (ceph-mgr) est responsable du suivi des mesures d'exécution et de l'état actuel du cluster Ceph, y compris l'utilisation du stockage, les mesures de performance actuelles et la charge du système. Les démons Ceph Manager hébergent également des modules basés sur python pour gérer et exposer les informations du cluster Ceph, y compris un tableau de bord Ceph basé sur le web et une API REST. Au moins deux gestionnaires sont normalement nécessaires pour une haute disponibilité.
+
+* OSDs Ceph : Un Ceph OSD (object storage daemon, ceph-osd) stocke les données, gère la réplication, la récupération et le rééquilibrage des données, et fournit certaines informations de surveillance aux Ceph Monitors et Managers en vérifiant les autres Ceph OSD Daemons pour un heartbeat. Au moins 3 Ceph OSD sont normalement nécessaires pour la redondance et la haute disponibilité.
+
+* MDSs : Un serveur de métadonnées Ceph (MDS, ceph-mds) stocke les métadonnées au nom du système de fichiers Ceph (c'est-à-dire que les dispositifs de blocs Ceph et le stockage d'objets Ceph n'utilisent pas de MDS). Les serveurs de métadonnées Ceph permettent aux utilisateurs de systèmes de fichiers POSIX d'exécuter des commandes de base (comme ls, find, etc.) sans imposer une charge énorme au cluster de stockage Ceph.
+
+Ceph stocke les données sous forme d'objets dans des pools de stockage logiques. À l'aide de l'algorithme CRUSH, Ceph calcule quel groupe de placement doit contenir l'objet, et calcule ensuite quel OSD Daemon Ceph doit stocker le groupe de placement. L'algorithme CRUSH permet au cluster de stockage Ceph d'évoluer, de se rééquilibrer et de se rétablir de manière dynamique.

@@ -1,0 +1,43 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-07T10:56:34+00:00
+
+====== Partitionnement de jeux: Hachage cohérent ======
+
+Cassandra atteint l'évolutivité horizontale en partitionnant toutes les données stockées dans le système à l'aide d'une fonction de hachage. Chaque partition est répliquée sur plusieurs nœuds physiques, souvent à travers des domaines de défaillance tels que des racks et même des centres de données. Comme chaque réplique peut accepter indépendamment les mutations de chaque clé qu'elle possède, chaque clé doit être versionnée. Contrairement à l'article original sur Dynamo, où des versions déterministes et des horloges vectorielles étaient utilisées pour concilier les mises à jour simultanées d'une clé, Cassandra utilise un modèle plus simple où chaque mutation est horodatée (y compris les suppressions) et où la dernière version des données est la valeur "gagnante". Formellement, Cassandra utilise un type de données répliqué sans conflit Last-Write-Wins Element-Set pour chaque ligne CQL (a.k.a LWW-Element-Set CRDT) pour résoudre les mutations conflictuelles sur les ensembles répliqués.
+
+==== Hachage cohérent utilisant un anneau à jeton ====
+
+Cassandra répartit les données sur les nœuds de stockage en utilisant une forme spéciale de hachage appelée hachage cohérent. Dans le cas d'un hachage de données naïf, vous attribuez généralement les clés aux seaux en effectuant un hachage de la clé modulo le nombre de seaux. Par exemple, si vous souhaitez distribuer des données à 100 nœuds à l'aide d'un hachage naïf, vous pouvez attribuer à chaque nœud un godet entre 0 et 100, hacher la clé d'entrée modulo 100 et stocker les données dans le godet associé. Dans ce schéma naïf, cependant, l'ajout d'un seul nœud pourrait invalider la quasi-totalité des mappings.
+
+Cassandra fait correspondre chaque nœud à un ou plusieurs jetons sur un anneau de hachage continu, et définit la propriété en hachant une clé sur l'anneau, puis en faisant "marcher" l'anneau dans une direction, comme avec l'algorithme Chord. La principale différence entre le hachage cohérent et le hachage naïf de données est que lorsque le nombre de nœuds (godets) à hacher change, le hachage cohérent ne doit déplacer qu'une petite fraction des clés.
+
+Par exemple, si nous avons un cluster de huit nœuds avec des jetons espacés de manière égale et un facteur de réplication (RF) de 3, pour trouver les nœuds propriétaires d'une clé, nous hachons d'abord cette clé pour générer un jeton (qui est juste le hachage de la clé), puis nous "marchons" dans l'anneau dans le sens des aiguilles d'une montre jusqu'à ce que nous rencontrions trois nœuds distincts, auquel point nous avons trouvé toutes les répliques de cette clé. Dans un système de type Dynamo, les plages de clés, également appelées plages de jetons, correspondent au même ensemble physique de nœuds.
+
+==== Multiples jetons par noeud physique (a.k.a vnodes) ====
+
+Un simple hachage cohérent à jeton unique fonctionne bien si vous avez de nombreux nœuds physiques sur lesquels répartir les données, mais avec des jetons régulièrement espacés et un petit nombre de nœuds physiques, la mise à l'échelle incrémentielle (ajout de quelques nœuds de capacité) est difficile car il n'y a pas de sélection de jetons pour les nouveaux nœuds qui peuvent laisser l'anneau équilibré. Cassandra cherche à éviter le déséquilibre des jetons, car des plages de jetons inégales entraînent une charge de requête inégale. Ainsi, dans l'exemple précédent, il n'est pas possible d'ajouter un neuvième jeton sans provoquer de déséquilibre ; il faudrait plutôt insérer 8 jetons au milieu des plages existantes.
+
+L'article sur Dynamo préconise l'utilisation de "nœuds virtuels" pour résoudre ce problème de déséquilibre. Les nœuds virtuels résolvent le problème en assignant plusieurs jetons dans l'anneau de jetons à chaque nœud physique. En permettant à un seul noeud physique d'occuper plusieurs positions dans l'anneau, nous pouvons donner l'impression que les petits clusters sont plus grands et, par conséquent, même avec l'ajout d'un seul noeud physique, nous pouvons donner l'impression que nous avons ajouté beaucoup plus de noeuds, en prenant effectivement beaucoup de petits morceaux de données de plus de voisins de l'anneau lorsque nous ajoutons même un seul noeud.
+
+Cassandra introduit une nomenclature pour gérer ces concepts :
+
+* Token : Une position unique sur l'anneau de hachage de style Dynamo.
+* Point final : Une seule IP physique et un seul port sur le réseau.
+* Host ID : Un identifiant unique pour un seul noeud "physique", généralement présent à un point d'extrémité et contenant un ou plusieurs jetons.
+* Nœud virtuel (ou vnode) : Un Token sur l'anneau de hachage appartenant au même noeud physique, avec le même Host ID.
+* Le mappage des tokens aux points d'extrémité donne lieu à la carte des tokens, où Cassandra garde la trace des positions de l'anneau correspondant aux points d'extrémité physiques.
+
+Les jetons multiples par nœud physique offrent les avantages suivants :
+
+* Lorsqu'un nouveau nœud est ajouté, il accepte des quantités approximativement égales de données des autres nœuds de l'anneau, ce qui entraîne une distribution égale des données dans l'ensemble du cluster.
+* Lorsqu'un nœud est mis hors service, il perd des données de manière à peu près égale au profit des autres membres de l'anneau, ce qui permet de conserver une distribution égale des données à travers le cluster.
+* Si un nœud devient indisponible, la charge de requête (en particulier la charge de requête consciente des jetons), est distribuée de manière égale sur de nombreux autres nœuds.
+
+Cependant, les jetons multiples peuvent également présenter des inconvénients :
+
+* Chaque jeton introduit jusqu'à 2 * (RF - 1) voisins supplémentaires sur l'anneau de jetons, ce qui signifie qu'il y a plus de combinaisons de défaillances de nœuds où nous perdons la disponibilité pour une partie de l'anneau de jetons. Plus il y a de jetons, plus la probabilité d'une panne est élevée.
+* Les opérations de maintenance à l'échelle du cluster sont souvent ralenties. Par exemple, lorsque le nombre de jetons par nœud augmente, le nombre d'opérations de réparation discrètes que le cluster doit effectuer augmente également.
+* Les performances des opérations qui couvrent des plages de jetons peuvent être affectées.
+
+Notez que dans Cassandra 2.x, le seul algorithme d'allocation de jetons disponible était la sélection de jetons aléatoires, ce qui signifie que pour maintenir l'équilibre, le nombre de jetons par défaut par nœud devait être assez élevé, soit 256. Cela avait pour effet de coupler de nombreux points d'extrémité physiques entre eux, ce qui augmentait le risque d'indisponibilité. C'est pourquoi, dans la version 3.x +, le nouvel allocateur de jetons déterministe a été ajouté. Il choisit intelligemment les jetons de façon à ce que l'anneau soit équilibré de manière optimale tout en nécessitant un nombre beaucoup plus faible de jetons par nœud physique.

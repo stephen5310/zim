@@ -1,0 +1,141 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-18T15:30:45+00:00
+
+====== 1. Architecture ======
+
+Puppet Enterprise (PE) est constitué de divers composants et services, notamment le serveur primaire et les compilateurs, l'agent Puppet, les services de la console, Code Manager et r10k, les services d'orchestration et les bases de données.
+
+{{./pasted_image.png}}
+
+===== Le serveur primaire et les compilateurs =====
+
+Le serveur primaire est le hub central des activités et des processus dans PE. C'est le serveur sur lequel le code est compilé pour créer les catalogues d'agent, et où les certificats SSL sont vérifiés et signés.
+Les composants de l'infrastructure de PE sont installés sur un seul noeud: le **serveur primaire**. Le serveur primaire héberge toujours le compilateur et un **Serveur Puppet (PS)**. À mesure que l'installation croît, ovus pouvez ajouter des compilateurs pour distribuer la charge de compilation de catalogues.
+Chaque compilateur est composé du Serveur Puppet, du compilateur de catalogue, et d'une instance de client **File Sync**.
+
+===== Le Serveur Puppet =====
+
+Le Serveur Puppet est une application qui tourne sur JVM sur le serveur primaire. En plus d'héberger les endpoints pour le Service d'Autorité de Certification (**CAS**), il alimente aussi le compilateur de catalogues, qui compile les catalogues de configuration pour les noeuds agents, en utilisant le code de Puppet et diverses autres sources de données.
+
+===== Le compilateur de catalogue =====
+
+Pour configurer un noeud géré, l'agent utilise un document appelé catalogue, qu'il télécharge depuis le serveur primaire ou un compilateur. Le catalogue décrit l'état désiré pour chaque ressource qui devrait être gérée par le noeud, et il peut spécifier les informations sur les dépendances pour les ressources qui devraient être gérées dans un certain ordre.
+
+===== File sync =====
+
+File sync garde le code synchronisé entre plusieurs compilateurs. Lorsqu'il est déclenché par un point de terminaison web, file sync récupère les changements depuis le répertoire de travail sur le serveur primaire et déploie le code dans un répertoire de code actif. File sync déploie ensuite le code à chacun des compilateurs de sorte que le code soit déployé seulement lorsqu'il est prêt.
+
+===== Certificate Authority =====
+
+Le service d'autorité de certification interne (CA) accepte les requêtes de signature de certificat (CSRs) des noeuds, sert les certificats et la liste de révocation des certificats (CRL) aux noeuds, et accepte optionnellement les commandes pour signer ou révoquer les certificats.
+Le service CA utilise des fichiers **.pem** dans le **ssldir** standard pour stoquer les credentials. Il peut la commande '**puppetserver ca**' pour interagir avec ces credentials, incluant le listage, la signature, et la révocation de certificats.
+**Note:** En fonction de l'architecture et des besoins de sécurité, le CA peut être hébergé sur le serveur primaire ou sur son propre noeud. Le service CA est configuré par défaut sur les compilateurs pour servir de proxy pour les requêtes CA envoyées au CA.
+
+===== L'agent Puppet =====
+
+Les noeuds gérés exécutent une application agent Puppet, qui est généralement un service en arrière-plan. Le serveur primaire et chaque compilateur exécutent aussi un agent Puppet.
+De façon périodique, l'agent Puppet envoie des faits (récupérés à l'aide de **Facter**) au serveur primaire et aux catalogues de requête. Le serveur primaire compile le catalogue en utilisant plusieurs sources d'information, et retourne le catalogue à l'agent.
+Après avoir reçu le catalogue, l'agent l'applique en vérifiant chaque ressource que le catalogue décrit. S'il trouve une quelconque ressource qui n'est pas dans l'état désiré, il effectue les changements nécessaires pour la corriger. (Ou, en mode no-op, il envoie un rapport sur les changements qui auraient pu être effectués).
+Après avoir appliqué le catalogue, l'agent envoie un rapport au serveur primaire. Les rapports de tous les agents sont stockés dans **PuppetDB** et sont accessibles en console.
+L'agent Puppet fonctionne sur les systèmes *nix et windows.
+
+===== Facter =====
+
+Facter est la bibliothèque de profilage système multiplateforme de Puppet. Il découvre et rapporte les faits par noeud, qui sont disponibles dans le manifeste Puppet comme des variables.
+Avant de demander un catalogue, l'agent utilise Facter pour collecter les informations système sur les machines sur lesquelles il est exécuté.
+
+Par exemple, le fait **os** renvoie les informations sur le système d'exploitation de l'hôte, et **networking** renvoie les informations réseau pour le système.
+Chaque fait comporte divers éléments permettant d'affiner les informations recueillies. Dans le fait **networking**, **networking.hostname** donne le nom d'hôte du système.
+
+Facter est livré avec une liste de **core facts** intégrés, mais vous pouvez construire vos propres faits si nécessaire.
+Vous pouvez aussi utiliser les faits pour déterminer l'état opérationnel de vos noeuds, et même de les regrouper et les classifier dans le NC.
+
+===== Services de console =====
+
+Les services de console comprennent la console, le contrôle d'accès basé sur les rôles (RBAC) et les services d'activité, ainsi que le classificateur de nœuds.
+
+==== La console ====
+
+La console est l'interface utilisateur Web permettant de gérer vos systèmes.
+
+La console permet de:
+* parcourir et comparer les ressources sur vos nœuds en temps réel.
+* analyser les événements et les rapports pour vous aider à visualiser votre infrastructure dans le temps.
+* parcourir les données d'inventaire et le contenu des fichiers sauvegardés de vos nœuds.
+* regrouper et classer les nœuds, et contrôler les classes Puppet qu'ils reçoivent dans leurs catalogues.
+* gérer l'accès des utilisateurs, y compris l'intégration avec des annuaires d'utilisateurs externes.
+
+La console exploite les données créées et collectées par PE pour fournir un aperçu de votre infrastructure.
+
+==== RBAC ====
+
+Dans PE, vous pouvez utiliser RBAC pour gérer les permissions des utilisateurs. Les permissions définissent les actions que les utilisateurs peuvent effectuer sur des objets désignés.
+
+Par exemple :
+
+* L'utilisateur peut-il accorder des jetons de réinitialisation de mot de passe à d'autres utilisateurs qui ont oublié leur mot de passe ?
+* L'utilisateur peut-il modifier le rôle ou les autorisations d'un utilisateur local ?
+* L'utilisateur peut-il modifier les paramètres de classe dans un groupe de nœuds ?
+
+Le service RBAC peut se connecter à des annuaires LDAP externes. Cela signifie que vous pouvez créer et gérer des utilisateurs localement dans PE, importer des utilisateurs et des groupes à partir d'un annuaire existant, ou faire une combinaison des deux. PE supporte OpenLDAP et Active Directory.
+
+Vous pouvez interagir avec les services RBAC et d'activité par le biais de la console. Vous pouvez également utiliser l'API du service RBAC et l'API du service d'activité. Le service d'activité enregistre les événements pour les rôles d'utilisateur, les utilisateurs et les groupes d'utilisateurs.
+
+Les utilisateurs PE génèrent des jetons pour authentifier leur accès à certains outils de ligne de commande et points de terminaison API. Les jetons d'authentification sont utilisés pour gérer l'accès aux services et outils PE suivants : Puppet orchestrator, Code Manager, Node Classifier, contrôle d'accès basé sur les rôles (RBAC) et le service d'activité.
+
+Les jetons d'authentification sont liés aux autorisations accordées à l'utilisateur par le biais du RBAC, et fournissent aux utilisateurs l'accès approprié aux requêtes HTTP.
+
+==== Classificateur de nœuds ====
+
+PE est livré avec son propre classificateur de nœuds (NC), qui est intégré à la console.
+
+La classification est le moment où vous configurez vos nœuds gérés en leur attribuant des classes. Les classes fournissent le code Puppet - distribué en modules - qui vous permet de définir la fonction d'un nœud géré, ou de lui appliquer des paramètres et des valeurs spécifiques. Par exemple, vous pouvez souhaiter que l'heure soit synchronisée sur tous vos nœuds gérés. Dans ce cas, vous devez regrouper les nœuds de la CN, appliquer une classe NTP au groupe et définir un paramètre sur cette classe pour qu'elle pointe vers un serveur NTP spécifique.
+
+Vous pouvez créer vos propres classes ou tirer parti des nombreuses classes déjà créées par la communauté Puppet. Réduisez les risques de nouveaux bogues et gagnez du temps en utilisant les classes existantes des modules de la Forge, dont beaucoup sont approuvées ou prises en charge par Puppet, Inc.
+
+Vous pouvez également classer les nœuds à l'aide de l'API NC.
+
+* Informations connexes
+* Gestion des accès
+* Gestion des nœuds
+* Gestionnaire de code et r10k 
+
+PE inclut des outils pour gérer et déployer votre code Puppet : Code Manager et r10k.
+
+Ces outils installent les modules, créent et maintiennent les environnements, et déploient le code sur vos serveurs primaires, le tout basé sur le code que vous conservez dans Git. Ils synchronisent le code avec vos serveurs primaires, de sorte que tous vos serveurs commencent à exécuter le nouveau code en même temps, sans interrompre l'exécution des agents.
+
+Code Manager et r10k sont tous deux intégrés à PE, vous n'avez donc rien à installer, mais vous devez avoir une connaissance de base de Git.
+
+Code Manager est livré avec un outil de ligne de commande que vous pouvez utiliser pour déclencher des déploiements de code depuis la ligne de commande.
+
+===== Services d'orchestration =====
+
+Les services d'orchestration constituent le jeu d'outils sous-jacent de Puppet Application Orchestration et de l'orchestrateur Puppet.
+
+Puppet Application Orchestration fournit des extensions du langage Puppet et des outils en ligne de commande pour vous aider à configurer et à gérer des applications multiservices et multi-nœuds. Plus précisément, l'orchestration d'applications est :
+
+Des éléments du langage Puppet permettant de décrire les relations de configuration entre les composants d'une application distribuée.
+Par exemple, dans une infrastructure d'application à trois niveaux - un équilibreur de charge, un serveur d'application/web et un serveur de base de données - ces serveurs dépendent les uns des autres. Le serveur d'application doit savoir où se trouve le service de base de données et comment il se connecte, afin de pouvoir lancer proprement l'application. Vous voulez ensuite que l'équilibreur de charge se configure automatiquement pour équilibrer la demande sur un certain nombre de serveurs d'application. Et si vous mettez à jour la configuration de ces machines, ou si vous déployez une nouvelle version de l'application, vous voulez que les trois niveaux se reconfigurent dans le bon ordre.
+
+Un service qui orchestre l'application ordonnée de la configuration du niveau du nœud au niveau de l'environnement.
+L'orchestrateur est un outil en ligne de commande permettant de planifier, d'exécuter et d'inspecter les tâches d'orchestration. Par exemple, vous pouvez l'utiliser pour examiner les instances d'application déclarées dans un environnement ou pour appliquer des changements au niveau de l'environnement sans attendre que les nœuds s'enregistrent à intervalles réguliers de 30 minutes.
+
+Le service d'orchestration interagit avec PuppetDB pour récupérer les informations sur les nœuds. Pour exécuter les tâches de l'orchestrateur, les utilisateurs doivent d'abord s'authentifier auprès de Puppet Access, qui vérifie leur profil d'utilisateur et de permission tel que géré dans RBAC.
+
+===== Bases de données PE =====
+
+PE utilise PostgreSQL comme base de données. Vous pouvez utiliser une instance existante, ou PE peut en installer et en gérer une nouvelle.
+
+L'instance PostgreSQL de PE comprend les bases de données suivantes :
+
+* pe-activity: Données d'activité du classificateur, y compris qui, quoi et quand.
+* pe-classifier: Données de classification, toutes les informations sur les groupes de nœuds
+* pe-puppetdb: Ressources, catalogues, faits et rapports exportés (voir plus bas)
+* pe-rbac: Utilisateurs, permissions et informations AD/LDAP
+* pe-orchestrator: Détails sur les exécutions de tâches, les utilisateurs, les nœuds et les résultats d'exécution
+
+===== PuppetDB =====
+
+ 
+PuppetDB collecte les données générées dans l'ensemble de votre infrastructure Puppet. Elle permet des fonctionnalités avancées comme les ressources exportées, et constitue la base de données à partir de laquelle les différents composants et services de PE accèdent aux données. Les rapports d'exécution des agents sont stockés dans PuppetDB.

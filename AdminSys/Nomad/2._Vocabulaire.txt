@@ -1,0 +1,45 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-03T16:59:42+00:00
+
+====== 2. Vocabulaire ======
+Créée le mercredi 03 novembre 2021
+
+===== Cluster nomad =====
+
+* agent : Un agent Nomad est un processus Nomad fonctionnant en mode serveur ou client. Les agents sont les éléments de base d'un cluster Nomad.
+
+* dev agent : Un agent de développement Nomad est une configuration spéciale qui fournit des valeurs par défaut utiles pour effectuer des expériences avec Nomad. Il fonctionne en mode serveur et client et ne persiste pas l'état de son cluster sur le disque, ce qui permet à votre agent de démarrer à partir d'un état propre répétable sans avoir à supprimer l'état basé sur le disque entre les exécutions. Les agents Nomad dev sont destinés au développement et à l'utilisation expérimentale uniquement.
+
+* server : Un agent Nomad fonctionnant en mode serveur. Les serveurs Nomad sont les cerveaux du cluster. Il y a une grappe de serveurs par région et ils gèrent tous les travaux et clients, exécutent des évaluations et créent des allocations de tâches. Les serveurs répliquent les données entre eux et procèdent à l'élection des leaders pour assurer une haute disponibilité. Les serveurs se fédèrent entre les régions pour que Nomad ait une conscience globale. Tous les serveurs d'une région sont membres du même domaine gossip et du même groupe de consensus.
+
+* Leader : Le leader est un serveur Nomad qui effectue la majeure partie de la gestion du cluster. Il est chargé d'appliquer les plans, de dériver les jetons Vault pour les charges de travail et de maintenir l'état du cluster.
+
+* Follower : Serveurs Nomad non leaders. Les suiveurs créent des plans d'ordonnancement et les soumettent au leader pour fournir plus de capacité d'ordonnancement au cluster.
+
+* client : Un agent Nomad fonctionnant en mode client. Les agents clients sont chargés de s'enregistrer auprès des serveurs, de surveiller tout travail à attribuer et d'exécuter les tâches. Les clients créent une connexion multiplexée avec les serveurs. Cela permet de réaliser des topologies qui requièrent une traversée NAT. Une fois connectés, les serveurs utilisent cette connexion pour transmettre les appels RPC aux clients si nécessaire.
+
+  {{./pasted_image.png?width=1300}}
+
+===== Objets nomad =====
+
+* job - Un job définit un ou plusieurs groupes de tâches qui contiennent une ou plusieurs tâches.
+
+* spécification de tâche - La spécification de tâche Nomad (ou "jobspec" en abrégé) définit le schéma des tâches Nomad. Elle décrit le type de tâche, les tâches et les ressources nécessaires à l'exécution de la tâche et comprend également des informations supplémentaires sur la tâche (comme les contraintes, la propagation, les politiques de l'autoscaler, les informations sur le service Consul, etc.)
+
+* Groupe de tâches - Un groupe de tâches est un ensemble de tâches qui doivent être exécutées ensemble. Par exemple, un serveur Web peut exiger qu'un coprocessus d'expédition de journaux soit toujours exécuté en même temps. Un groupe de tâches est l'unité de planification, ce qui signifie que l'ensemble du groupe doit être exécuté sur le même nœud client et ne peut pas être divisé. Une instance en cours d'exécution d'un groupe de tâches est une allocation.
+
+* pilote de tâche - Un pilote de tâche représente le moyen de base pour exécuter vos tâches. Nomad fournit plusieurs pilotes de tâches intégrés : Docker, QEMU, Java et les binaires statiques. Nomad permet également l'utilisation de pilotes de tâches tiers grâce à son architecture pluggable.
+
+* tâche - Une tâche est la plus petite unité de travail dans Nomad. Les tâches sont exécutées par des pilotes de tâches, ce qui permet à Nomad d'être flexible dans les types de tâches qu'il supporte. Les tâches spécifient leur pilote de tâche requis, la configuration du pilote, les contraintes et les ressources nécessaires.
+
+* Allocation - Une allocation est une correspondance entre un groupe de tâches dans un travail et un nœud client. Un seul travail peut avoir des centaines ou des milliers de groupes de tâches, ce qui signifie qu'un nombre équivalent d'allocations doit exister pour faire correspondre le travail aux machines clientes. Les allocations sont créées par les serveurs Nomad dans le cadre des décisions de planification prises lors d'une évaluation.
+
+* évaluation - Les évaluations sont le mécanisme par lequel Nomad prend des décisions d'ordonnancement. Quand l'état désiré (travaux) ou l'état réel (clients) change, Nomad crée une nouvelle évaluation pour déterminer si des actions doivent être prises. Une évaluation peut entraîner des changements dans les allocations si nécessaire.
+
+===== Planification =====
+
+* bin packing - Le bin packing est un algorithme qui tire son nom d'un exercice du monde réel consistant à ranger des objets de taille irrégulière dans des boîtes ou des bacs. L'algorithme bin packing tente de créer l'arrangement le plus dense d'objets en utilisant le moins de boîtes possible. Dans le cas de Nomad, ces objets sont des allocations déployées. Le bin packing profite aux personnes qui utilisent des plateformes de facturation au compteur en consolidant l'utilisation et en mettant en évidence le surapprovisionnement qui pourrait alors être réduit.
+
+* spread scheduling - Le spread scheduling est l'opposé du bin packing. L'objectif de l'ordonnancement étalé est de répartir une charge aussi uniforme que possible sur un parc de machines. Cet algorithme d'ordonnancement est idéal pour les personnes qui disposent de centres de données sur site ou de nœuds engagés dans lesquels elles ont déjà investi.
+

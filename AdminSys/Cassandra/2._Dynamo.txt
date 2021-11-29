@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-07T09:58:36+00:00
+
+====== 2. Dynamo ======
+
+Apache Cassandra s'appuie sur un certain nombre de techniques issues du système de stockage distribué clé-valeur Dynamo d'Amazon. Chaque nœud du système Dynamo comporte trois éléments principaux :
+
+* La coordination des requêtes sur un jeu de données partitionné.
+* L'appartenance à un anneau et la détection des pannes
+* Un moteur de persistance (stockage) local
+
+Cassandra s'inspire principalement des deux premiers composants de regroupement, tout en utilisant un moteur de stockage basé sur un arbre de fusion structuré en logs (LSM). En particulier, Cassandra s'appuie sur le style Dynamo :
+
+* Partitionnement des jeux de données à l'aide d'un hachage cohérent
+* Réplication multi-maître utilisant des données versionnées et une cohérence réglable
+* Adhésion à un cluster distribué et détection des pannes par le biais d'un protocole gossip.
+* Mise à l'échelle incrémentale sur du matériel de base
+
+
+===== Réplication multi-maîtres: Donnée versionnée et cohérance ajustable =====

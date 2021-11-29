@@ -1,0 +1,95 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-07T08:58:29+00:00
+
+====== 2. Installation et configuration ======
+
+Les commandes sont à exécuter avec l'utilisateur root.
+
+===== Sur des serveurs CentOS 7 =====
+
+==== Installation ====
+```
+yum install -y epel-release elrepo-release
+yum install -y yum-plugin-elrepo
+yum install -y kmod-wireguard wireguard-tools
+modprobe wireguard
+```
+
+==== Génération des clés et ajout de l'interface ====
+
+**Génération des clés**
+```
+umask 0077
+wg genkey > privatekey
+wg pubkey < privatekey > publickey
+```
+
+**Création du fichier de configuration**
+
+Créer un fichier de configuration wg0.conf dans /etc/wireguard
+
+* Pour une machine cliente
+```
+[Interface]
+Address = client_vpn_ip/32
+PrivateKey =  client_privatekey
+ListenPort = client_listen_port
+
+[Peer]
+PublicKey = server_publickey
+Endpoint = server_ip_reachable_by_client:server_port
+AllowedIPs = 0.0.0.0/0, ::/0
+```
+
+* Pour une machine serveur
+```
+[Interface]
+Address = server_vpn_ip/24
+PrivateKey = server_private_key
+ListenPort = server_listen_port
+
+[Peer]
+PublicKey = client_public_key
+AllowedIPs = client_vpn_ip/32
+
+[Peer]
+PublicKey = client_public_key
+AllowedIPs = client_vpn_ip/32
+```
+
+**Démarrer/Arrêter l'interface depuis le fichier de configuration**
+```
+wg-quick up wg0
+```
+
+**Démarrer/Activer l'interface en tant que service**
+```
+systemctl start wg-quick@wg0
+systemctl enable wg-quick@wg0
+```
+
+**Autoriser les communications dans le firewall**
+* Pour une machine cliente
+```
+firewall-cmd --add-port=client_listen_port/udp --permanent
+firewall-cmd --reload
+```
+
+* Pour une machine serveur
+```
+firewall-cmd --add-port=client_listen_port/udp --permanent
+firewall-cmd --add-masquerade --permanent
+firewall-cmd --reload
+```
+
+**Afficher les informations sur l'interface**
+```
+wg
+wg show
+```
+
+**Test**
+```
+ping peer_vpn_ip
+```

@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-20T11:04:45+00:00
+
+====== 4. Fédération sortante avec de IDP sociaux et tiers ======
+
+La fédération d'identités permet connecter l'identité digitale d'une personne et ses attributs enregistrés dans plusieurs domaines de confiance distincts.
+
+* Permet aux utilisateurs d'accéder aux applications avec un minimum d'efforts
+* Permet aux entreprises:
+	* d'adopter de nouvelles demandes d'affaires et plus rapidement
+	* de se conformer aux exigences complexes de l'organisation:
+		* polices de mots de passe
+		* authentification forte
+		* polices de connexion
+		* conformité régulatoire
+
+{{./pasted_image.png?width=1000}}
+
+{{./pasted_image001.png?width=1000}}
+
+Avantages:
+* Sécurité:
+	* standards libres
+	* SSO
+	* authentification multi-facteurs
+* Coût:
+	* polices de contrôle d'accès standards
+	* minimise le temps et l'effort pour établir la conformité aux régulations et adopter les tendances de sécurités récents

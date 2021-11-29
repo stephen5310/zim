@@ -1,0 +1,59 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-12T09:57:00+00:00
+
+====== 2. Installation et configuration ======
+Créée le vendredi 12 novembre 2021
+
+===== Installation =====
+
+* Installer docker et docker-compose
+* Télécharger, extraire l'archive de APICTL et ajouter le script aux binaires
+```
+wget https://github.com/wso2/product-apim-tooling/releases/download/v4.1.0-m1/apictl-4.1.0-m1-linux-x64.tar.gz
+tar xf [[https://github.com/wso2/product-apim-tooling/releases/download/v4.1.0-m1/apictl-4.1.0-m1-linux-x64.tar.gz|apictl-4.1.0-m1-linux-x64.tar.gz]]
+ln -s /root/apictl/apictl /usr/bin/apictl
+```
+
+* Télécharger et extraire l'archive de Choreo Connect
+```
+wget https://github.com/wso2/product-microgateway/releases/download/v1.0.0-alpha/choreo-connect-1.0.0-alpha.zip
+unzip choreo-connect-1.0.0-alpha.zip
+```
+
+===== Configurer l'API manager comme plan de contrôle =====
+
+* S'assurer que l'API manager est bien démarré
+* Éditer la section **[controlPlane.eventHub]** du fichier de configuration de Choreo Connect //<choreo_home>/docker-compose/choreo-connect-with-apim/conf/config.toml// 
+	* définir "enabled" sur true
+	* mettre à jour les points de terminaison serviceUrl et eventHub avec l'IP du gestionnaire d'API. (Recherchez apim et remplacez-les par l'IP. Ou bien, ajoutez une entrée dans le fichier /etc/hosts comme <ip-of-apim> apim)
+	* si vous voulez utiliser un environnement de passerelle autre que celui par défaut, mettez à jour "environmentLabels" avec le nom du nouvel environnement de passerelle. Sinon, laissez la valeur "Default" telle quelle.
+	* Exemple de configuration
+```
+[controlPlane]
+  enabled = true
+  serviceURL = "https://192.168.1.71:9443/"
+  username = "admin"
+  password = "admin"
+  environmentLabels = ["Default"]
+  skipSSLVerification = true
+  [controlPlane.brokerConnectionParameters]
+	eventListeningEndpoints = ["amqp://admin:admin@192.168.1.71:5672?retries='10'&connectdelay='30'"]
+```
+
+* Démarrer Choreo Connect
+```
+cd <choreo_home>/docker-compose/choreo-connect-with-apim/
+docker-compose up -d
+```
+
+* Créer un nouvel environnement de Gateway dans l'API manager depuis le portail administrateur
+
+===== Déployer une API depuis l'API developer portal =====
+
+* Configurez la section de configuration [controlPlane] de Choreo Connect pour qu'elle pointe vers le gestionnaire d'API.
+* L'utilisateur crée une révision de l'API à partir du portail de l'éditeur API Manager.
+* Il sélectionne Choreo Connect comme environnement de passerelle et déploie l'API.
+* Le composant adaptateur de Choreo Connect reçoit l'événement de déploiement de l'API depuis le composant concentrateur d'événements du gestionnaire d'API.
+* L'adaptateur extrait l'objet API du concentrateur d'événements à la réception de l'événement de déploiement d'API.
+* L'API est transmise au routeur et à l'exécuteur par l'adaptateur.

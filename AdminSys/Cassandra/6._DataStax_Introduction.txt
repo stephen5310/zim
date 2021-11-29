@@ -1,0 +1,106 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-12T10:12:00+00:00
+
+====== Introduction: ======
+
+===== Généralités sur les SGBDR =====
+
+==== L'ACID est impossible avec SGBDR ====
+
+La consitence par exemple ne peut pas être atteinte puisque la réplication est asynchrone. La lecture sur les noeuds non synchronisés donnera des résultats pas à jour.
+L'application devra être développée de sorte à s'adapter au temps de latence de réplication.
+La complexité des requêtes a un impact sur la vitesse de leur exécution. Il faut dans certains cas dénormaliser les données pour avoir des vues plus simples.
+Les R/W sur le disque sont coûteuses.
+Le sharding est compliqué. Il faut une dénormalisation totale. Ajouter des shards demande de déplacer des données manuellement.
+La failover est compliqué à mettre en place. Les interruptions de service sont fréquentes.
+
+==== QUE FAIRE? ====
+
+La consistence n'est pas réalisable: on laisse tomber.
+Le sharding manuel et le rebalancing est compliqué: on l'intègre à l'application.
+Toutes les parties à déplacer augmentent la complexité du système: plus de master/slave.
+L'extension verticale est coûteuse: on utilsera du matériel bon marché.
+La répartition des requêtes de lecture par noeuds est une mauvaise idée: les requêtes doivent attaquer le même noeud.
+
+===== Généralités sur Cassandra =====
+
+==== Propriétés ====
+
+Base de données distribuée rapide
+Haute disponibilité
+Évolutivité linéaire
+Performances prévisibles
+Pas de SPOF
+Multi-DC (data center)
+Matériel bon marché
+Facile à gérer par des admins
+Pas un remplaçant de SGBDR (reconcevoir la base de données est nécessaire pour une migration)
+
+==== Anneau hashé ====
+
+Pas de master / slave / ensemble de réplicats
+Pas de serveur de configuration ni de zookeeper
+Les données sont partionnées sur l'anneau
+Les données sont répliquées sur N=RF serveurs (N+1=nombre total de noeud hébergeant les données)
+Tous les noeuds stockent des données et peuvent répondre aux requêtes (R/W)
+L'emplacement des données sur l'anneau est déterminée par la clé de partition (clé primaire en SGBDR)
+
+==== Compromis du CAP ====
+
+Impossible d'obtenir la consitence et la haute disponibilité simultanément dans un réseau partitionné
+La latence entre les datacenters rend la consistence irréalisable
+Cassandra choisit la disponibilité et la tolérance au partionnement au détriment de la consistence
+
+==== Réplication ====
+
+Les données sont répliquées automatiquement
+Le nombre de serveurs sur lesquels les répliquer est défini par **RF** lors de la définition d'un **keyspace** (collection de tables)
+Les données sont toujours répliquées de façon asynchrone sur chaque réplicat
+Si une machine est indisponible pour la réplication, un hint (une indication) est sauvegardé pour pouvoir lui transmettre les données à son retour dans le cluster. Ça s'appelle le hinted handoff (transfert suggéré).
+
+==== Niveaux de consistence ====
+
+Consitence par requête
+ALL, QUORUM, ONE
+Combien de réplicats doivent répondre pour que la requête soit OK
+Impacte sur la vitesse de R/W et la disponibilité
+
+==== Multi-DC ====
+
+Les clients écrivent sur le DC local, la réplication est asynchrone sur les autres DC
+RF peut être défini par keyspace et par DC
+Les DC peuvent être physiques comme logiques
+
+===== FONCTIONNEMENT DE CASSANDRA ET CHOIX DE DISTRIBUTION =====
+
+==== Processus d'écriture ====
+
+L'écriture se fait sur n'importe quel noeud du cluster (appelé coordinateur de cette opération)
+Les écritures sont contenues dans un journal de commit avant d'être mis dans une memtable (représentation en mémoire de la table)
+Toutes les écritures contiennent un horodatage
+Les memtables sont déversées sur le disque périodiquement dans des sstables
+Les suppressions sont un cas spécial d'écriture appelé tombstone (les données sont présentes mais marquées comme absentes)
+
+==== SSTable ====
+
+Fichier de données immuable pour le stockage des lignes
+Tous les écrits contiennent un horodatage du moment où il a été écrit
+Les partitions sont réparties entre plusieurs SSTables
+Une même colonne peut se retrouver dans plusieurs SSTables
+Fusion par compactage, seul le dernier horodatage est retenu
+Les suppressions sont écrites comme tombstones
+Les sauvegardes sont facile à effectuer (on copie les SSTables)
+
+==== Processus de lecture ====
+
+N'importe quel serveur peut être interrogé
+Les noeuds sont contactés avec la clé requise
+Sur chaque noeud les données sont récupérées depuis les SSTables et fusionnées
+Consistence < tous les noeuds effectuant des read repair en arrière plan (read_repair_chance est défini pour amener Cassandra à interroger les autres noeuds pour s'assurer de la consistence de la lecture)
+Le type de disque (SSD/HDD) a un grand impact sur la vitesse de lecture
+
+==== Choix d'une distribution ====
+
+Apache cassandra open source: à la pointe de la technologie, support via JIRA, mailing list et IRC, parfait pour hacker
+DataStax Enterprise: recherche multi-dc, spark pour les analyses, support étendu, QA additionnels, basé sur les releases stables, disponible sur usb

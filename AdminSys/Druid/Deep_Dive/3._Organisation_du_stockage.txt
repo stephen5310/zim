@@ -1,0 +1,110 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-24T14:31:30+00:00
+
+====== Organisation du stockage ======
+
+==== Datasources et segments ====
+
+Les données de Druid sont stockées dans des "datasources", qui sont similaires aux tables dans les SGBD traditionnels. Chaque source de données est divisée par le temps et, éventuellement, par d'autres attributs. Chaque intervalle de temps est appelé un "chunk" (par exemple, un seul jour, si votre source de données est partitionnée par jour). Au sein d'un chunk, les données sont divisées en un ou plusieurs "segments". Chaque segment est un fichier unique, comprenant généralement jusqu'à quelques millions de lignes de données. Puisque les segments sont organisés en tranches de temps, il est parfois utile de penser aux segments comme s'ils vivaient sur une ligne de temps comme la suivante :
+{{./pasted_image.png?width=1000}}
+
+Une source de données peut avoir de quelques segments à des centaines de milliers, voire des millions de segments. Chaque segment commence sa vie en étant créé sur un MiddleManager, et à ce stade, il est mutable et non validé.
+Périodiquement, les segments sont validés et publiés. À ce stade, ils sont écrits dans le stockage permanent, deviennent immuables et passent des MiddleManager aux Historical. Une entrée concernant le segment est également écrite dans le magasin de métadonnées. Cette entrée est une métadonnée autodécrivante sur le segment, comprenant des éléments tels que le schéma du segment, sa taille et son emplacement sur le stockage permanent. Ces entrées sont utilisées par le Coordinator pour savoir quelles données doivent être disponibles sur le cluster.
+
+==== Indexation et relais ====
+
+L'indexation est le mécanisme par lequel de nouveaux segments sont créés, et le relais est le mécanisme par lequel ils sont publiés et commencent à être servis par les processus Historical. 
+
+Ce mécanisme fonctionne comme suit du point de vue de l'indexation:
+1. Une tâche d'indexation démarre et construit un nouveau segment. Elle doit déterminer l'identifiant du segment avant de commencer à le construire. Pour une tâche qui ajoute (Comme une tâche Kafka, ou une tâche d'indexation en mode ajout) cela se fera en appelant une API "allocate" sur l'Overlord pour potentiellement ajouter une nouvelle partition à l'ensemble de segments existant. Pour une tâche qui modifie (comme une tâche Hadoop, ou une tâche d'indexation qui n'est pas en mode ajout) cela se fait en réservant un intervalle, en générant un nouveau numéro de version et un nouvel ensemble de segments.
+2. Si la tâche d'indexation est une tâche s'exécutant en temps réel (comme une tâche Kafka) alors le segment est immédiatement interrogeable à ce moment. Il est disponible mais pas publié.
+3. Quand la tâche d'indexation a fini de lire les données du segment, elle les envoie au stockage permanent et ensuite les publie en ajoutant un enregistrement à l'entrepôt de métadonnée.
+4. Si la tâche d'indexation est une tâche s'exécutant en temps réel, à ce niveau elle attendra qu'un processus Historical charge le segment. Dans le cas contraire, elle se termine immédiatement.
+
+Il fonctionne de cette manière du côté du Coordinator/Historical:
+1. Le Coordinator sonde le magasin de métadonnées de façon périodique (1min par défaut) à la recherche de segments nouvellement publiés.
+2. Quand le Coordinator trouve un segment publié et utilisé, mais indisponible, il choisit un processus Historical pour charger ce segment et commencer à le servir et lui donne les intructions pour le faire.
+3. Le Historical charge le segment et commence à le servir.
+4. À ce niveau, si la tâche d'indexation attendait un relais, elle se terminera.
+
+==== Identifiant de segment ====
+
+Les segments ont tous un identifiant à quatre parties avec les composants suivants:
+* Nom de datasource
+* Intervalle de temps (pour le morceau de temps contenant le segment; cela correspond au "segmentGranularity" spécifié au moment de l'ingestion)
+* Numéro de version (généralement une dateheure ISO8601 correspondant  au moment où l'ensemble de segment a démarré pour la première fois).
+* Numéro de partition (un entier, unique dans une datasource+intervalle+version; peut ne pas être nécessairement contigu.
+
+Par example, ceci est l'identifiant pour un segment dans une source de données clarity-cloud0, morceau de temps "2018-05-21T16:00:00.000Z/2018-05-21T17:00:00.000Z", version "2018-05-21T15:56:09.909Z", et numéro de partition "1":
+
+{{{code: lang="ini" linenumbers="True"
+clarity-cloud0_2018-05-21T16:00:00.000Z_2018-05-21T17:00:00.000Z_2018-05-21T15:56:09.909Z_1
+}}}
+
+
+Les segments de la partition numéro 0 (la première partition dans un morceau) se passent du numéro de partion, comme dans l'exemple suivant, qui est un segment du même morceau que le précédent, mais de la partition numéro 0.
+
+{{{code: lang="ini" linenumbers="True"
+clarity-cloud0_2018-05-21T16:00:00.000Z_2018-05-21T17:00:00.000Z_2018-05-21T15:56:09.909Z
+}}}
+
+
+==== Versionage de segment ====
+
+Le versionage de segment permet la réécriture par lot. Dans Druid, si vous ne faites qu'ajouter des données, alors il n'y aura qu'une version à chaque morceau de temps. Mais si vous modifiez des données, un nouvel ensemble de segments est créé avec les mêmes propriétés mais un numéro de version supérieur. C'est un signal envoyé au reste du système Druid que cette ancienne version devra être retirée du cluster, et la nouvelle version la remplacer.
+Le changement paraît instantané à l'utilisateur, parce-que Druid le fait en commençant par charger les nouvelles données (sans les rendre interrogeables). Ensuite, aussi vite que les nouvelles données sont chargées, Druid redirige toutes les nouvelles requêtes vers les nouveaux segments. Les anciens segments sont supprimés quelques minutes après.
+
+==== Cycle de vie d'un segment ====
+
+Chaque segment a un cycle de vie qui comprend trois parties principales:
+1. Entrepôt de métadonnées: les métadonnées du segment sont enregistrées dans le magasin de métadonnées à la fin de leur construction. Le fait d'ajouter un enregistrement pour un segment dans l'entrepôt de métadonnées s'appelle la publication. Ces enregistrements de métadonnées ont un drapeau booléen nommé "used", qui contrôle si le segment est interrogeable ou non. les segements créés par des tâches en temps réel seront disponibles avant d'être publiées, puisqu'elles ne sont publiées qu'une fois le segment complet et n'accepteront de lignes de données additionnelles.
+2. Le stockage permanent: Les fichiers de segment de données sont envoyés au stockage permanent une fois la construction du segment achevée. Cela se passe immédiatemement avant la publication de métadonnées au stockage de métadonnées.
+3. Interrogeabilité: les segments sont interrogeables sur quelques serveurs de données Druid, comme une tâche en temps réel ou un processus Historical.
+
+Vous pouvez inspecter l'état des segments présentement actifs en utilisant la table "sys.segments" de Druid SQL. Elle contient les drapeaux suivants:
+* "is_published": True si le segment de métadonnées a été publié dans les stockage de métadonnées et "used" est True.
+* "is_available": True si le segment est actuellement interrogeable, que ce soit sur une tâche en temps réel ou un processus Historical.
+* "is_realtime": True si le segment est seulement disponible pour les tâches en temps réel. Pour les sources de données qui utilisent l'ingestion en temps réel, ce champ commence généralement à "true" et devient par la suite "false" si le segment est publié et relayé.
+* "is_overshadowed": True si le segment est publié (avec "used" à true) et est complètement éclipsé par un autre segment publié. Généralement cet état est transitoire, et les segments dans cet état verront dans peu de temps leur drapeau "used" passer à false.
+
+==== Disponibilité et consistance ====
+
+Druid a une séparation architecturale entre l'ingestion et l'interrogation, comme décrit dans Indexation et relais. Cela signifie qu'une fois avoir compris la disponibilité et les propriétés de consistance de Druid, nous devons nous intéresser à chaque fonction séparément.
+
+=== Ingestion ===
+
+En ce qui concerne l'**ingestion**, les principales méthodes sont toutes basées sur l'extraction et offrent des garanties transactionnelles. Cela signifie que vous avez la garantie que l'ingestion qui les utilise publiera de manière tout ou rien:
+* Méthodes d'ingestion supervisées "seekable-stream" comme Kafka et Kinesis: Avec ces méthodes, Druid commet les offsets de flux dans son magasin de métadonnées avec les métadonnées de segment, dans la même transaction. Notez que l'ingestion de données qui n'ont pas encore été publiées peut être annulée si les tâches d'ingestion échouent. Dans ce cas, les données partiellement ingérées sont rejetées et Druid reprend l'ingestion à partir du dernier ensemble d'offsets de flux. Cela garantit un comportement de publication exactement une fois.
+* Ingestion par lots basée sur Hadoop: Chaque tâche publie toutes les métadonnées du segment en une seule transaction.
+* Ingestion par lot native: En mode parallèle, la tâche superviseur publie toutes les métadonnées de segment en une seule transaction après que les sous-tâches soient terminées. En mode simple (monotâche), la tâche unique publie toutes les métadonnées de segment dans une transaction unique une fois qu'elle est terminée.
+
+Tranquility, une méthode d'ingestion en continu qui n'est plus recommandée, n'effectue pas de chargement transactionnel.
+
+En outre, certaines méthodes d'ingestion offrent une garantie d'idempotence. Cela signifie que des exécutions répétées de la même ingestion n'entraîneront pas l'ingestion de données en double :
+* Les méthodes d'ingestion supervisées "seekable-stream" comme Kafka et Kinesis sont idempotentes car les offsets de flux et les métadonnées de segment sont stockés ensemble et mis à jour en même temps.
+* L'ingestion par lots basée sur Hadoop est idempotente, sauf si l'une de vos sources d'entrée est la même source de données Druid que celle vers laquelle vous faites l'ingestion. Dans ce cas, exécuter deux fois la même tâche n'est pas idempotent, car vous ajoutez aux données existantes au lieu de les écraser.
+* L'ingestion native par lots est idempotente, sauf si appendToExisting est vrai, ou si l'une de vos sources d'entrée est la même source de données Druid que celle dans laquelle vous effectuez l'ingestion. Dans ces deux cas, exécuter deux fois la même tâche n'est pas idempotent, car vous ajoutez aux données existantes au lieu de les écraser.
+
+=== Requêtes ===
+
+Du côté des requêtes, le Broker Druid est chargé de s'assurer qu'un ensemble cohérent de segments est impliqué dans une requête donnée. Il sélectionne l'ensemble approprié de segments à utiliser au début de la requête en fonction de ce qui est actuellement disponible. Ceci est pris en charge par le remplacement atomique, une fonctionnalité qui garantit que, du point de vue de l'utilisateur, les requêtes passent instantanément d'un ensemble de données plus ancien à un ensemble de données plus récent, sans impact sur la cohérence ou les performances. Cette fonctionnalité est utilisée pour l'ingestion par lots basée sur Hadoop, l'ingestion par lots native lorsque appendToExisting est faux, et le compactage.
+
+Notez que le remplacement atomique se produit pour chaque morceau de temps individuellement. Si une tâche d'ingestion par lot ou de compactage implique plusieurs morceaux de temps, chaque morceau de temps subira un remplacement atomique peu après la fin de la tâche, mais les remplacements ne se feront pas tous simultanément.
+
+Typiquement, le remplacement atomique dans Druid est basé sur un concept d'ensemble de base qui fonctionne en conjonction avec les versions de segments. Lorsqu'un morceau de temps est écrasé, un nouveau noyau de segments est créé avec un numéro de version plus élevé. L'ensemble de base doit être disponible pour que le Broker l'utilise à la place de l'ancien ensemble. Il ne peut y avoir qu'un seul ensemble de base par version et par tranche de temps. Druid n'utilisera également qu'une seule version à la fois par tranche de temps. Ensemble, ces propriétés fournissent les garanties de remplacement atomique de Druid.
+
+Druid supporte également un mode expérimental de verrouillage des segments qui est activé en mettant forceTimeChunkLock à false dans le contexte d'une tâche d'ingestion. Dans ce cas, Druid crée un groupe de mise à jour atomique en utilisant la version existante pour le morceau de temps, au lieu de créer un nouvel ensemble de base avec un nouveau numéro de version. Il peut y avoir plusieurs groupes de mise à jour atomique avec le même numéro de version par tranche de temps. Chacun d'entre eux remplace un ensemble spécifique de segments antérieurs dans la même tranche de temps et avec le même numéro de version. Druid interrogera le dernier groupe entièrement disponible. Il s'agit d'une version plus puissante du concept d'ensemble de base, car elle permet de remplacer de manière atomique un sous-ensemble de données pour une tranche de temps, ainsi que d'effectuer un remplacement atomique et un ajout simultanément.
+
+Si des segments deviennent indisponibles en raison de la mise hors ligne simultanée de plusieurs historiques (au-delà de votre facteur de réplication), les requêtes Druid n'incluront que les segments qui sont encore disponibles. En arrière-plan, Druid rechargera ces segments indisponibles sur d'autres historiques aussi rapidement que possible, et ils seront alors à nouveau inclus dans les requêtes.
+
+==== Traitement des requêtes ====
+
+Les requêtes entrent d'abord dans le Broker, où celui-ci identifie les segments qui ont des données pouvant se rapporter à cette requête. La liste des segments est toujours élaguée en fonction de l'heure, et peut également être élaguée en fonction d'autres attributs, selon la façon dont votre source de données est partitionnée. Le Broker identifiera ensuite les Historicals et MiddleManagers qui servent ces segments et enverra une sous-requête réécrite à chacun de ces processus. Les processus Historical/MiddleManager recevront les requêtes, les traiteront et renverront les résultats. Le Broker reçoit les résultats et les fusionne pour obtenir la réponse finale, qu'il renvoie à l'appelant initial.
+
+L'élagage du Broker est un moyen important pour Druid de limiter la quantité de données qui doit être analysée pour chaque requête, mais ce n'est pas le seul moyen. Pour les filtres à un niveau plus granulaire que ce que le Broker peut utiliser pour l'élagage, les structures d'indexation à l'intérieur de chaque segment permettent à Druid de déterminer quelles lignes (s'il y en a) correspondent à l'ensemble de filtres avant de regarder une ligne de données. Une fois que Druid sait quelles lignes correspondent à une requête particulière, il n'accède qu'aux colonnes spécifiques dont il a besoin pour cette requête. Dans ces colonnes, Druid peut passer d'une ligne à l'autre, en évitant de lire les données qui ne correspondent pas au filtre de la requête.
+
+Druid utilise donc trois techniques différentes pour maximiser les performances des requêtes :
+* L'élagage des segments auxquels on accède pour chaque requête.
+* Dans chaque segment, l'utilisation d'index pour identifier les lignes qui doivent être accédées.
+* Dans chaque segment, ne lis que les lignes et les colonnes spécifiques qui sont pertinentes pour une requête particulière.

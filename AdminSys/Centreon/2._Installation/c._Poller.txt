@@ -1,0 +1,91 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T12:13:29+00:00
+
+====== c. Poller ======
+
+Exécuter les commandes suivantes:
+
+* Mise à jour du système et désactivation de SELinux
+```
+yum update -y
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+reboot
+```
+
+* Configuration du firewall et installation des composants
+```
+getenforce
+firewall-cmd --zone=public --add-service=ssh --permanent
+firewall-cmd --zone=public --add-service=snmp --permanent
+firewall-cmd --zone=public --add-service=snmptrap --permanent
+firewall-cmd --zone=public --add-port=5556/tcp --permanent
+firewall-cmd --reload
+yum install -y centos-release-scl
+yum install -y http://yum.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
+yum install -y centreon-poller-centreon-engine
+systemctl enable centengine centreontrapd snmptrapd
+systemctl start centreontrapd snmptrapd
+systemctl restart centengine
+```
+
+* Enregistrer le poller sur le central : exécutez la commande suivante et suivez les instructions
+```
+/usr/share/centreon/bin/registerServerTopology.sh -u admin -t poller -h 192.168.1.52 -n poller-one
+```
+
+==== Ajouter le Poller à la configuration ====
+
+* Allez dans le menu Configuration > Pollers et cliquez sur Add server with wizard pour configurer un nouveau Poller.
+* Cliquez sur Add a Centreon Poller puis sur NEXT
+* Cliquez sur Select a Poller et sélectionnez le poller enregistré précédemment puis cliquez sur NEXT
+* Ne cochez pas la case: enable reverse centreon broker communication flow
+* Cliquez sur NEXT 
+* Un configuration par défaut sera appliquée au poller
+* Cliquez sur le nom du poller pour éditer la configuration et passer à l'étape suivante
+
+==== Activer la communication ====
+
+=== Avec ZMQ ===
+
+* Dans Gorgone Information:
+	* sélectionnez ZMQ
+	* mettez 5556 comme port
+	* selectionnez Yes pour Use the Remote Server as a proxy
+* Cliquez sur Sauvegarder
+* Affichez la configuration de Gorgone en cliquant sur l'icone:
+{{./pasted_image.png}}
+* Cliquez sur Copy to clipboard, une commande pour créer le fichier de configuration adéquat sera copiée
+* Collez la commande dans un terminal sur le poller pour créer le fichier de configuration de gorgoned
+* Démarrez le daemon Gorgone
+
+```
+systemctl start gorgoned
+systemctl enable gorgoned
+systemctl restart gorgoned
+```
+
+=== Avec SSH ===
+
+* Permettre à l'utilisateur centreon-gorgone de se connecter par SSH au **poller** depuis le **central**
+
+```
+su - centreon-gorgone
+ssh-keygen
+ssh-copy-id -i /var/spool/centreon/.ssh/id_rsa.pub centreon-gorgone@[ADRESSE_IP_DU_POLLER]
+ssh centreon-gorgone@[ADRESSE_IP_DU_POLLER]
+```
+
+* Démarrez le daemon Gorgone
+
+```
+systemctl start gorgoned
+systemctl enable gorgoned
+systemctl restart gorgoned
+```
+
+==== Déployer la configuration et démarrer le poller ====
+
+* Dans la liste des pollers, sélectionnez le poller et cliquez sur Exportation de la configuration.
+* Ensuite, cochez les quatre premières cases, sélectionnez la méthode de redémarrage et cliquez sur Exporter.
+* Le moteur du Poller démarre alors et se connecte au Broker central.

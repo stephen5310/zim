@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-09T15:14:48+00:00
+
+====== Évolution incrémentielle sur du matériel de base ======
+
+Cassandra évolue pour répondre aux exigences de la croissance de la taille des données et du nombre de requêtes. Le passage à l'échelle signifie l'ajout de nœuds supplémentaires à l'anneau, et chaque nœud supplémentaire apporte des améliorations linéaires en matière de calcul et de stockage. En revanche, la mise à l'échelle implique l'ajout de plus de capacité aux nœuds de base de données existants. Cassandra est également capable de passer à l'échelle supérieure, ce qui peut être préférable dans certains environnements en fonction du déploiement. Cassandra offre aux opérateurs la possibilité de choisir entre le scale-out et le scale-up.
+
+Un aspect clé de Dynamo que Cassandra suit est de tenter de fonctionner sur du matériel de base, et de nombreux choix d'ingénierie sont faits en fonction de cette hypothèse. Par exemple, Cassandra part du principe que les nœuds peuvent tomber en panne à tout moment, s'accorde automatiquement pour utiliser au mieux les ressources CPU et mémoire disponibles et fait un usage intensif des techniques avancées de compression et de mise en cache pour tirer le meilleur parti des capacités limitées de mémoire et de stockage.
+
+==== Modèle de requête simple ====
+
+Cassandra, comme Dynamo, choisit de ne pas fournir de transactions inter-partitions, comme c'est souvent le cas dans les systèmes de gestion de bases de données relationnelles (SGBDR) SQL. Cela permet au programmeur de disposer d'une API de lecture et d'écriture plus simple et à Cassandra d'évoluer plus facilement à l'horizontale, car les transactions multi-partitions couvrant plusieurs nœuds sont notoirement difficiles à mettre en œuvre et généralement très latentes.
+
+Au lieu de cela, Cassandra choisit d'offrir une latence rapide et cohérente à n'importe quelle échelle pour les opérations sur une seule partition, permettant de récupérer des partitions entières ou seulement des sous-ensembles de partitions en fonction de filtres de clés primaires. En outre, Cassandra prend en charge les fonctions de comparaison et d'échange de partitions uniques via l'API CQL de transaction légère.
+
+==== Interface simple pour le stockage des enregistrements ====
+
+Cassandra, qui s'écarte légèrement de Dynamo, choisit une interface de stockage plus sophistiquée que les magasins "simple clé-valeur", mais nettement moins complexe que les modèles de données relationnels SQL. Cassandra présente une interface de stockage à colonnes larges, où les partitions de données contiennent plusieurs lignes, chacune d'entre elles contenant un ensemble flexible de colonnes typées individuellement. Chaque ligne est identifiée de manière unique par la clé de partition et une ou plusieurs clés de clustering, et chaque ligne peut avoir autant de colonnes que nécessaire.
+
+Cela permet aux utilisateurs d'ajouter de manière flexible de nouvelles colonnes aux ensembles de données existants au fur et à mesure que de nouveaux besoins apparaissent. Les modifications de schémas n'impliquent que des changements de métadonnées et s'exécutent entièrement en parallèle avec les charges de travail réelles. Les utilisateurs peuvent donc ajouter en toute sécurité des colonnes aux bases de données Cassandra existantes, tout en sachant que les performances des requêtes ne se dégraderont pas.

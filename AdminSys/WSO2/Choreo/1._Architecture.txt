@@ -1,0 +1,31 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-12T09:35:46+00:00
+
+====== 1. Architecture ======
+Créée le vendredi 12 novembre 2021
+
+{{./pasted_image.png?width=1000}}
+
+===== Les composants de Choreo Connect =====
+
+Choreo Connect se compose des trois éléments suivants.
+
+==== 1. Router ====
+Le routeur est le composant qui est responsable de l'acheminement du trafic des différents clients vers la destination (service) souhaitée. Choreo Connect utilise le Proxy Envoy comme composant central qui effectue le routage du trafic. Les APIs sont exposées aux clients externes en utilisant le routeur.
+
+==== 2. Enforcer ====
+Enforcer est le composant qui applique les capacités de gestion de l'API comme la sécurité, la limitation du débit, l'analyse, la validation, etc. Lorsqu'une demande est reçue par le routeur, cette demande est transmise à l'exécuteur afin d'exécuter les facteurs de QoS supplémentaires comme la sécurité, etc. Une fois que l'exécuteur a répondu au routeur avec une réponse autorisée ou une réponse refusée, le routeur transmet la demande au backend réel ou répond au client avec un message d'erreur respectivement.
+
+==== 3. Adapter ====
+Le routeur et l'Enforcer ont une API de plan de données qui peut être utilisée pour les configurer dynamiquement. Lorsqu'une API doit être déployée sur le Choreo Connect, nous devons traduire cette définition d'API dans un format compris par le Router (convertir l'API en routes) et l'Enforcer. L'adaptateur est le composant qui est responsable de cela. L'adaptateur transmet les données au routeur et à l'exécuteur. L'adaptateur peut recevoir l'API de deux manières différentes:
+* L'adaptateur peut recevoir une API du plan de contrôle APIM (éditeur).
+* L'adaptateur peut recevoir des API en poussant le projet API à partir de l'outil de ligne de commande APICTL.
+
+Choreo Connect peut être utilisé principalement dans les deux modes suivants:
+* Choreo Connect avec API Manager comme plan de contrôle
+* Choreo Connect comme passerelle autonome
+
+===== Flux de requêtes Choreo Connect =====
+
+{{./pasted_image001.png?width=1000}}

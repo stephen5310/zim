@@ -1,0 +1,91 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-09T11:34:22+00:00
+
+====== 1. Installation ======
+
+===== Installation =====
+
+```
+yum install -y yum-utils
+yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+yum -y install vault
+```
+
+===== Utilisation d'un serveur de dev pour les tests =====
+
+**Démarrer le serveur**
+```
+vault server -dev
+```
+
+**Sauvegarder la //Unseal Key //et le //Root Token// (sortie de la commande précédante) dans des fichiers.**
+
+**Ouvrir un autre terminal et définissez la variable d'environnement pour l'adresse du serveur**
+```
+export VAULT_ADDR='http://127.0.0.1:8200'
+```
+
+**Définir la variable d'environnement pour le //Root Token//**
+```
+export VAULT_TOKEN="s.XmpNPoi9sRhYtdKHaQhkHP6x"
+```
+
+**Vérifier que le serveur est opérationnel**
+```
+vault status
+```
+
+Si le commande s'est exécutée correctement, la sortie devrait être comme suit
+```
+Key             Value
+---             -----
+Seal Type       shamir
+Initialized     true
+Sealed          false
+Total Shares    1
+Threshold       1
+Version         1.7.0
+Storage Type    inmem
+Cluster Name    vault-cluster-4d862b44
+Cluster ID      92143a5a-0566-be89-f229-5a9f9c47fb1a
+HA Enabled      false
+```
+
+===== Moteur de secrets clé/valeur =====
+
+Lorsque vous exécutez Vault en mode dev, le moteur de secrets Key/Value v2 est activé dans le chemin **secret/**. 
+Le moteur de secrets Key/Value est un magasin de valeurs clés générique utilisé pour stocker des secrets arbitraires dans le stockage physique configuré pour Vault. 
+Les secrets écrits dans Vault sont chiffrés et ensuite écrits dans le stockage backend. Par conséquent, le mécanisme de stockage backend ne voit jamais la valeur non cryptée et ne dispose pas des moyens nécessaires pour la décrypter sans Vault.
+
+Le moteur de secrets Key/Value a une version 1 et 2. La différence est que la version 2 fournit un versionnement des secrets et que la version 1 ne le fait pas.
+
+**Vérifier qu'aucun secret n'existe à //secret/hello//**
+```
+vault kv get secret/hello
+```
+
+**Écrire un secret //foo// avec la valeur //world// au path //secret/hello// en utilisant la commande //vault kv put//. Cette commande crée met à jour la valeur des secrets**
+```
+vault kv put secret/hello foo=world
+```
+
+**Écrire plusieurs éléments de données**
+```
+vault kv put secret/hello foo=world excited=yes
+```
+
+**Récupérer un secret: un secret est récupéré à l'aide de la commande //vault kv get <path>//**
+```
+vault kv get secret/hello
+```
+
+**Vault retourne la dernière version des secrets du path précisé. Pour obtenir la valeur d'un champ précis, utiliser l'option //-field=<key_name>//**
+```
+vault kv get -field=excited secret/hello
+```
+
+**Pour obtenir une réponse au format JSON, utiliser le drapeau //-format=json//**
+```
+vault kv get -format=json secret/hello
+```

@@ -1,0 +1,84 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T14:13:00+00:00
+
+====== 5. Authentification, Autorisation et Contrôle d'admission ======
+Créée le jeudi 25 novembre 2021
+
+===== Sécurité dans les étapes d'accès à l'API =====
+
+* Authentification : Permet de connecter un utilisateur.
+* Autorisation : Autorise les requêtes API soumises par l'utilisateur authentifié.
+* Contrôle d'admission : Modules logiciels qui valident et/ou modifient les demandes des utilisateurs en fonction.
+
+===== Types d'utilisateurs =====
+
+Kubernetes ne dispose pas d'un objet appelé user, et ne stocke pas les noms d'utilisateur ou d'autres détails connexes dans son magasin d'objets. Cependant, même sans cela, Kubernetes peut utiliser les noms d'utilisateur pour la phase d'authentification du contrôle d'accès à l'API, ainsi que pour la journalisation des requêtes. 
+
+Kubernetes prend en charge deux types d'utilisateurs :
+
+==== Les utilisateurs normaux ====
+Ils sont gérés en dehors du cluster Kubernetes via des services indépendants comme les certificats d'utilisateur/client, un fichier listant les noms d'utilisateur/mots de passe, les comptes Google, etc.
+
+==== Comptes de service ====
+Les comptes de service permettent aux processus internes au cluster de communiquer avec le serveur API pour effectuer diverses opérations. La plupart des comptes de service sont créés automatiquement par le serveur API, mais ils peuvent également être créés manuellement. Les comptes de service sont liés à un espace de nommage particulier et montent les informations d'identification respectives pour communiquer avec le serveur API en tant que secrets.
+
+S'il est correctement configuré, Kubernetes peut également prendre en charge les demandes anonymes, ainsi que les demandes des utilisateurs normaux et des comptes de service. L'usurpation d'identité est également prise en charge, ce qui permet à un utilisateur d'agir comme un autre utilisateur, une fonctionnalité utile pour les administrateurs lors du dépannage des politiques d'autorisation.
+
+===== Modules pour l'authentification =====
+
+Pour l'authentification, Kubernetes utilise une série de modules d'authentification :
+
+* Certificats clients X509 : référencer un fichier contenant une ou plusieurs autorités de certification en passant l'option --client-ca-file=SOMEFILE au serveur API
+* Fichier de jetons statiques : passer un fichier contenant des jetons de porteur prédéfinis avec l'option --token-auth-file=SOMEFILE au serveur API
+* Jetons bootstrap : utilisés pour démarrer un cluster
+* Jetons de compte de service : sont rattachés aux pods à l'aide du contrôleur d'admission ServiceAccount, qui permet aux processus en cluster de communiquer avec le serveur API
+* Jetons OpenID Connect : nous aide à nous connecter aux fournisseurs OAuth2, tels qu'Azure Active Directory, Salesforce et Google, afin de décharger l'authentification vers des services externes
+* Authentification par jeton de Webhook : la vérification des jetons de porteurs peut être confiée à un service distant
+* Proxy d'authentification : Permet la programmation d'une logique d'authentification supplémentaire
+
+Pour garantir une authentification réussie des utilisateurs, nous devons activer au moins deux méthodes : l'authentificateur de jetons de compte de service et l'un des authentificateurs d'utilisateur. 
+
+===== Autorisation =====
+
+Après une authentification réussie, les utilisateurs peuvent envoyer des requêtes API pour effectuer différentes opérations. 
+Ces demandes d'API sont autorisées par Kubernetes à l'aide de divers modules d'autorisation, qui autorisent ou refusent les demandes.
+
+Certains des attributs des demandes d'API qui sont examinés par Kubernetes comprennent l'utilisateur, le groupe, l'extra, la ressource, l'espace de noms ou le groupe d'API, pour n'en citer que quelques-uns. 
+Ensuite, ces attributs sont évalués par rapport aux politiques. Si l'évaluation est réussie, alors la demande est autorisée, sinon elle est refusée. 
+Tout comme l'étape d'authentification, l'étape d'autorisation comporte plusieurs modules, ou autorisateurs. 
+Plus d'un module peut être configuré pour un cluster Kubernetes, et chaque module est vérifié en séquence. 
+Si un module d'autorisation approuve ou refuse une demande, cette décision est renvoyée immédiatement. 
+
+Les modes d'autorisation sont :
+
+==== Node ====
+Autorise les opérations de lecture du kubelet pour les services, les points de terminaison ou les nœuds, et les opérations d'écriture pour les nœuds, les pods et les événements
+
+==== ABAC ====
+Combine les polices avec les attributs pour accorder les accès
+
+==== Webhook ====
+Les décisions d'autorisation sont prises par des services tiers
+
+==== RBAC ====
+Dans Kubernetes, plusieurs rôles peuvent être attachés à des sujets tels que des utilisateurs, des comptes de service, etc. 
+Lors de la création des rôles, nous limitons l'accès aux ressources par des opérations spécifiques, telles que **create, get, update, patch**, etc. Ces opérations sont appelées des **verbes**.
+
+Dans RBAC, nous pouvons créer deux types de rôles :
+* Rôle : Un rôle donne accès aux ressources d'un espace de nommage spécifique
+* ClusterRole : Un ClusterRole accorde les mêmes permissions qu'un rôle, mais son champ d'application s'étend à tout le cluster
+
+Une fois le rôle créé, nous pouvons le lier aux utilisateurs avec un objet RoleBinding.
+Il existe deux types de RoleBindings :
+* RoleBinding : Il nous permet de lier les utilisateurs au même espace de nom qu'un rôle. Nous pourrions également référencer un ClusterRole dans le RoleBinding, ce qui accorderait des permissions aux ressources de l'espace de nom définies dans le ClusterRole au sein de l'espace de nom du RoleBinding.
+* ClusterRoleBinding : Il nous permet d'accorder l'accès aux ressources au niveau d'un cluster et à tous les Namespaces.
+
+===== Contrôle d'admission =====
+
+Les contrôleurs d'admission sont utilisés pour spécifier des politiques de contrôle d'accès granulaires, qui incluent l'autorisation de conteneurs privilégiés, la vérification du quota de ressources, etc. 
+Nous imposons ces politiques en utilisant différents contrôleurs d'admission, comme **ResourceQuota**, **DefaultStorageClass**, **AlwaysPullImages**, etc. 
+Elles n'entrent en vigueur qu'après l'authentification et l'autorisation des appels d'API.
+
+Le contrôle d'admission de Kubernetes peut également être mis en œuvre par le biais de plugins personnalisés, pour une méthode de contrôle d'admission dynamique. 
+Ces plugins sont développés comme des extensions et s'exécutent comme des webhooks d'admission. 

@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-10T17:20:27+00:00
+
+====== a. Serveur linux ======
+
+* S'assurer que le plugin pack Linux SNMP est installé
+* Se rendre dans Configuration > Hosts > Hosts et cliquez sur Add
+* Renseignez les informations suivantes :
+	* Le nom de votre server
+	* Une description de votre serveur
+	* Son adresse IP
+	* La communauté et la version SNMP
+* Cliquez sur le bouton + Add a new entry pour le champ Templates puis sélectionnez le modèle OS-Linux-SNMP-custom.
+* Cliquez sur le bouton Save.
+* Votre équipement a été ajouté à la configuration de la supervision :

@@ -1,0 +1,70 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-06T09:14:03+00:00
+
+====== 1. Gestion des utilisateurs et de leurs références ======
+
+===== Gestion des utilisateurs =====
+
+Objectifs:
+* gérer efficacement et de façon sécurisée les identités
+* définir et gérer les droits d'accès
+* octroyer les droits d'accès nécessaires aux bons utilisateurs sur la base de leur autorité
+
+==== Définition clés ====
+
+=== Utilisateur ===
+Représentation d'une personne physique
+
+=== User claims ===
+Attributs permettant d'identifier un utilisateur
+
+=== Permission ===
+Action que les utilisateurs sont autorisés à effectuer
+
+=== Role d'utilisateurs ===
+Un ensemble de permissions qui peuvent être accordées à un utilisateur en fonction du poste qu'il occupe
+
+=== RBAC ===
+Accès aux ressources réservé aux utilisateurs avec des roles particuliers
+Réduction des coûts administratifs
+Facilite la mise en conformité avec les régulations liées à la privacité
+
+=== Entrepôt d'utilisateurs ===
+Un entrepôt qui stocke les informations sur les utilisateurs et les roles
+
+===== Gestion des comptes d'utilisateurs =====
+
+Permet de:
+* réinitialiser et récupérer les mots de passe
+* établir et appliquer des polices de mots de passe
+* ajouter des utilisateurs
+* récupérer des comptes
+* bloquer, suspendre et désactiver des comptes
+
+==== Ajout d'utilisateurs ====
+
+* Par saisie du mot de passe: un email avec un mot de passe est envoyé à l'utilisateur suite à la création de son compte
+* Par vérification d'email: un email avec un lien de confirmation est envoyé à l'utilisateur suite à la création de son compte
+* Par l'API REST (/api/identity/user/v1.0/me) ou SCIM/Me (POST SCIM/Me): l'utilisateur s'enregistre lui même, un email de déblocage de compte lui est envoyé 
+pour confirmer son enregistrement, après quoi un email de confirmation de création de compte lui est envoyé
+
+==== Gestion des polices de mots de passe ====
+
+* Patrons (regexp) de mot de passe pour vérifier la robustesse
+* Expiration de mot de passe
+* Empêche la réutilisation d'un mot de passe récent
+
+==== Réinitialisation et récupération de mots de passe ====
+
+* Réinitialisation par envoi de mail avec lien ou réponse à une/des question(s) de sécurité
+* Initiation de changement de mot de passe par l'admin en envoyant un lien de réinitialisation par email, un mot de passe à utilisation unique par sms,
+ou par l'utilisateur en contactant le call center
+* Récupération de compte par vérification des informations sur le compte et envoi des identifiants par email
+
+==== Blocage, désactivation et suspension de compte ====
+
+* Blocage temporaire de compte empêchant l'accès au système sur une période
+* Déclencher le blocage après un maximum d'échecs de tentative de connexion
+* Désactivation pour empêcher l'utilisation du compte d'une quelconque manière sur une période
+* Suspension en précisant le délai pour la réactivation des comptes en veille

@@ -1,0 +1,110 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T14:45:16+00:00
+
+====== 6. Services ======
+Créée le jeudi 25 novembre 2021
+
+Ils sont chargé de regrouper les pods par label et par noms pour appliquer les polices de routage sur eux.
+
+===== Exemple de définition de service =====
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+spec:
+  selector:
+	app: frontend
+  ports:
+  - protocol: TCP
+	port: 80
+	targetPort: 5000
+```
+
+===== ClusterIP =====
+
+Dans cet exemple, nous créons un service frontend-svc en sélectionnant tous les pods dont l'étiquette key=app a pour valeurfrontend. 
+Par défaut, chaque service reçoit une adresse IP routable uniquement à l'intérieur du cluster, appelée **ClusterIP**.
+Un service assure l'équilibrage de la charge par défaut tout en sélectionnant les pods pour le transfert du trafic.
+
+===== targetPort =====
+
+Alors que le service transmet le trafic aux pods, nous pouvons sélectionner le **targetPort** sur le pod qui reçoit le trafic. 
+Dans notre exemple, le service frontend-svc reçoit les demandes de l'utilisateur/client sur le port : 80 et transmet ensuite ces demandes à l'un des Pods attachés sur le **targetPort** : 5000. 
+Si le port cible n'est pas défini explicitement, le trafic sera transféré aux pods sur le port sur lequel le service reçoit le trafic. 
+Il est très important de s'assurer que la valeur du **targetPort**, qui est 5000 dans cet exemple, correspond à la valeur de la propriété **containerPort** de la section Pod **spec**. 
+
+===== Service endpoints =====
+
+L'ensemble logique de l'adresse IP d'un Pod, ainsi que le targetPort, est appelé point de terminaison du service. 
+Dans notre exemple, le service frontend-svc a 3 points d'extrémité : 10.0.1.3:5000, 10.0.1.4:5000, et 10.0.1.5:5000. 
+Les endpoints sont créés et gérés automatiquement par le service, et non par l'administrateur du cluster Kubernetes. 
+
+===== kube-proxy =====
+
+Pour chaque nouveau service, sur chaque nœud, kube-proxy configure les règles **iptables** afin de capturer le trafic pour son **ClusterIP** et le transmet à l'un des points d'extrémité du service. 
+Par conséquent, n'importe quel nœud peut recevoir le trafic externe et le router en interne dans le cluster en fonction des règles iptables. 
+Lorsque le service est supprimé, kube-proxy supprime également les règles iptables correspondantes sur tous les nœuds.
+
+===== Service discovery =====
+
+Kubernetes prend en charge deux méthodes pour découvrir les services :
+
+==== Variables d'environnement ====
+Dès que le Pod démarre sur un nœud de travail, le démon kubelet s'exécutant sur ce nœud ajoute un ensemble de variables d'environnement dans le Pod pour tous les services actifs.
+Si des services sont ajoutés après, ils ne seront pas découverts.
+
+==== DNS ====
+Kubernetes dispose d'un module complémentaire pour le DNS, qui crée un enregistrement DNS pour chaque service. Son format est le suivant : my-svc.my-namespace.svc.cluster.local. 
+Les services d'un même espace de nommage trouvent d'autres services grâce à leur nom.
+Les pods d'autres espaces de nommage, tels que test-ns, recherchent le même service en ajoutant l'espace de nommage respectif comme suffixe ou en fournissant le FQDN du service.
+
+===== ServiceType =====
+
+En définissant un service, nous pouvons également choisir son champ d'accès. Nous pouvons décider si le Service :
+* Est accessible uniquement au sein du cluster
+* Est accessible à partir du cluster et du monde extérieur.
+* Correspond à une entité qui réside à l'intérieur ou à l'extérieur du cluster.
+
+Le champ d'accès est déterminé par la propriété ServiceType, définie lors de la création du service. Elle peut prendre les 05 valeurs suivantes.
+
+==== ClusterIP ====
+
+ClusterIP est le ServiceType par défaut. 
+Un service reçoit une adresse IP virtuelle, appelée ClusterIP. 
+Cette adresse IP virtuelle est utilisée pour communiquer avec le service et n'est accessible que depuis le cluster. 
+
+==== NodePort ====
+
+En plus d'un ClusterIP, un haut port, choisi dynamiquement dans la plage par défaut 30000-32767, est mappé vers le service respectif, à partir de tous les nœuds de travail.
+Le ServiceType NodePort est utile lorsque nous voulons rendre nos services accessibles depuis le monde extérieur. 
+L'utilisateur final se connecte à n'importe quel nœud de travail sur le port élevé spécifié, qui transmet la demande en interne au ClusterIP du service, puis la demande est transmise aux applications exécutées à l'intérieur du cluster.
+
+==== LoadBalancer ====
+
+Avec le LoadBalancer ServiceType :
+* NodePort et ClusterIP sont automatiquement créés, et l'équilibreur de charge externe se dirigera vers eux.
+* Le service est exposé à un port statique sur chaque nœud de travail.
+* Le service est exposé à l'extérieur en utilisant la fonction d'équilibreur de charge du fournisseur de cloud sous-jacent.
+
+Le ServiceType LoadBalancer ne fonctionnera que si l'infrastructure sous-jacente prend en charge la création automatique d'équilibreurs de charge et dispose du support correspondant dans Kubernetes, comme c'est le cas avec la Google Cloud Platform et AWS. 
+Si aucune fonction de ce type n'est configurée, le champ de l'adresse IP du LoadBalancer n'est pas rempli, il reste dans l'état Pending, mais le service fonctionnera toujours comme un service typique de type NodePort.
+
+==== ExternalIP ====
+
+Un Service peut être mappé à une adresse ExternalIP s'il peut être routé vers un ou plusieurs des noeuds de travail. 
+Le trafic qui entre dans le cluster avec l'ExternalIP (comme IP de destination) sur le port du service, est acheminé vers l'un des points d'extrémité du service. 
+Ce type de service nécessite un fournisseur de cloud externe tel que Google Cloud Platform ou AWS et un équilibreur de charge configuré sur l'infrastructure du fournisseur de cloud.
+
+Veuillez noter que les ExternalIPs ne sont pas gérées par Kubernetes. 
+L'administrateur du cluster doit configurer le routage qui fait correspondre l'adresse ExternalIP à l'un des nœuds.
+
+==== ExternalName ====
+
+ExternalName est un ServiceType spécial, qui n'a pas de sélecteurs et ne définit pas de points de terminaison. 
+Lorsqu'on y accède au sein du cluster, il renvoie un enregistrement CNAME d'un service configuré en externe.
+
+Le principal cas d'utilisation de ce type de service est de rendre des services configurés en externe, comme ma-base-de-données.exemple.com, accessibles aux applications du cluster. 
+Si le service défini en externe réside dans le même espace de nommage, l'utilisation du seul nom my-database le rendra accessible aux autres applications et services de ce même espace de nommage. 

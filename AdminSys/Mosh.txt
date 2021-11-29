@@ -1,0 +1,36 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-27T09:58:33+00:00
+
+====== Mosh ======
+
+Application de terminal distant qui permet l'itinérance, prend en charge la connectivité intermittente et fournit un écho local intelligent et une édition de ligne des frappes de l'utilisateur.
+Mosh est un remplacement des terminaux SSH interactifs. Il est plus robuste et plus réactif, notamment sur les liaisons Wi-Fi, cellulaires et longue distance.
+Mosh est un logiciel libre, disponible pour GNU/Linux, BSD, macOS, Solaris, Android, Chrome et iOS.
+
+Les avantages à utiliser mosh
+* Permet d'IP (de wifi, de connexion internet) sans interrompre la session
+* Utilise ssh pour l'authentification
+* Gère les problèmes de connexion (lags, interruption etc)
+
+Les inconvéniants
+* Le prompt s'efface parfois, le curseur aussi peut se repositionner, ce qui pourrait rendre la saisie inconfortable
+
+===== Installation et utilisation =====
+
+* Installer et configurer la connexion par ssh au serveur si ce n'est pas déjà fait
+* Installer mosh
+```
+yum install -y mosh
+```
+
+* Ouvrir la plage de ports udp 60000-61000 dans le firewall
+```
+firewall-cmd --add-port=60000-61000/udp --permanent
+firewall-cmd --reload
+```
+
+* Se connecter
+```
+mosh adresse_serveur
+```

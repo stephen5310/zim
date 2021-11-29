@@ -1,0 +1,18 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-05T17:40:53+00:00
+
+====== Hashicorp Vault ======
+
+Vault est un outil permettant d'accéder de manière sécurisée à des secrets. Un secret est tout ce dont vous voulez contrôler étroitement l'accès, comme les clés API, les mots de passe ou les certificats. Vault fournit une interface unifiée à n'importe quel secret, tout en assurant un contrôle d'accès strict et en enregistrant un journal d'audit détaillé.
+
+Un système moderne nécessite l'accès à une multitude de secrets : informations d'identification de la base de données, clés API pour les services externes, informations d'identification pour la communication de l'architecture orientée services, etc. Comprendre qui accède à quels secrets est déjà très difficile et spécifique à chaque plateforme. Ajouter la rotation des clés, le stockage sécurisé et les journaux d'audit détaillés est presque impossible sans une solution personnalisée. C'est là que Vault intervient.
+
+Les principales caractéristiques de Vault sont les suivantes :
+* Stockage sécurisé des secrets : Des secrets arbitraires de type clé/valeur peuvent être stockés dans Vault. Vault chiffre ces secrets avant de les écrire sur le stockage persistant, de sorte que l'accès au stockage brut n'est pas suffisant pour accéder à vos secrets. Vault peut écrire sur le disque, sur Consul, et plus encore.
+* Secrets dynamiques : Vault peut générer des secrets à la demande pour certains systèmes, comme AWS ou les bases de données SQL. Par exemple, lorsqu'une application doit accéder à un seau S3, elle demande à Vault des informations d'identification, et Vault génère à la demande une paire de clés AWS avec des autorisations valides. Après avoir créé ces secrets dynamiques, Vault les révoque aussi automatiquement à l'expiration du bail.
+* Cryptage de données : Vault peut crypter et décrypter des données sans les stocker. Cela permet aux équipes de sécurité de définir des paramètres de cryptage et aux développeurs de stocker des données cryptées dans un emplacement tel que SQL sans avoir à concevoir leurs propres méthodes de cryptage.
+* Location et renouvellement : Tous les secrets dans Vault sont associés à un bail. À la fin du bail, Vault révoque automatiquement ce secret. Les clients peuvent renouveler les baux via les API de renouvellement intégrées.
+* Révocation : Vault a un support intégré pour la révocation des secrets. Vault peut révoquer non seulement des secrets uniques, mais aussi un arbre de secrets, par exemple tous les secrets lus par un utilisateur spécifique, ou tous les secrets d'un type particulier. La révocation facilite le roulement des clés ainsi que le verrouillage des systèmes en cas d'intrusion.
+
+{{./pasted_image.png?width=1000}}

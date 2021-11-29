@@ -1,0 +1,63 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-09T15:21:56+00:00
+
+====== 3. Moteur de stockage ======
+
+==== CommitLog ====
+
+Les Commitlogs sont un journal de toutes les mutations locales d'un nœud Cassandra. Toute donnée écrite dans Cassandra sera d'abord écrite dans un commitlog avant d'être écrite dans une memtable. Cela permet d'assurer la durabilité en cas d'arrêt inattendu. Au démarrage, toutes les mutations dans le commit log seront appliquées aux memtables.
+
+Toutes les mutations sont optimisées en écriture en stockant dans des segments de commitlog, réduisant le nombre de recherches nécessaires pour écrire sur le disque. Les segments commitlog sont limités par l'option "commitlog_segment_size_in_mb", une fois la taille atteinte, un nouveau segment commitlog est créé. Les segments Commitlog peuvent être archivés, supprimés ou recyclés une fois que toutes leurs données ont été extraites vers les SSTables. Les segments Commitlog sont tronqués lorsque Cassandra a écrit des données plus anciennes qu'un certain point dans les SSTables. L'exécution de "nodetool drain" avant d'arrêter Cassandra écrira tout dans les memtables vers les SSTables et supprimera le besoin de synchronisation avec les commitlogs au démarrage.
+
+* commitlog_segment_size_in_mb : La taille par défaut est de 32, ce qui est presque toujours bien, mais si vous archivez des segments de commitlogs (voir commitlog_archiving.properties), alors vous voulez probablement une granularité plus fine de l'archivage ; 8 ou 16 MB est raisonnable. La taille maximale de mutation est également configurable via le paramètre max_mutation_size_in_kb dans cassandra.yaml. La valeur par défaut est la moitié de la taille commitlog_segment_size_in_mb * 1024.
+**NOTE : Si max_mutation_size_in_kb est défini explicitement, alors commitlog_segment_size_in_mb doit être défini à au moins deux fois la taille de max_mutation_size_in_kb / 1024.**
+
+* commitlog_sync : peut être soit "periodic" soit "batch". Valeur par défaut : periodic
+	* batch : En mode batch, Cassandra n'accèdera pas aux écritures tant que le commitlog n'aura pas été synchronisé avec le disque. Il attendra "commitlog_sync_batch_window_in_ms" millisecondes entre les fsyncs. Cette fenêtre doit être courte car les threads d'écriture ne pourront pas effectuer de travail supplémentaire pendant l'attente. Vous pouvez avoir besoin d'augmenter concurrent_writes pour la même raison.
+		* commitlog_sync_batch_window_in_ms : Temps d'attente entre les fsyncs "batch". Valeur par défaut : 2
+	* periodic : En mode périodique, les écritures sont immédiatement ack'ed, et le CommitLog est simplement synchronisé toutes les "commitlog_sync_period_in_ms" millisecondes.
+		* commitlog_sync_period_in_ms : Temps d'attente entre les fsyncs "périodiques". Valeur par défaut : 10000
+**NOTE : En cas d'arrêt inattendu, Cassandra peut perdre jusqu'à la période de synchronisation ou plus si la synchronisation est retardée. Si vous utilisez le mode "batch", il est recommandé de stocker les commitlogs dans un périphérique séparé et dédié.**
+
+* commitlog_directory : Cette option est commentée par défaut. En cas d'exécution sur un disque dur magnétique, il doit s'agir d'une broche distincte des répertoires de données. Si elle n'est pas définie, le répertoire par défaut est $CASSANDRA_HOME/data/commitlog. Valeur par défaut : /var/lib/cassandra/commitlog
+* commitlog_compression : Compression à appliquer au journal de commit. Si elle est omise, le journal de commit sera écrit sans compression. Les compresseurs LZ4, Snappy, Deflate et Zstd sont pris en charge. (Valeur par défaut : (option complexe) :
+
+# - class_name : LZ4Compressor
+# paramètres :
+# -
+
+* commitlog_total_space_in_mb : Espace total à utiliser pour les journaux de commit sur le disque. Si l'espace dépasse cette valeur, Cassandra effacera tous les CF sales du segment le plus ancien et les supprimera. Ainsi, un petit espace total pour le commitlog aura tendance à causer plus d'activité de vidage sur les familles de colonnes moins actives. La valeur par défaut est la plus petite valeur entre 8192 et 1/4 de l'espace total du volume commitlog. Valeur par défaut : 8192
+==== Memtables ====
+
+Les memtables sont des structures en mémoire où Cassandra met en mémoire tampon les écritures. En général, il y a un memtable actif par table. Finalement, les memtables sont vidés sur le disque et deviennent des SSTables immuables. Cela peut être déclenché de plusieurs façons :
+* L'utilisation de la mémoire des memtables dépasse le seuil configuré (voir memtable_cleanup_threshold)
+* Le CommitLog approche de sa taille maximale, et force le vidage des memtable afin de permettre aux segments du commitlog d'être libérés.
+* Les memtables peuvent être stockés entièrement dans la heap ou partiellement en dehors, en fonction de memtable_allocation_type.
+
+==== SSTables ====
+
+Les SSTables sont les fichiers de données immuables que Cassandra utilise pour persister les données sur le disque.
+Lorsque les SSTables sont transférées sur le disque à partir de Memtables ou sont diffusées à partir d'autres noeuds, Cassandra déclenche des compactages qui combinent plusieurs SSTables en une seule. Une fois que la nouvelle SSTable a été écrite, les anciennes SSTables peuvent être supprimées.
+Chaque SSTable est composée de plusieurs éléments stockés dans des fichiers séparés :
+
+**Data.db**
+Les données réelles, c'est-à-dire le contenu des lignes.
+**Index.db**
+Un index des clés de partition aux positions dans le fichier Data.db. Pour les partitions larges, cela peut aussi inclure un index des lignes à l'intérieur d'une partition.
+**Summary.db**
+Un échantillon (par défaut) de chaque 128ème entrée du fichier Index.db.
+**Filter.db**
+Un filtre Bloom des clés de partition dans la SSTable.
+**CompressionInfo.db**
+Métadonnées sur les offsets et les longueurs des chunks de compression dans le fichier Data.db.
+**Statistics.db**
+Stocke des métadonnées sur la table SSTable, y compris des informations sur les horodatages, les pierres tombales, les clés de clustering, le compactage, la réparation, la compression, les TTL, et plus encore.
+**Digest.crc32**
+Un condensé CRC-32 du fichier Data.db.
+**TOC.txt**
+Une liste en texte clair des fichiers composants de la SSTable.
+
+Dans le fichier Data.db, les lignes sont organisées par partition. Ces partitions sont triées dans l'ordre des jetons (c'est-à-dire par un hachage de la clé de partition lorsque le partitionneur par défaut, Murmur3Partition, est utilisé). Dans une partition, les lignes sont stockées dans l'ordre de leurs clés de clustering.
+
+Les SSTables peuvent être optionnellement compressées en utilisant la compression par bloc.

@@ -1,0 +1,28 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-19T17:29:30+00:00
+
+====== 1. Architecture ======
+
+Le diagramme suivant montre comment développer, tester et déployer votre code Chef Infra.
+
+{{./pasted_image.png?width=600}}
+
+
+===== Chef Workstation =====
+
+La station de travail permet d'éditer des livres de recette (**cookbooks**), les recettes (**recipes**) et d'administrer son infrastructure.
+Elle est installé avec les outils **Cookstyle**, **ChefSpec**, **Chef Inspec** et **Test Kitchen**. Ces outils permettent de s'assurer que le code de Chef Infra fait ce qui était prévu 
+avant son déploiement dans les environnements utilisés par les autres.
+Elle permet aussi d'interagir avec le **Chef Server** et les noeuds gérés.
+
+===== Chef Infra Server =====
+
+Le serveur Chef agit comme un hub pour les données de configuration. Il stocke les **cookbooks**, **roles**, **environments** et les **policies** appliquées aux systèmes de l'infrastructure et les métadonnées (**metadata**) décrivant chaque système.
+La commande **knife** permet de communiquer avec le serveur Chef de puis la station de travail.
+
+===== Chef Infra Client =====
+
+L'infrastructure de chef a été élaborée de sorte à ce que les efforts de calcul soient concentrés sur les noeuds. Cela rend Chef hautement scalable.
+Un noeud représente un système géré (VM, conteneur, serveur physique). Tous les noeuds de l'infrastructure ont un client installé sur eux.
+L'outil **Ohai** permet de faire l'inventaire du système de récupérer des détails sur l'hôte.

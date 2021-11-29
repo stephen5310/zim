@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-19T17:07:04+00:00
+
+====== Chef ======
+
+Chef est un logiciel libre de gestion de configuration écrit en Ruby. Il utilise un langage dédié (appelé domain-specific language ou DSL) en pure-Ruby pour l'écriture de configuration du système d'exploitation sous la forme de « recettes » (recipes) ou de « livres de recettes » (cookbook).
+Chef peut être utilisé en mode client-serveur, ou dans une configuration consolidée nommée « chef-solo ».
+
+La plateforme Chef gère chaque serveur par composant (**component**). Les components sont des ressources système (ficher, package, service, script, etc).
+L'IAC ansi définie devient versionable, testable, repétable, en abstrayant les détails complexes d'implémentation.
+
+L'image ci-dessous décrit les différents composants Chef qui peuvent être utilisé lors du déploiement d'une application.
+
+{{./pasted_image.png?width=600}}

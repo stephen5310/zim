@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T10:48:37+00:00
+
+====== 2. Installation ======
+
+Les différents serveur que l'on peut installer dans l'architecture sont les suivants:
+* Serveur central
+* Serveur de base de données distant
+* Poller
+* Serveur de monitoring distant

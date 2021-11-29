@@ -1,0 +1,18 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-08T10:09:14+00:00
+
+====== Libvirt-kvm ======
+
+Libvirt pour Virtual Library et kvm pour kernel virtual machine.
+
+KVM (Kernel-based Virtual Machine) est une technologie de virtualisation Open Source intégrée à Linux®. Avec KVM, vous pouvez transformer Linux en un hyperviseur qui permet à une machine hôte d'exécuter plusieurs environnements virtuels isolés, appelés invités ou machines virtuelles.
+
+Libvirt est une librairie de commandes qui permettent une interaction plus simple avec kvm.
+
+===== Fonctionnement =====
+
+KVM convertit Linux en un hyperviseur de type 1 (système nu). 
+Pour exécuter des machines virtuelles, tous les hyperviseurs ont besoin de certains composants au niveau du système d'exploitation : gestionnaire de mémoire, planificateur de processus, pile d'entrées/sorties (E/S), pilotes de périphériques, gestionnaire de la sécurité, pile réseau, etc. 
+La technologie KVM comprend tous ces composants, car elle est intégrée au noyau Linux. 
+Chaque machine virtuelle est mise en œuvre en tant que processus Linux standard. Elle est gérée par le planificateur Linux standard et dispose de matériel de virtualisation dédié (carte réseau, carte graphique, un ou plusieurs processeurs, mémoire, disques).

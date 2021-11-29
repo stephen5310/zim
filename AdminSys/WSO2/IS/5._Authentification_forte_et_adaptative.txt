@@ -1,0 +1,41 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-20T15:52:21+00:00
+
+====== 5. Authentification forte et adaptative ======
+
+===== Authentification forte avec Multi-Factor Authentication (MFA) =====
+
+L'authentification est le processus utilisé pour identifier distinctement une certaine entité en utilisant:
+* Le facteur de connaissance: quelque chose de connu par l'entité (mot de passe, PIN, question de sécurité)
+* Le facteur d'appartenance: quelque chose que l'entité possède (carte bancaire, carte d'identité, téléphone mobile, token de sécurité)
+* Le facteur d'inhérence: quelque chose qui fait partie intégrante de l'entité (emprunte digitale)
+
+La force du système d'authentification est déterminée par le nombre de facteurs utilisés.
+Les avantages du MFA sont les suivants:
+* sécurité
+* conformité
+* ergonomie
+
+Il faut faire l'équilibre entre la commodité et la sécurité.
+
+===== Authentification forte avec Authentification Adaptative =====
+
+L'authentification adaptative a pour but d'ajuster la force ce l'authentification en se basant sur le profil de risque et le comportement de l'utilisateur.
+Les facteurs pris en compte pour établir la force de l'authentification sont:
+* les facteurs de requête ou d'environnement
+* les attributs et roles de l'utilisateur
+* le niveau d'assurance requis (LoA)
+* le comportement
+* les analyses et le machine learning
+* etc
+
+{{./pasted_image.png?width=1000}}
+
+{{./pasted_image001.png?width=1000}}
+
+{{./pasted_image002.png?width=1000}}
+
+{{./pasted_image003.png?width=1000}}
+
+{{./pasted_image004.png?width=1000}}

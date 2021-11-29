@@ -1,0 +1,32 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-01T10:03:46+00:00
+
+====== 4. Monitoring Business Intelligence ======
+
+Centreon Monitoring Business Intelligence est une solution d'aide à la décision et facilite la gestion de votre infrastructure IT. Centreon MBI vous apporte une visibilité complète sur vos infrastructures et vos activités avec un reporting aux normes ITIL sur les évènements, les compteurs de performances ainsi que les données de capacité provenant de Centreon.
+
+Centreon MBI fournit un ensemble complet de rapports standards sur:
+
+* La gestion de capacité
+* La gestion de disponibilité
+* La gestion des niveaux de services (SLA : Service Level Agreement) management
+* La gestion des performances
+
+Principales fonctionnalités:
+
+* Planification et génération des rapports aux formats PDF, Excel, Word et PPT
+* Visualisation web & interactive des statistiques grâce aux widgets fournis exploitables directement sur Centreon
+* Publication des rapports par email et par d'autres protocoles standards (FTP, CIFS, ...)
+* Gestion des listes de contrôle d'accès
+* Interface d'administration et d'exploitation intégrée dans Centreon
+* Bibliothèques de développement de rapports
+
+===== Générer des rapports =====
+
+Les rapports sont générés à l'aide tâches planifiées. La configuration des tâches planifiées prend en compte :
+
+* Le modèle de rapport à utiliser
+* Le périmètre basé sur les objets Centreon
+* Une période de reporting
+

@@ -1,0 +1,79 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T16:30:39+00:00
+
+====== 8. Gestion des volumes ======
+Créée le jeudi 25 novembre 2021
+
+Kubernetes utilise des Volumes, des abstractions de stockage qui permettent à diverses technologies de stockage d'être utilisées par Kubernetes et proposées aux conteneurs dans les Pods comme support de stockage. 
+Un volume est essentiellement un point de montage sur le système de fichiers du conteneur, soutenu par un support de stockage. 
+Le support de stockage, le contenu et le mode d'accès sont déterminés par le type de volume. 
+
+Dans Kubernetes, un volume est lié à un pod et peut être partagé entre les conteneurs de ce pod. 
+Bien que le volume ait la même durée de vie que le pod, ce qui signifie qu'il est supprimé en même temps que le pod, le volume survit aux conteneurs du pod, ce qui permet de préserver les données lors des redémarrages des conteneurs.
+
+===== Types de volume =====
+
+==== emptyDir ====
+Un volume vide est créé pour le pod dès qu'il est programmé sur le nœud de travail. La vie du volume est étroitement liée à celle du Pod. Si le Pod est terminé, le contenu de emptyDir est supprimé pour toujours.  
+
+==== hostPath ====
+Avec le type de volume hostPath, nous pouvons partager un répertoire entre l'hôte et le pod. Si le Pod est terminé, le contenu du volume est toujours disponible sur l'hôte.
+
+==== gcePersistentDisk ====
+Avec le type de volume gcePersistentDisk, nous pouvons monter un disque persistant Google Compute Engine (GCE) dans un Pod.
+
+==== awsElasticBlockStore ====
+Le type de volume awsElasticBlockStore permet de monter un volume AWS EBS dans un pod. 
+
+==== azureDisk ====
+Avec azureDisk, nous pouvons monter un disque de données Microsoft Azure dans un pod.
+
+==== azureFile ====
+Avec azureFile, nous pouvons monter un volume de fichiers Microsoft Azure dans un pod.
+
+==== cephfs ====
+Avec cephfs, un volume CephFS existant peut être monté dans un Pod. Lorsqu'un Pod se termine, le volume est démonté et son contenu est préservé.
+
+==== nfs ====
+Avec nfs, on peut monter un partage NFS dans un Pod.
+
+==== iscsi ====
+Avec iscsi, on peut monter un partage iSCSI dans un Pod.
+
+==== secret ====
+Avec le type de volume secret, nous pouvons transmettre des informations sensibles, telles que des mots de passe, aux Pods.
+
+==== configMap ====
+Avec les objets configMap, nous pouvons fournir des données de configuration ou des commandes et arguments shell à un pod.
+
+==== PersistentVolumeClaim ====
+Nous pouvons attacher un PersistentVolume à un Pod en utilisant un persistentVolumeClaim.
+
+===== Les volumes persistants =====
+
+Ils préservent les données après la destruction du pod.
+Ils sont gérés à travers les sous-système **PersistantVolumes** (PV) qui fournit des APIs pour la gestion.
+Les ResourceType utilisés sont :
+* **PersistentVolume API** pour la gestion
+* **PersistentVolumeClaim API** pour la consommation. Trois modes sont disponibles :
+	* ReadWriteOnce (par un seul noeud)
+	* ReadOnlyMany (par plusieurs noeuds)
+	* ReadWriteMany (par plusieurs noeuds)
+	* Une fois le travail terminé, le volume peut être libéré. La propriété **persistentVolumeReclaimPolicy** peut alors être définie sur :
+		* **reclaimed** : pour vérifier ou aggréger des données
+		* **deleted** : les données et le volume sont supprimées
+		* **recycled** : seul le volume est préservé
+
+Parmi les types de ressources qui supportent les PV figurent :
+* GCEPersistentDisk
+* AWSElasticBlockStore
+* AzureFile
+* AzureDisk
+* CephFS
+* NFS
+* iSCSI
+
+===== CSI =====
+
+Les fournisseurs de stockage et les membres de la communauté de différents orchestrateurs ont commencé à travailler ensemble pour normaliser l'interface Volume ; un plugin de volume construit à l'aide d'une interface de stockage de conteneur (CSI) normalisée conçue pour fonctionner sur différents orchestrateurs de conteneurs.

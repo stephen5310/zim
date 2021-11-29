@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-05T15:20:05+00:00
+
+====== 1. Concepts et Architecture ======
+
+Le WAB se positionne entre une zone de confiance faible et une zone de confiance forte
+
+La zone de confiance forte : (domaine ressources)
+➢ Equipements isolés
+➢ Les équipements et leurs comptes associés sont nommés « comptes cibles »
+
+La zone de confiance faible : (domaine utilisateurs)
+➢ Population de l’entreprise
+➢ Zone internet
+
+Pour les utilisateurs, l’accès aux comptes cibles (zone de confiance forte) n’est possible qu’à travers le WAB.

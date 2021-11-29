@@ -1,0 +1,36 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-07T11:07:31+00:00
+
+====== Adhésion aux clusters distribués et détection des défaillances ======
+
+Les protocoles de réplication et le partitionnement des ensembles de données reposent sur la connaissance des nœuds vivants et morts dans le cluster, afin que les opérations d'écriture et de lecture puissent être acheminées de manière optimale. Dans Cassandra, les informations sur la vitalité sont partagées de manière distribuée par le biais d'un mécanisme de détection des défaillances basé sur un protocole Gossip.
+
+==== Gossip ====
+
+C'est par le biais du protocole Gossip que Cassandra propage les informations de base de démarrage du cluster, telles que l'appartenance à un point d'extrémité et les versions du protocole réseau internodal. Dans le système gossip de Cassandra, les nœuds échangent des informations d'état non seulement sur eux-mêmes mais aussi sur les autres nœuds qu'ils connaissent. Ces informations sont versionnées à l'aide d'une horloge vectorielle composée de tuples (génération, version), où la génération est un horodatage monotone et la version est une horloge logique qui s'incrémente à peu près toutes les secondes. Ces horloges logiques permettent à Cassandra gossip d'ignorer les anciennes versions de l'état du cluster en inspectant simplement les horloges logiques présentées dans les messages gossip.
+
+Chaque nœud du cluster Cassandra exécute la tâche gossip indépendamment et périodiquement. Chaque seconde, chaque nœud du cluster
+* Met à jour l'état du heartbeat du nœud local (la version) et construit la vue locale du nœud de l'état de son point de terminaison gossip du cluster.
+* Choisit un autre nœud aléatoire dans le cluster pour échanger l'état de son point de terminaison gossip avec lui.
+* Tente de façon probabiliste d'échanger des informations avec les nœuds inaccessibles (s'il en existe).
+* Communique avec un nœud d'origine si cela n'a pas été fait à l'étape 2.
+
+Lorsqu'un opérateur démarre un cluster Cassandra, il désigne certains noeuds comme noeuds "seed". N'importe quel nœud peut être un nœud d'amorçage et la seule différence entre les nœuds d'amorçage et les nœuds non amorcés est que les nœuds d'amorçage sont autorisés à s'amorcer dans l'anneau sans voir d'autres nœuds d'amorçage. De plus, une fois qu'un cluster est amorcé, les nœuds d'amorçage deviennent des "points chauds" pour le gossip en raison de l'étape 4 ci-dessus.
+
+Comme les nœuds non seed doivent être en mesure de contacter au moins un nœud seed afin de s'amorcer dans le cluster, il est courant d'inclure plusieurs nœuds seed, souvent un pour chaque rack ou centre de données. Les nœuds d'amorçage sont souvent choisis à l'aide de mécanismes de découverte de services existants.
+
+Remarque :
+
+Les nœuds ne doivent pas nécessairement se mettre d'accord sur les nœuds d'amorçage, et en effet, une fois qu'un cluster est amorcé, les nœuds nouvellement lancés peuvent être configurés pour utiliser n'importe quel nœud existant comme "amorçage". Le seul avantage de choisir les mêmes nœuds comme seed est d'augmenter leur utilité en tant que points de gossip.
+
+Actuellement, gossip propage également les métadonnées des jetons et les informations sur la version du schéma. Ces informations forment le plan de contrôle pour programmer les mouvements de données et les extractions de schémas. Par exemple, si un nœud voit un décalage dans la version du schéma dans l'état gossip, il planifiera une tâche de synchronisation du schéma avec les autres nœuds. Comme les informations sur les jetons se propagent par le biais des gossips, c'est également le plan de contrôle qui permet d'apprendre aux nœuds quels points de terminaison possèdent quelles données.
+
+==== Adhésion à l'anneau et détection des défaillances ====
+
+Le commérage constitue la base de l'appartenance à l'anneau, mais c'est le détecteur de défaillance qui décide finalement si les nœuds sont UP ou DOWN. Chaque nœud de Cassandra exécute une variante du détecteur de défaillance Phi Accrual, dans lequel chaque nœud décide en permanence et de manière indépendante si ses nœuds pairs sont disponibles ou non. Cette décision est principalement basée sur l'état des battements de cœur reçus. Par exemple, si un nœud ne voit pas de battement de cœur croissant en provenance d'un nœud pendant un certain temps, le détecteur de défaillance "condamne" ce nœud, à partir duquel Cassandra cessera d'acheminer les lectures vers ce nœud (les écritures seront généralement écrites vers les hints). Si/quand le noeud recommence à envoyer des heartbeats, Cassandra essaiera de l'atteindre et de se connecter, et s'il peut ouvrir des canaux de communication, il marquera ce noeud comme disponible.
+
+Note:
+Les états UP et DOWN sont des décisions locales du nœud et ne sont pas propagées par les commérages. L'état Heartbeat est propagé par gossip, mais les nœuds ne se considèrent pas comme "UP" tant qu'ils n'ont pas réussi à s'envoyer des messages sur un canal réseau réel.
+
+Cassandra ne supprimera jamais un nœud de l'état gossip sans instruction explicite d'un opérateur via une opération de déclassement ou un nouveau nœud démarrant avec une option replace_address_first_boot. Ce choix est intentionnel pour permettre aux nœuds Cassandra de tomber temporairement en panne sans que les données soient inutilement rééquilibrées. Cela permet également d'éviter les déplacements simultanés de plages, où plusieurs répliques d'une plage de jetons se déplacent en même temps, ce qui peut violer la cohérence monotone et même entraîner une perte de données.

@@ -1,0 +1,96 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T09:02:40+00:00
+
+====== 1. Installation des outils ======
+
+===== Installation sous CentOS 7 =====
+
+Nous aurons besoin d'un serveur DHCP, un serveur TFTP et un serveur HTTP.
+
+==== Installation et configuration pour des clients utilisant BIOS ====
+
+=== • Installation du serveur TFPT ===
+
+```
+yum install -y tftp-server
+systemctl enable --now tftp.socket
+firewall-cmd --add-service=tftp --permanent
+firewall-cmd --reload
+```
+
+=== • Installation du serveur DHCP: ===
+
+```
+yum install -y dhcp
+```
+
+=== • Configuration du serveur DHCP: éditer le fichier */etc/dhcp/dhcpd.conf* et ajouter le contenu suivant en ajoutant les informations nécessaires à la place des options entre crochets ===
+
+```
+#
+# DHCP Server Configuration file.
+#   see /usr/share/doc/dhcp*/dhcpd.conf.example
+#   see dhcpd.conf(5) man page
+#
+
+option space pxelinux;
+option pxelinux.magic code 208 = string;
+option pxelinux.configfile code 209 = text;
+option pxelinux.pathprefix code 210 = text;
+option pxelinux.reboottime code 211 = unsigned integer 32;
+option architecture-type code 93 = unsigned integer 16;
+
+subnet [Adresse_reseau] netmask [Masque_sous_reseau] {
+		option routers [Adresse_passerelle];
+		option domain-name-servers [Adresse_dns_1], [Adresse_dns_2];
+		range [Adresse_debut_de_plage] [Adresse_fin_de_plage];
+
+		class "pxeclients" {
+		  match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
+		  next-server [Adresse_tftp];
+
+		  if option architecture-type = 00:07 {
+			filename "shim.efi";
+		  } else {
+			filename "pxelinux/pxelinux.0";
+				}
+  }
+}
+```
+
+=== • Installation du serveur HTTP ===
+
+```
+yum install -y httpd
+```
+
+=== • Configurer un Vhost pour servir les fichiers à récupérer par http ===
+
+```
+Alias /pxeboot /var/www/pxe
+<Directory /var/www/pxe>
+	Options Indexes FollowSymLinks
+	# access permission
+	Require ip 127.0.0.1 X.X.X.X/Y # Add your network range
+</Directory>
+```
+
+=== • Démarrer les services ===
+
+```
+systemctl start dhcpd
+systemctl start httpd
+systemctl start xinetd
+systemctl enable dhcpd
+systemctl enable httpd
+systemctl enable xinetd
+```
+
+=== • Ouvrir les flux dans le firewall ===
+
+```
+firewall-cmd --add-service=http --permanent
+firewall-cmd --reload
+firewall-cmd --list-all
+```

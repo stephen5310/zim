@@ -1,0 +1,25 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-18T15:01:35+00:00
+
+====== Puppet ======
+
+Puppet est un logiciel libre permettant la gestion de la configuration de serveurs .
+La version libre permet de gérer les déploiements système et applicatif, et accepte les machines virtuelles type Amazon EC2.
+La version commerciale de Puppet permet en plus, de gérer les machines virtuelles VMware, d'avoir une interface graphique de gestion, d'automatiser et d'orchestrer les déploiements, d'avoir une plateforme de développement pour tous les environnements, de gérer individuellement les droits utilisateurs.
+
+Puppet Enterprise (PE) vous aide à être productif, agile et collaboratif tout en gérant votre infrastructure informatique. PE associe une approche guidée par les modèles à une exécution impérative des tâches afin que vous puissiez gérer efficacement une infrastructure hybride tout au long de son cycle de vie. PE fournit le langage commun que toutes les équipes d'une organisation informatique peuvent utiliser pour adopter avec succès des pratiques telles que le contrôle de version, la revue de code, les tests automatisés, l'intégration continue et le déploiement automatisé.
+
+Particularités de PE:
+* Modélise (décrit l'état désiré) au lieu d'utiliser les procédures (tâches)
+* Se base beaucoup sur l'**abstraction** pour améliorer la gestion des systèmes
+	* les éléments gérés sont appelés **ressources** (fichiers, services, ...)
+	* les groupes de ressources sont appelés **modules**
+	* les configurations spécifques sont classées en :
+		* **profils** (regroupements de sous-ensembles de configuration | serveur web | base de données)
+		* **roles** (collection de profils | décrit généralement le role business d'un noeud) 
+* Collecte beaucoup de données pour faire du **reporting**
+* S'assure de garder les ressources dans l'état désiré à chaque exécution (chaque 30mn par défaut)
+* Une collection de code Puppet qui forme un groupe logique est appelé **classe**
+* Un **manifeste** est un fichier texte (.pp) contenant du code Puppet
+* Orchestration avec **MCollective**, interconnexion avec **Ansible** ou ssh dans une boucle for, ou encore **Puppet Bolt**

@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-09T16:42:22+00:00
+
+====== Installation et configuration ======
+
+==== Installation (Version 3.11.10) ====
+
+cd /var/lib
+yum install -y java wget
+wget https://downloads.apache.org/cassandra/3.11.10/apache-cassandra-3.11.10-bin.tar.gz
+tar xf apache-cassandra-3.11.10-bin.tar.gz
+ln -s apache-cassandra-3.11.10-bin apache-cassandra
+useradd cassandra
+chown -R cassandra: apache-cassandra/
+cd apache-cassandra
+
+**Démarrer:**
+./bin/cassandra
+
+**Voir les logs:**
+tail -f logs/system.log
+
+**Vérifier le statut:**
+./bin/nodetool status
+
+**Se connecter à la base de données:**
+./bin/cqlsh
+

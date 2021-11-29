@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-15T13:48:25+00:00
+
+====== Fondements ======
+
+Cours de DataStax sur les fondements d'Apache Cassandra.
+
+Sommaire:
+
+* Explorer le domaine KillrVideo (partage de vidéos) pour découvrir quels problèmes il rencontre avec son système basé sur une BDR
+* Installer/Démarrer Apache Cassandra
+* Créer les tables, l'entrepôt et récupérer des données
+* Comprendre le modèle de données de Cassandra
+* Comprendre l'architecture de Cassandra

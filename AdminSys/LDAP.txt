@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-28T15:32:07+00:00
+
+====== LDAP ======
+
+===== Principes et concepts =====
+
+LDAP (Lightweight Directory Access Protocol) est le protocole d'accès à l'annuaire léger.
+Il fonctionne par défaut sur le port TCP 389 pour LDAP et 636 pour LDAPS.
+Un serveur LDAP agit en tant qu'intermédiaire entre une source de données et un client.
+LDAP est asynchrone.
+Les modèles LDAP représentent les services que propose le serveur au client.

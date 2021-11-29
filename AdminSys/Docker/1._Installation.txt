@@ -1,0 +1,61 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-10-27T17:22:06+00:00
+
+====== 1. Installation ======
+Créée le mercredi 27 octobre 2021
+
+===== Docker =====
+
+* Désinstaller les anciennes versions 
+```
+yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine
+```
+
+* Installer le dépôt
+
+```
+yum install -y yum-utils
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+```
+
+* Installer la dernière version de l'engine
+
+```
+yum install -y docker-ce docker-ce-cli containerd.io
+```
+
+* Installer une version spécifique
+
+	* Lister les dépôts disponibles
+
+```
+yum list docker-ce --showduplicates | sort -r
+
+
+```
+
+	* Installer l'engine en précisant la version souhaitée
+
+```
+yum install docker-ce-<VERSION_STRING> docker-ce-cli-<VERSION_STRING> containerd.io
+```
+
+* Démarrer l'engine
+
+```
+systemctl start docker
+```
+
+===== Docker-compose =====
+
+* Télécharger le script et le mettre dans le répertoire /usr/local/bin et le rendre exécutable
+```
+curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+```
+
+* Créer un lien symbolique vers le script dans /usr/bin
+```
+ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```

@@ -1,0 +1,47 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-05T11:19:39+00:00
+
+====== Audit ======
+
+==== Qu'est-ce que l'audit ? ====
+
+Selon l' IIA, l'audit interne est une activité indépendante et objective qui donne à une organisation une assurance sur le degré de maîtrise de ses opérations, lui apporte ses conseils pour les améliorer, et contribue à créer de la valeur ajoutée.
+
+Les buts sont:
+* réduire l'asymétrie d'informations entre ceux qui prennent des décisions sur le périmètre audité et ceux qui dépendent de ces informations pour prendre leurs propres décisions
+* permet d'identifier les points forts et les points faibles dans le but d'améliorer
+
+Deux principaux domaines:
+* Audit légal ou financier, qui relève de l'audit externe
+* Audit opérationnel, qui relève de l'audit interne
+
+==== Quels sont les objectifs de l'audit en entreprise ? ====
+
+* Audit légal: 
+Évaluer la régularité et la sincérité des informations financières publiées par les entreprises
+Ceux qui le font sont appelés commissaires au compte (CAC)
+Les CAC auditent également les systèmes d'information, les outils comptables et financiers surtout
+La loi de sécurité financière de 2003
+
+* Audit opérationnel: 
+Évaluation des processus opérationnels, leur performance et leur efficience en fonction des objectifs de l'entreprise
+Plusieurs types d'audit opérationnels:
+	* audit de conformité: les mesures sont-elles conformes aux règles en interne et aux normes externes
+	* audit d'efficacité: les mesures sont-elles appropriées et efficaces
+	* audit de management: les mesures sont-elles alignées avec les objectifs stratégiques de l'entreprise
+	* audit de stratégie: les mesures sont-elles alignées avec la stratégies des autres fonctions (conflits)
+
+{{./pasted_image.png}}
+
+
+==== Quels sont les principes fondamentaux pour la pratique de l'audit ? ====
+
+Les principes sont les suivants:
+* Intégrité: 
+* Objectivité: 
+* Confidentialité: 
+* Compétences: respecter le CRIPP fourni par l'IIA
+
+Bonus: la vision systémique
+Il s'agit de pouvoir analyser les activités dans leur globalité et prendre du recul par rapport à la fonction auditée.

@@ -1,0 +1,50 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T09:28:23+00:00
+
+====== 2. Configuration ======
+
+**Configuration de l'accès réseau par pont**
+
+* Afficher les interfaces bridge et les réseaux
+```
+brctl show
+virsh net-list
+```
+* Un réseau privé 192.168.122.0/24 est configuré par défaut
+```
+virsh net-dumpxml default
+```
+* Ajouter une configuration pour permettre aux autres machines du réseau d'accéder aux VMs (ajouter un bridge sur une interface réseau existante)
+```
+vi /etc/sysconfig/network-scripts/enp3s0
+```
+* Ajouter la ligne suivante dans le fichier
+```
+BRIDGE=br0
+```
+* Sauvegarder le fichier et créer un autre pour la configuration du bridge
+```
+vi /etc/sysconfig/network-scripts/ifcfg-br0
+```
+* L'exemple montre une configuration dhcp
+```
+DEVICE="br0"
+# I am getting ip from DHCP server #
+BOOTPROTO="dhcp"
+IPV6INIT="yes"
+IPV6_AUTOCONF="yes"
+ONBOOT="yes"
+TYPE="Bridge"
+DELAY="0"
+```
+* Redémarrer l'interface et le bridge
+```
+ifdown enp3s0
+ifup enp3s0
+ifup br0
+```
+* Vérifier que le brige est opérationnel
+```
+brctl show
+```

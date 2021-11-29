@@ -1,0 +1,156 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-10-13T14:41:25+00:00
+
+====== Portsentry ======
+
+Pour détecter les serveurs qui scannent les ports de votre machine où qui tentent d'exploiter un service défaillant pour se répandre sur Internet, vous pouvez utiliser le logiciel OpenSource Portsentry.
+Portsentry est un service Linux très simple qui ouvre des ports réseau pour imiter la présence de réels services et qui se charge d'exécuter des commandes Linux dès que ces ports réseau sont ouverts par un ordinateur tiers.
+La réponse par défaut de Portsentry à la tentative de connexion consiste à bloquer les flux réseau de la machine appelante au niveau du système afin que celle-ci ne puisse pas rebondir sur d'autres services. C'est violent comme réaction par défaut, mais efficace !
+
+===== Installation =====
+
+Installer le paquet portsentry
+
+```
+yum install -y portsentry
+```
+
+===== Configuration =====
+
+Les fichiers à éditer sont le fichier ///etc/default/portsentry// et les fichiers ///etc/portsentry/{portsentry.ignore.static,portsentry.ignore,portsentry.conf}//.
+
+Vous pouvez définir par exemple:
+* Activer le scan de tous les ports disponibles dans le fichier ///etc/default/portsentry//
+```
+TCP_MODE="atcp"
+UDP_MODE="audp"
+```
+
+* Ajouter votre ip publique à la whitelist en l'ajoutant la fin du fichier ///etc/portsentry/portsentry.ignore.static//
+```
+127.0.0.0
+0.0.0.0
+160.120.188.209
+```
+
+* Modifier le comportement à adopter en cas de scan de ports dans le fichier ///etc/portsentry/portsentry.conf//
+```
+# 0 = Ne rien faire, juste loguer ....
+# 1 = Bloquer les ports au niveau du réseau
+# 2 = Exécuter seulement une commande Linux externe (KILL_RUN_CMD)
+
+BLOCK_UDP="1"
+BLOCK_TCP="1"
+KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
+KILL_HOSTS_DENY="ALL: $TARGET$ : DENY"
+KILL_RUN_CMD_FIRST = "0"
+KILL_RUN_CMD="/etc/portsentry/scripts/notify.sh $TARGET$ $PORT$ $MODE$"
+SCAN_TRIGGER="2"
+PORT_BANNER="** UNAUTHORIZED ACCESS PROHIBITED *** YOUR CONNECTION ATTEMPT HAS BEEN LOGGED. GO AWAY."
+```
+
+* Créer le script ///etc/portsentry/scripts/notify.sh//
+```
+#!/bin/bash
+
+TARGET=$1
+PORT=$2
+MODE=$3
+
+echo "Attack reported-${TARGET}- ${PORT} - ${MODE}" | mail -s 'Unauthorized Port scan  Alert'  email@address.com
+```
+
+* Vous pouvez aussi créer un script à exécuter régulièrement pour vider la liste des adresses bloquées
+```
+#This script should be running as cronjob if you want to remove blocked IPs regularly
+
+#!/bin/bash
+
+BLOCKED_LIST_TCP="/var/lib/portsentry/portsentry.blocked.tcp"
+BLOCKED_LIST_UDP="/var/lib/portsentry/portsentry.blocked.udp"
+ECHO=/bin/echo
+TOUCH=/usr/bin/touch
+CAT=/bin/cat
+AWK=/usr/bin/awk
+DATE=/bin/date
+EXPR=/usr/bin/expr
+FW_EXPIRE_TIME=10 #Iptable rule expiration time in minutes
+TR=/usr/bin/tr
+CUT=/usr/bin/cut
+IPTABLE=/sbin/iptables
+SED=/bin/sed
+#
+#DO NOT CHANGE BELOW THIS LINE--------------------------------------------
+#
+
+get_time_diff() {
+
+BLOCKED_TIME=$1
+
+CURRENT_TIME=`${DATE} +%s`
+TIME_DIFF_IN_SEC=`${EXPR} ${CURRENT_TIME} - ${BLOCKED_TIME}`
+TIME_DIFF_IN_MIN=`${EXPR} ${TIME_DIFF_IN_SEC} / 60`
+
+}
+
+#Get the blocked list entries for processing
+
+BLOCKED_LIST_TCP_ARRAY=(`${CAT} ${BLOCKED_LIST_TCP} | ${TR} -d " " |${TR} '\n' ' '  `)
+BLOCKED_LIST_UDP_ARRAY=(`${CAT} ${BLOCKED_LIST_UDP} | ${TR} -d " " | ${TR} '\n' ' ' `)
+
+#TCP
+
+for i in "${BLOCKED_LIST_TCP_ARRAY[@]}"
+do
+		BLOCKED_IP=`${ECHO} $i |${CUT} -d ":" -f4|${CUT} -d "/" -f1`
+		BLOCKED_TIME=`${ECHO} $i | ${CUT} -d "-" -f1`
+
+		get_time_diff ${BLOCKED_TIME}
+		echo "time$TIME_DIFF_IN_MIN"
+		echo "ip - ${BLOCKED_IP}"
+		if [ "${TIME_DIFF_IN_MIN}" -ge ${FW_EXPIRE_TIME} ];then
+				echo "need to flush"
+				${IPTABLE} -D INPUT -s ${BLOCKED_IP} -j DROP
+				#remove entry from block lidt file
+				${SED} -i "/${BLOCKED_TIME}/d" ${BLOCKED_LIST_TCP}
+		else
+				echo "wait and see"
+		fi
+done
+
+#UDP
+
+for i in "${BLOCKED_LIST_UDP_ARRAY[@]}"
+do
+		BLOCKED_IP=`${ECHO} $i |${CUT} -d ":" -f4|${CUT} -d "/" -f1`
+		BLOCKED_TIME=`${ECHO} $i | ${CUT} -d "-" -f1`
+
+		get_time_diff ${BLOCKED_TIME}
+		echo "time$TIME_DIFF_IN_MIN"
+
+		echo "ip - ${BLOCKED_IP}"
+		if [ "${TIME_DIFF_IN_MIN}" -ge ${FW_EXPIRE_TIME} ];then
+				echo "need to flush"
+				${IPTABLE} -D INPUT -s ${BLOCKED_IP} -j DROP
+				#remove entry from block lidt file
+				${SED} -i "/${BLOCKED_TIME}/d" ${BLOCKED_LIST_UDP}
+
+		else
+
+				echo "wait and see"
+		fi
+
+done
+```
+
+* Rendre les scripts exécutables
+```
+chmod +x /etc/portsentry/scripts/*
+```
+
+* Démarrer le service
+```
+systemctl start portsentry
+systemctl enable portsentry
+```

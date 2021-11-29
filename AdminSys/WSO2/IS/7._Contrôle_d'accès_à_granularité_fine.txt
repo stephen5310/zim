@@ -1,0 +1,46 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-25T10:13:19+00:00
+
+====== 7. Contrôle d'accès à granularité fine ======
+
+===== Définitions =====
+
+* Contrôle d'accès: Restriction sélective de l'accès à des ressources
+* Autorisation: Accorder la permission d'accéder à une ressource
+
+===== Modèles d'autorisation =====
+
+* Mandatory Access Control (MAC): chaque utilisateur est lié à un niveau d'accès définit par l'administrateur de sorte à ce qu'il puisse accéder à toutes les ressources qui ne sont pas au-dessus de son niveau
+* Discretionary Access Control (DAC): l'administrateur maintient une liste d'utilisateur (identités) qui peuvent accéder à une ressource
+* Role-Based Access Control (RBAC): les autorisations sont accordées en fonction du role
+* Attribute-Based Access Control (ABAC) **FINE-GRAINED ACCESS CONTROL** : les autorisations sont accordées en fonction des attributs associés à l'application et à l'utilisateur
+
+===== eXtensible Access Control Markup Language (XACML) =====
+
+* Langage de police standard
+* Standard pour les requêtes de décision de contrôle d'accès et les schémas de réponse
+
+Les points essentiels de l'architecture de référence:
+* PEP: Policy Enforcement Point
+* PDP: Policy Decision Point
+* PAP: Policy Administration Point
+* PIP: Policy Information Point
+
+Les types de réponse possibles:
+* Deny
+* Permit
+* Not applicable
+* Indeterminate
+
+{{./pasted_image.png?width=1000}}
+
+{{./pasted_image001.png?width=1000}}
+
+Avantages:
+* Interopérabilité
+* Découplage
+
+Iconvéniants:
+* Polices pas facile à établir
+* Performances

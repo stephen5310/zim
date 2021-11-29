@@ -1,0 +1,47 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-04-09T16:04:11+00:00
+
+====== Garanties ======
+
+==== Qu'est-ce que le théorème CAP ? ====
+
+Selon le théorème CAP, il n'est pas possible pour un magasin de données distribué de fournir simultanément plus de deux des garanties suivantes.
+
+* Cohérence : La cohérence implique que chaque lecture reçoit l'écriture la plus récente ou qu'il y a des erreurs.
+* Disponibilité : La disponibilité implique que chaque demande reçoit une réponse. Il n'est pas garanti que la réponse contienne l'écriture ou les données les plus récentes.
+* Tolérance de partition : La tolérance de partition fait référence à la tolérance d'un système de stockage à la défaillance d'une partition du réseau. Même si certains des messages sont abandonnés ou retardés, le système continue de fonctionner.
+
+Le théorème CAP implique que lorsqu'on utilise une partition de réseau, avec le risque inhérent de défaillance de la partition, il faut choisir entre la cohérence et la disponibilité et les deux ne peuvent être garanties en même temps. 
+La haute disponibilité est une priorité dans les applications web et pour atteindre cet objectif, Cassandra choisit la disponibilité et la tolérance aux partitions parmi les garanties CAP, en faisant un certain compromis sur la cohérence des données.
+Cassandra offre les garanties suivantes.
+
+* Haute scalabilité
+* Haute disponibilité
+* Durabilité
+* Cohérence éventuelle des écritures sur une seule table
+* Transactions légères avec cohérence linéarisable
+* Les écritures par lots sur plusieurs tables sont garanties de réussir complètement ou pas du tout.
+* Les index secondaires sont garantis d'être cohérents avec les données de leurs répliques locales.
+
+**Haute évolutivité**
+Cassandra est un système de stockage hautement évolutif dans lequel des nœuds peuvent être ajoutés ou retirés selon les besoins. Grâce à un protocole basé sur les rumeurs, une liste unifiée et cohérente des membres est conservée sur chaque nœud.
+
+**Haute disponibilité**
+Cassandra garantit la haute disponibilité des données en mettant en œuvre un système de stockage tolérant aux pannes. Les défaillances d'un nœud sont détectées à l'aide d'un protocole basé sur les rumeurs.
+
+**Durabilité**
+Cassandra garantit la durabilité des données en utilisant des répliques. Les répliques sont des copies multiples d'une donnée stockées sur différents nœuds d'un cluster. Dans un environnement multi-datacenter, les répliques peuvent être stockées dans différents centres de données. Si une réplique est perdue en raison d'une défaillance irrécupérable d'un nœud ou d'un centre de données, les données ne sont pas complètement perdues car les répliques sont toujours disponibles.
+
+**Cohérence éventuelle**
+Répondant aux exigences de performance, de fiabilité, d'évolutivité et de haute disponibilité en production, Cassandra est un système de stockage cohérent à terme. La cohérence à terme implique que toutes les mises à jour atteignent toutes les répliques à terme. Des versions divergentes des mêmes données peuvent exister temporairement, mais elles sont finalement réconciliées dans un état cohérent. La cohérence finale est un compromis pour atteindre la haute disponibilité et elle implique des latences de lecture et d'écriture.
+
+**Transactions légères avec cohérence linéarisable**
+Les données doivent être lues et écrites dans un ordre séquentiel. Le protocole de consensus Paxos est utilisé pour mettre en œuvre des transactions légères. Le protocole Paxos met en œuvre des transactions légères qui sont capables de gérer des opérations simultanées en utilisant la cohérence linéarisable. La cohérence linéarisable est une cohérence séquentielle avec des contraintes en temps réel et elle assure l'isolation des transactions avec la transaction compare and set (CAS). Avec la transaction CAS, les données répliquées sont comparées et les données qui s'avèrent être périmées sont mises à la valeur la plus cohérente. Les lectures avec cohérence linéarisable permettent de lire l'état actuel des données, qui peuvent éventuellement être non validées, sans effectuer de nouvel ajout ou de mise à jour.
+
+**Écritures par lots**
+La garantie des écritures par lots sur plusieurs tables est qu'elles finiront par réussir, ou qu'aucune ne réussira. Les données de lot sont d'abord écrites dans les données système du journal de lot, et lorsque les données de lot ont été stockées avec succès dans le cluster, les données du journal de lot sont supprimées. Le lot est répliqué sur un autre nœud afin de garantir l'achèvement du lot complet en cas de défaillance du nœud coordinateur.
+
+**Index secondaires**
+Un index secondaire est un index sur une colonne et est utilisé pour interroger une table qui n'est normalement pas interrogeable. Une fois construits, les index secondaires sont garantis cohérents avec leurs répliques locales.
+

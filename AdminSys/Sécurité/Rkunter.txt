@@ -1,0 +1,63 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-10-13T10:29:07+00:00
+
+====== Rkunter ======
+
+rkhunter (pour Rootkit Hunter) est un programme qui essaye de détecter les rootkits, portes dérobées et exploits. Pour cela, il compare le hash SHA256, SHA512, SH1 et MD5 des fichiers importants avec les hash connus, qui sont accessibles à partir d'une base de données en ligne. Il alerte également l'utilisateur lorsqu'il trouve des permissions qu'il juge anormales, des fichiers cachés, des chaînes suspectes dans le kernel etc.
+
+De par l'exhaustivité des tests qu'il effectue, et à cause du nombre de systèmes sur lesquels il tourne, rkhunter renvoie généralement de nombreux avertissements. L'analyse de ces avertissements (warnings) nécessite une bonne connaissance des systèmes Unix. Dans une écrasante majorité des cas, ces avertissements sont bénins et peuvent être ignorés.
+
+Un système véritablement compromis peut, par définition, faire ou afficher n'importe quoi… Dès lors, rkhunter pourrait parfaitement vous afficher que tout va bien alors que ce n'est pas du tout le cas ! En cas de doutes réels et sérieux sur la compromission d'une machine, seul l'avis d'un véritable expert en sécurité, ou la ré-installation complète de votre machine devrait être en mesure de vous rassurer.
+
+===== Installation =====
+
+Installer le paquet rkhunter
+```
+yum install -y rkhunter
+```
+
+===== Configuration =====
+
+Les fichiers de configuration sont /etc/rkhunter.conf et /etc/default/rkhunter.
+
+Il serait intéressant de modifier les options suivantes dans les fichiers.
+* Configurer l'email de reporting, activer le contrôle quotidien, activer la mise à jour hebdomadaire automatique de la base de connaissances, dans le fichier /etc/rkhunter.conf
+```
+REPORT_EMAIL="admin@mail.com" 
+CRON_DAILY_RUN="yes" 
+CRON_DB_UPDATE="yes"
+DB_UPDATE_EMAIL="yes"
+APT_AUTOGEN="yes"
+```
+
+* Whitelister certains répertoires cachés, scripts, écoute sur plusieurs ports pour certains programmes et autres exceptions dans le fichier /etc/default/rkhunter
+```
+#ALLOW_SSH_PROT_V1=0
+ALLOWHIDDENDIR="/dev/.udev"
+ALLOWDEVFILE="/dev/.udev/rules.d/root.rules"
+SCRIPTWHITELIST=/usr/bin/ldd
+ALLOWPROCLISTEN=/usr/sbin/portsentry
+PORT_PATH_WHITELIST="/usr/sbin/portsentry:TCP:1524"
+PORT_PATH_WHITELIST="/usr/sbin/portsentry:TCP:31337"
+EXISTWHITELIST="/dev/shm"
+```
+
+* Définir le gestionnaire de paquet à utiliser pour vérifier la légitimité de certains fichiers
+```
+PKGMGR=DPKG
+```
+
+===== Exploitation =====
+
+* Lancer un scan immédiat du système
+
+```
+rkhunter --check
+```
+
+* N'afficher que les alertes lors du scan
+
+```
+rkhunter --check --rwo
+```

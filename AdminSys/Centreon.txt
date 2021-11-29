@@ -1,0 +1,12 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T09:06:35+00:00
+
+====== Centreon ======
+
+Centreon est une plateforme de supervision informatique centrée business et orientée AIOps.
+Centreon permet :
+* Une visibilité complète (presque) : des plugins pour la plupart des biens IT, depuis le cloud jusqu'à l'edge
+* Une supervision centrée business : alignement des opérations informatiques sur les objectifs de croissance
+* Une compatibilité AIOps : agilité et flexibilité dans l'évolution technologique
+

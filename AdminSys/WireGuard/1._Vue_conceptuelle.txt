@@ -1,0 +1,85 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-06T17:37:09+00:00
+
+====== 1. Vue conceptuelle ======
+
+WireGuard encapsule de manière sécurisée les paquets IP sur UDP. Vous ajoutez une interface WireGuard, la configurez avec votre clé privée et les clés publiques de vos pairs, puis vous envoyez des paquets à travers elle. Toutes les questions de distribution de clés et de configurations poussées sont hors de portée de WireGuard ; ce sont des questions qu'il vaut mieux laisser à d'autres couches, de peur de se retrouver avec le gonflement de IKE ou OpenVPN. En revanche, il imite plus le modèle de SSH et Mosh ; les deux parties ont les clés publiques de l'autre, et ensuite ils sont simplement en mesure de commencer à échanger des paquets à travers l'interface.
+
+===== Interface réseau simple =====
+
+WireGuard fonctionne en ajoutant une interface réseau (ou plusieurs), comme eth0 ou wlan0, appelée wg0 (ou wg1, wg2, wg3, etc). Cette interface réseau peut alors être configurée normalement en utilisant ifconfig(8) ou ip-address(8), avec des routes pour elle ajoutées et supprimées en utilisant route(8) ou ip-route(8), et ainsi de suite avec tous les utilitaires réseau ordinaires. Les aspects spécifiques de WireGuard de l'interface sont configurés en utilisant l'outil wg(8). Cette interface agit comme une interface tunnel.
+
+WireGuard associe les adresses IP du tunnel aux clés publiques et aux points d'extrémité distants. Lorsque l'interface envoie un paquet à un pair, elle effectue ce qui suit :
+* Ce paquet est destiné à 192.168.30.8. De quel pair s'agit-il ? Laisse-moi regarder... Ok, c'est pour le peer ABCDEFGH. (Ou si ce n'est pour aucun peer configuré, laissez tomber le paquet).
+* Crypte le paquet IP entier en utilisant la clé publique du pair ABCDEFGH.
+* Quel est le point de terminaison distant du pair ABCDEFGH ? Laissez-moi regarder... Ok, le point de terminaison est le port UDP 53133 sur l'hôte 216.58.211.110.
+* Envoyez les octets cryptés de l'étape 2 sur Internet à 216.58.211.110:53133 en utilisant UDP.
+
+Lorsque l'interface reçoit un paquet, ceci se produit :
+Je viens de recevoir un paquet du port UDP 7361 sur l'hôte 98.139.183.24. Décryptons-le !
+Il a été décrypté et authentifié correctement pour le pair LMNOPQRS. Ok, rappelons que le point de terminaison Internet le plus récent du pair LMNOPQRS est 98.139.183.24:7361 en utilisant UDP.
+Une fois décrypté, le paquet en texte clair provient de 192.168.43.89. L'homologue LMNOPQRS est-il autorisé à nous envoyer des paquets sous le nom de 192.168.43.89 ?
+Si oui, acceptez le paquet sur l'interface. Sinon, il faut l'abandonner.
+Dans les coulisses, il se passe beaucoup de choses pour assurer la confidentialité, l'authenticité et le secret de transmission parfait, en utilisant une cryptographie de pointe.
+
+===== Routage par clé cryptographique =====
+
+Au cœur de WireGuard se trouve un concept appelé Cryptokey Routing, qui fonctionne en associant des clés publiques à une liste d'adresses IP de tunnel qui sont autorisées à l'intérieur du tunnel. Chaque interface réseau possède une clé privée et une liste d'homologues. Chaque pair possède une clé publique. Les clés publiques sont courtes et simples, et sont utilisées par les pairs pour s'authentifier mutuellement. Elles peuvent être transmises pour être utilisées dans des fichiers de configuration par n'importe quelle méthode hors bande, de la même manière qu'une personne peut envoyer sa clé publique SSH à un ami pour accéder à un serveur shell.
+
+Par exemple, un ordinateur serveur peut avoir cette configuration :
+
+```
+[Interface]
+PrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=
+ListenPort = 51820
+
+[Peer]
+PublicKey = xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=
+AllowedIPs = 10.192.122.3/32, 10.192.124.1/24
+
+[Peer]
+PublicKey = TrMvSoP4jYQlY6RIzBgbssQqY3vxI2Pi+y71lOWWXX0=
+AllowedIPs = 10.192.122.4/32, 192.168.0.0/16
+
+[Peer]
+PublicKey = gN65BkIKy1eCE9pP1wdc8ROUtkHLF2PfAqYdyYBz6EA=
+AllowedIPs = 10.10.10.230/32
+```
+
+Et un ordinateur client pourrait avoir cette configuration plus simple :
+
+```
+[Interface]
+PrivateKey = gI6EdUSYvn8ugXOt8QQD6Yc+JyiZxIhp3GInSWRfWGE=
+ListenPort = 21841
+
+[Peer]
+PublicKey = HIgo9xNzJMWLKASShiTqIybxZ0U3wGLiUeJ1PKf8ykw=
+Endpoint = 192.95.5.69:51820
+AllowedIPs = 0.0.0.0/0
+```
+
+Dans la configuration du serveur, chaque pair (un client) pourra envoyer des paquets à l'interface réseau avec une IP source correspondant à sa liste correspondante d'IP autorisées. Par exemple, lorsqu'un paquet est reçu par le serveur en provenance du pair gN65BkIK..., après avoir été décrypté et authentifié, si son IP source est 10.10.10.230, alors il est autorisé sur l'interface ; sinon il est abandonné.
+
+Dans la configuration du serveur, lorsque l'interface réseau veut envoyer un paquet à un pair (un client), elle examine l'IP de destination de ce paquet et la compare à la liste des IP autorisées de chaque pair pour savoir à quel pair l'envoyer. Par exemple, si l'on demande à l'interface réseau d'envoyer un paquet dont l'IP de destination est 10.10.10.230, elle le chiffrera à l'aide de la clé publique du pair gN65BkIK..., puis l'enverra au point de terminaison Internet le plus récent de ce pair.
+
+Dans la configuration client, son unique pair (le serveur) pourra envoyer des paquets à l'interface réseau avec n'importe quelle IP source (puisque 0.0.0.0/0 est un caractère générique). Par exemple, lorsqu'un paquet est reçu du pair HIgo9xNz..., s'il est décrypté et authentifié correctement, avec n'importe quelle IP source, il est autorisé sur l'interface ; sinon, il est abandonné.
+
+Dans la configuration client, lorsque l'interface réseau veut envoyer un paquet à son unique pair (le serveur), elle crypte les paquets pour l'unique pair avec n'importe quelle adresse IP de destination (puisque 0.0.0.0/0 est un joker). Par exemple, si l'on demande à l'interface réseau d'envoyer un paquet avec n'importe quelle adresse IP de destination, elle le chiffrera en utilisant la clé publique de l'homologue unique HIgo9xNz..., puis l'enverra au point de terminaison Internet le plus récent de l'homologue unique.
+
+En d'autres termes, lors de l'envoi de paquets, la liste des IP autorisées se comporte comme une sorte de table de routage, et lors de la réception de paquets, la liste des IP autorisées se comporte comme une sorte de liste de contrôle d'accès.
+
+C'est ce que nous appelons une table de routage Cryptokey : la simple association de clés publiques et d'IP autorisées.
+
+Toute combinaison d'IPv4 et d'IPv6 peut être utilisée, pour n'importe lequel des champs. WireGuard est entièrement capable d'encapsuler l'un dans l'autre si nécessaire.
+
+Parce que tous les paquets envoyés sur l'interface WireGuard sont cryptés et authentifiés, et parce qu'il y a un couplage si étroit entre l'identité d'un pair et l'adresse IP autorisée d'un pair, les administrateurs système n'ont pas besoin d'extensions compliquées de pare-feu, comme dans le cas d'IPsec, mais plutôt ils peuvent simplement correspondre à "est-ce de cette IP ? sur cette interface ?", et être assurés qu'il s'agit d'un paquet sécurisé et authentique. Cela simplifie grandement la gestion du réseau et le contrôle d'accès, et fournit beaucoup plus d'assurance que vos règles iptables font réellement ce que vous voulez qu'elles fassent.
+
+===== Itinérance intégrée =====
+
+La configuration client contient un point de terminaison initial de son unique pair (le serveur), afin qu'il sache où envoyer des données cryptées avant d'avoir reçu des données cryptées. La configuration du serveur n'a pas de points de terminaison initiaux de ses pairs (les clients). En effet, le serveur découvre le point d'extrémité de ses pairs en examinant d'où proviennent les données correctement authentifiées. Si le serveur modifie lui-même son propre point de terminaison et envoie des données aux clients, ces derniers découvriront le nouveau point de terminaison du serveur et mettront à jour la configuration de la même manière. Le client et le serveur envoient tous deux des données cryptées au point d'extrémité IP le plus récent pour lequel ils ont décrypté des données de manière authentique. Il y a donc itinérance IP complète aux deux extrémités.
+
+===== Prêt pour les conteneurs =====
+
+WireGuard envoie et reçoit des paquets chiffrés en utilisant l'espace de noms de réseau dans lequel l'interface WireGuard a été créée à l'origine. Cela signifie que vous pouvez créer l'interface WireGuard dans votre espace de noms de réseau principal, qui a accès à l'Internet, puis la déplacer dans un espace de noms de réseau appartenant à un conteneur Docker en tant que seule interface de ce conteneur. Cela garantit que le seul moyen possible pour ce conteneur d'accéder au réseau est de passer par un tunnel WireGuard crypté et sécurisé.

@@ -1,0 +1,67 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-10T09:44:45+00:00
+
+====== 3. SSO pour applications web et mobile ======
+
+===== Système de fournisseur d'identité =====
+
+* Accès au magasin d'utilisateurs
+* Sert d'interface d'authentification centralisée pour les applications
+* Gestion centralisée des sessions d'utilisateurs
+* Utilise des standards de communication ouverts (OIDC, SAML, WS-Federation)
+
+===== SSO avec Security Assertion Markup Language (SAML) =====
+
+* Langage de description basé sur du XML pour les assertions de sécurité
+* Standard ouvert pour échanger les données d'authentification et d'autorisation entre les partie,
+en particulier entre un fournisseur d'identité et un fournisseur de service
+* Trois acteurs:
+	* Sujet/mandataire (utilisateur)
+	* Application cliente/partie relayante (fournisseur de service)
+	* Partie requérante (fournisseur d'identité)
+
+{{./pasted_image.png?width=1000}}
+
+* Trois types d'assertions SAML:
+	* authentication: sert de preuve à l'authentification, donne le temps de connexion de l'utilisateur et le type d'authentification qui a été utilisé
+	* attribute: fournit les informations sur l'utilisateur
+	* authorisation-decision: permet de savoir si l'utilisateur est autorisé à accéder à la ressource demandée
+* Quatre spécifications:
+	* core: syntaxe et sémantiques pour les assertions, les protocoles pour les requêtes et les réponses
+	* bindings: frameworks pour l'intégration et le transport des messages SAML dans différents frameworks et protocoles de communication comme post-binding et artifact-binding
+	* profiles: base pour l'utilisation des assertions SAML, protocoles pour des cas d'utilisation spécifiques tels que SSO et SLO
+	* metadata: définition des informations sur le service provider et l'identity provider
+
+===== SSO avec OpenID Connect (OIDC) =====
+
+* Couche d'identité simple au dessus de OAuth 2.0
+* Permet aux Clients de vérifier l'identité de l'utilisateur final à l'aide d'une authentification effectuée par un Authorization Server
+* Permet d'obtenir des informations basiques sur le profil de l'utilisateur final
+
+{{./pasted_image002.png?width=1000}}
+
+{{./pasted_image003.png?width=1000}}
+
+Format d'un ID Token:
+* Header
+* Body/Payload
+	* iss: identifiant de l'émetteur (issuer), généralement l'IDP
+	* sub: identifiant du sujet (subject), généralement l'utilisateur qui tente accéder à l'application
+	* aud: audience(s) de l'ID Token, généralement les applications auquelles il est destiné
+	* exp: temps d'expiration du Token
+	* iat: temps auquel le Token a été émis
+* Signature
+
+Trois flux d'authentification:
+* Authorization Code
+* Implicit
+* Hybrid
+
+Spécifications:
+* Core: définit les fonctionnalités du core de OIDC
+* Discovery: définit comment les clients découvrent dynamiquement les informations sur les fournisseurs OpenID
+* Dynamic Registration: définit comment les clients s'enregistrent dynamiquement auprès des fournisseurs OpenID
+* Session Management: définit comment gérer les sessions OIDC
+* Front-Channel Logout: définit un mécanisme de déconnexion front-channel
+* Back-Channel Logout: définit un mécanisme de déconnexion utilisant les connexions directes back-channel entre le OP et les RPs qui se déconnectent

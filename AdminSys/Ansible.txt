@@ -1,0 +1,23 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-08T08:14:00+00:00
+
+====== Ansible ======
+
+Ansible a été publié en 2012 par Michael DeHaan (@laserllama5 sur Twitter).
+développeur qui travaille sur la gestion de la configuration et l'orchestration de l'infrastructure
+l'orchestration sous une forme ou une autre depuis de nombreuses années.
+
+Ansible vise à être :
+1. Clair - Ansible utilise une syntaxe simple (YAML) et est facile pour tout le monde (développeurs,
+sysadmins, managers) à comprendre. Les API sont simples et sensées.
+2. Rapide - Rapide à apprendre, rapide à mettre en place, surtout si l'on considère que vous n'avez pas besoin d'installer des agents ou des démons supplémentaires sur votre ordinateur.
+d'installer des agents ou des démons supplémentaires sur tous vos serveurs !
+3. Complet - Ansible fait trois choses en une, et les fait très bien. L'approche d'Ansible
+d'Ansible signifie que vous avez tout ce dont vous avez besoin dans un paquet complet.
+paquet complet.
+4. Efficace - Aucun logiciel supplémentaire sur vos serveurs signifie plus de ressources pour vos applications.
+applications. De plus, comme les modules Ansible fonctionnent via JSON, Ansible est extensible avec des modules écrits dans un langage de programmation que vous connaissez déjà.
+avec des modules écrits dans un langage de programmation que vous connaissez déjà.
+5. Sécurisé - Ansible utilise SSH, et ne nécessite pas de ports ouverts supplémentaires ou de démons potentiellement vulnérables sur vos serveurs.
+vulnérables sur vos serveurs.

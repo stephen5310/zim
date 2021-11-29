@@ -1,0 +1,27 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T08:48:44+00:00
+
+====== PXE ======
+
+# Présentation
+
+L'amorçage PXE (sigle de Pre-boot eXecution Environment) permet à une station de travail de démarrer depuis le réseau en récupérant une image de système d'exploitation qui se trouve sur un serveur.
+
+L'image ainsi récupérée peut être le système d'exploitation brut ou bien le système d'exploitation personnalisé avec des composantes logicielles (suite bureautique, utilitaires, packs de sécurité, scripts, etc.).
+
+Une fois cette image « pré-chargée », elle peut éventuellement, en fonction des paramétrages passés à cette image sur le serveur, être installée sur la machine qui a été amorcée en PXE.
+
+Il permet également d'installer de manière automatique et à distance des serveurs sous divers OS.
+
+Les nouvelles technologies VDI permettent également de « streamer » un OS complet ainsi que ses applications associées, directement sur la station de travail sans disque dur, en bootant préalablement avec le PXE.
+
+Pour activer le PXE, il faut auparavant le configurer dans le BIOS. L’option se trouve fréquemment dans un menu concernant la carte réseau.
+
+L'amorce par PXE s'effectue en plusieurs étapes :
+
+* recherche d'une adresse IP sur un serveur DHCP/BOOTP ainsi que du fichier à amorcer ;
+* téléchargement du fichier à amorcer depuis un serveur Trivial FTP ;
+* exécution du fichier à amorcer.
+
+La taille du fichier à amorcer ne permet pas de « booter » directement un noyau Linux, par exemple, mais il faut que le logiciel à amorcer le télécharge et l'exécute lui-même.

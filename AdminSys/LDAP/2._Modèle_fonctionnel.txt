@@ -1,0 +1,86 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-01T15:26:58+00:00
+
+====== 2. Modèle fonctionnel ======
+
+Le modèle de fonctionnel est la manière dont on accède à l'annuaire, protocole LDAP lui-même.
+
+===== La base =====
+
+La base est le DN à partir duquel une recherche est faite. Par exemple "dc=cogip,dc=fr" effectuerait une recherche sur tout l'arbre, puisqu'il s'agit de la racine.
+
+===== La portée =====
+
+Le scope est le nombre de niveaux sur lesquels l'action va être effectuée. Il existe 3 niveaux différents :
+* **sub** : l'action est effectuée récursivement à partir de la base spécifiée sur la totalité de l'arborescence.
+* **one** : l'action est effectuée sur les fils directs, c'est-à-dire un seul niveau inférieur par rapport à la base spécifiée. Pour notre arbre de la COGIP, au niveau le plus haut "dc=cogip,dc=fr", on aurait pour la portée ONE "ou=users,dc=cogip,dc=fr" et "ou=groups,dc=cogip,dc=fr".
+* **base** : l'action est effectuée uniquement sur la base spécifiée. Une recherche sur "dc=cogip,dc=fr" avec la portée BASE renverrait cette entrée uniquement.
+
+===== Les filtres =====
+
+Un filtre va permettre de définitr des critères pour la recherche. 
+Il est constitué d'un ensemble d'opérations, portant sur des attributs, combinées avec les opérateurs booléens classiques: ET (&), OU () et NON (!=).  
+Sa syntaxe est donc : attribut OPERATEUR valeur. 
+La forme générale d'un filtre est une combinaison : (operator(search operation)(search operation)...)). 
+Les opérateurs de recherche peuvent ensuite être combinés.
+* Égalité : : = 
+* Approximation : ~=
+* Supérieur ou égal : >=
+* Inférieur ou égal : <=
+
+Il n'existe pas d'opérateur : "différent de", "strictement inférieur", ou "strictement supérieur", il est possible de les obtenir à l'aide des opérateurs autorisés, en utilisant un opérateur booléen "NON".
+**Exemple de test d'infériorité :** (&(X>=Y)(!(X=Y)))
+
+La valeur accepte le caractère '*' afin de permet des recherches sur des parties de chaînes. Ce même caractère, seul, permet de tester la présence d'un attribut. Ce caractère n'est valide qu'avec l'opération d'égalité.
+Une opération doit obligatoirement se trouver entre deux parenthèses. Les valeurs qui sont dans la partie droite d'une opération élémentaire ne sont pas entre quote, mais certains caractères doivent être échappés :
+Il faut utiliser les parenthèses ( ) pour <, > et les tests plus complexes. Pour ces tests, on utilisera les opérateurs suivants :
+* L'intersection (et) : 
+* L'union (ou) |
+* La négation (non) !
+
+Exemples:
+* Combiner plusieurs éléments :
+(&(objectClass=person)(|(givenName=Jean-Christian)(mail=jranu*)))
+
+* Toutes les personnes ayant leur numéro de téléphone renseigné dans la base :
+&(&(objectclass=person)(telephoneNumber=*))
+
+* Toutes les personnes dont le nom commence par 'A' et n'habitant pas Paris :
+&(&(objectclass=person)(cn=A*)(!(l=Paris)))
+
+* Toutes les personnes dont le nom ressemble à Febvre (Faivre, Fèvre, Lefebvre, ...) :
+&(&(objectclass=person)(cn~=febre))
+(&(objectclass=person)(cn=*f*vre))
+
+==== Les filtres étendus ====
+
+En plus des attributs constituant une entrée d'un annuaire, il est possible, grâce aux filtres étendus, de considérer les éléments du DN comme faisant partie aussi de l'entrée elle même, lors de la recherche.
+attribut:dn:=value
+
+Par exemple le filtre (ou:dn:=users) récupérera non seulement toutes les entrées qui ont un attribut ou qui a pour valeur users, mais aussi toutes les entrées dont le DN contient un attribut ou avec la valeur users.
+L'autre possibilité offerte par les filtres étendus est de modifier la règle de comparaison sur un attribut.
+attributid-matching-rule:=value
+
+Par exemple, si un attribut a une règle de comparaison par défaut qui est insensible à la casse, mais que l'on veut faire une recherche avec une valeur précise, qui tienne compte de la casse, il faut modifier la règle de comparaison par défaut.
+Il n'est pas permis non plus d'utiliser le caractère * pour faire des recherches sur des sous chaînes avec les filtres étendus.
+
+===== Les opérations =====
+
+Le client donne à chaque requête un identifiant (Message ID). Le serveur y répond avec le même identifiant, en incluant un code indiquant l'état (succès, échec, …). 
+La réponse inclut également les données éventuelles qui peuvent résulter d'une recherche. Il inclut aussi un code ID.
+LDAP fournit des fonctions pour interagir avec les données :
+
+* Abandon : Abandonne l'opération précédemment envoyées au serveur
+* Add : Ajoute une entrée au répertoire
+* Bind : Initie une nouvelle session sur le serveur LDAP
+* Compare : Compare les entrées d'un répertoire selon des critères
+* Delete : Supprime une entrée d'un répertoire
+* Extended : Effectue des opérations étendues
+* Modify : Modifie une entrée
+* Modify DN : Déplace ou renomme une entrée
+* Rename : Modifie le nom d'une entrée
+* Search : Recherche des entrées d'un répertoire
+* StartTLS : Établit une connexion sécurisée entre le client et le serveur avant toute autre commande
+* Unbind : Termine une session sur le serveur LDAP
+Certaines de ces actions, notamment la recherche, nécessitent des outils particuliers pour nous faciliter l'accès à l'annuaire.

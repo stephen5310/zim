@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-23T08:53:51+00:00
+
+====== Deep Dive ======
+
+L'architecture de base de Druid combine les idées des entrepôts de données, des bases de données chronologiques et des systèmes de recherche de journaux.
+
+Druid possède une architecture multi-processus et distribuée, conçue pour être conviviale et facile à utiliser. Chaque type de processus Druid peut être configuré et mis à l'échelle indépendamment, ce qui vous donne une flexibilité maximale sur votre cluster. Cette conception permet également une meilleure tolérance aux pannes : la panne d'un composant n'affectera pas immédiatement les autres composants.
+
+===== Architecture du déploiement conseillé =====
+
+{{./pasted_image.png?height=540}}

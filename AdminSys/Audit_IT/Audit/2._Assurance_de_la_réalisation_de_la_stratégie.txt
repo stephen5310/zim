@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-07T08:51:28+00:00
+
+====== 2. Assurance de la réalisation de la stratégie ======
+
+===== Analyser la fonction d'audit: méthode SWOT =====
+
+La méthode SWOT permet d'identifier les facteurs internes et externes. Ces facteurs peuvent favoriser ou empêcher la mise en œuvre de la stratégie d'audit. 
+
+{{./pasted_image.png}}
+
+Facteurs internes: les forces et faiblesses spécifiques à l'activité d'audit dans l’entreprise
+* la structure organisationnelle et le positionnement du service: garantir l'indépendance et l'objectivité de la fonction
+* les ressources et les compétences dont on dispose: les outils collaboratifs et la maîtrise du domaine audité
+* la communication: ne pas véhiculer une mauvaise image de l’audit et mettre la fonction dans une mauvaise posture
+
+Facteurs externes: les forces et faiblesses externes à l'activité d'audit dans l’entreprise
+* les nombreuses demandes d'assurance et de conseil des parties prenantes 
+* les évolutions réglementaires et des technologies et des outils dans l'entreprise
+
+===== Maîtriser les facteurs clés de succès =====
+
+Quels sont les éléments minimum à mettre en place 
+Quels sont les éléments minimum à notre disposition
+
+Exemples:
+* une communication claire et régulière, adaptée à tous les niveaux hiérarchiques. Pour ce faire, un tableau de bord ou un reporting, avec des indicateurs mis à jour tous les mois, permettra de communiquer des informations pertinentes et adaptées auprès des principales parties prenantes. Ce support comprend entre autres un recensement des risques, les constats d'audit et les mesures correctives à date ;
+* des auditeurs disposent de compétences techniques mais aussi de savoir-faire et de savoir-être. Lorsque vous constituez une équipe d’audit, qu’elle se compose de ressources internes ou externes, vous allez identifier les personnes clés pour la réalisation des missions. Il peut être opportun d’affecter les personnes avec un certain degré d’intelligence émotionnelle dans des contextes difficiles.

@@ -1,0 +1,32 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-07-05T17:28:09+00:00
+
+====== WireGuard ======
+
+WireGuard est un VPN extrêmement simple, rapide et moderne qui utilise une cryptographie de pointe. 
+Il vise à être plus rapide, plus simple, plus léger et plus utile que l'IPsec, tout en évitant le casse-tête massif.
+
+===== Simplicité d'utilisation =====
+
+WireGuard vise à être aussi facile à configurer et à déployer que SSH. Une connexion VPN est établie simplement en échangeant des clés publiques très simples - exactement comme l'échange de clés SSH - et tout le reste est géré de manière transparente par WireGuard. Il est même capable d'itinérance entre les adresses IP, tout comme Mosh. Il n'y a pas besoin de gérer les connexions, de se préoccuper de l'état, de gérer les démons, ou de s'inquiéter de ce qui se trouve sous le capot. WireGuard présente une interface extrêmement basique mais puissante.
+
+===== Cryptographiquement sûr =====
+
+WireGuard utilise une cryptographie de pointe, comme le cadre de protocole Noise, Curve25519, ChaCha20, Poly1305, BLAKE2, SipHash24, HKDF, et des constructions de confiance sécurisées. 
+Il fait des choix conservateurs et raisonnables et a été examiné par des cryptographes.
+
+===== Surface d'attaque minimale =====
+
+WireGuard a été conçu avec la facilité de mise en œuvre et la simplicité à l'esprit. 
+Il est destiné à être facilement mis en œuvre dans très peu de lignes de code, et facilement vérifiable pour les vulnérabilités de sécurité. 
+Par rapport à des mastodontes comme *Swan/IPsec ou OpenVPN/OpenSSL, dont l'audit des gigantesques bases de code est une tâche écrasante, même pour de grandes équipes d'experts en sécurité, WireGuard est conçu pour être entièrement contrôlable par des personnes seules.
+
+===== Hautes performances =====
+
+La combinaison de primitives cryptographiques extrêmement rapides et du fait que WireGuard vit dans le noyau Linux signifie que la mise en réseau sécurisée peut être très rapide. 
+Il convient aussi bien aux petits appareils embarqués comme les smartphones qu'aux routeurs dorsaux entièrement chargés.
+
+===== Bien défini et minutieusement étudié =====
+
+WireGuard est le résultat d'un processus académique long et minutieux, qui a abouti au livre blanc technique, un document de recherche universitaire qui définit clairement le protocole et les considérations intenses qui ont présidé à chaque décision.

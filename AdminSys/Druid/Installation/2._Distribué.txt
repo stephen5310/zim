@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-29T09:43:46+00:00
+
+====== Distribué ======
+
+Il s'agira de mettre chaque service sur un serveur, avec zookeeper sur un serveur de plus. On utilisera l'un des serveurs avec sa base de données 
+
+L'installation se résume en les étapes suivantes:
+* Installer java (version >= 8) sur les machines
+* Télécharger et extraire l'archive de la version à installer
+* Éditer le fichier DRUID_DIR/conf/druid/cluster/_common/common.runtime.properties pour changer les propriétés suivantes:
+	* druid.host : adresse ip de la VM
+	* druid.metadata.storage.connector.connectURI : url de connexion à l'entrepôt de métadonnées
+	* druid.metadata.storage.connector.host : adresse ip du serveur d'entrepôte de métadonnées

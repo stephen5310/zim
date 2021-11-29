@@ -1,0 +1,54 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-05T22:07:40+00:00
+
+====== 1. Définition de la valeur ajoutée ======
+
+===== Réfléchir en amont à la stratégie =====
+
+La stratégie d'audit permet de fixer la mission d'une fonction d'audit interne et de définir sa valeur ajoutée au sein de l'entreprise. Elle permet d'évaluer les ressources humaines et financières en vue d'accomplir cette mission et cette vision.
+
+La réflexion est basée sur trois principales composantes:
+* Le secteur d'activité de l'entreprise et ses objectifs à court, moyen et long termes
+* Le cadre réglementaire et les référentiels en vigueur, à la fois en entreprise et sur le marché
+* Les différentes parties prenantes et leurs attentes
+
+===== Le secteur d'activité =====
+
+==== Le modèle des forces de Porter ====
+
+Il s'agit d'appréhender le secteur d'activité de l'entreprise afin de développer une vision externe de l'entreprise, et d'identifier ce que celle-ci a mis en oeuvre pour faire face à ces différentes forces en présence:
+
+* L'intensité concurrentielle: connaître les concurrents afin de s'aligner ou se différencier
+* Le pouvoir de négociation des clients: dans quelle mesure influencent-ils les prix, produits et services
+* Le pouvoir de négociation des fournisseurs: dans quelle mesure imposent-ils leurs conditions
+* La menace des produits ou services de substitution: quels produits pourraient attirer les clients ailleurs? quels dispositifs sont mis en place pour les garder?
+* La menace d'entrants potentiels sur le marché: comment les acteurs du secteurs se protègent-ils pour contrer cette menace?
+* Les pouvoirs publics: leur influence?
+
+==== La chaîne de valeur de Porter ====
+
+Elle permet d'identifier les fonctions qui créent ou non de la valeur, surtout d'un point de vue financier.
+Elle est composée:
+
+* des activités principales: celles qui contribuent directement à générer du CA et à dégager de la marge. Il s'agit
+	* des activités de logistique entrante pour l'approvisionnement,
+	* des activités de fabrication ou de production,
+	* des activités de logistique sortante pour la distribution et la commercialisation,
+	* du marketing et des ventes,
+	* des services;
+* des activités de soutien: celles qui sont en support et forment l'infrastructure de l'entreprise. Il s'agit de
+	* l'infrastructure de l'entreprise,
+	* la gestion des ressources humaines,
+	* la recherche et le développement,
+	* les achats.
+
+===== Les réglementations et standards =====
+
+Chacune des fonctions de l'entreprise est soumise à des lois et réglementations à respecter sous peine de sanctions.
+Les activités de l'entreprise peuvent répondre également à des standards et à des bonnes pratiques du secteur et/ou du métier. L'entreprise pourrait s'engager aussi dans une certification ISO.
+
+===== Répondre aux attentes des parties prenantes =====
+
+Il faut solliciter les parties prenantes internes et externes (par exemple, les membres du conseil d’administration, la direction générale, et les régulateurs) afin de recenser leurs attentes sur la fonction d’audit, et les informations dont elles ont besoin pour prendre des décisions.
+En sollicitant les parties prenantes internes et externes, vous commencez  déjà à fédérer sur les objectifs d’audit. Vous communiquez sur le rôle de la fonction d’audit interne et sur votre volonté de créer de la valeur ajoutée, en contribuant à l’atteinte des objectifs stratégiques.

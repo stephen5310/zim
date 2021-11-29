@@ -1,0 +1,61 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T09:10:05+00:00
+
+====== 2. Options d'installation ======
+Créée le jeudi 25 novembre 2021
+
+===== Types d'infrastructure possibles =====
+
+* All in one single master
+* Single master et multi worker
+* Single master, single node etcd et multi worker
+* Multi master et multi worker
+* Multi master, multi node etcd et multi worker
+
+===== Prérequis en terme d'infrastructure =====
+
+* Choix entre sur du hardware, dans un cloud privé, public ou hybride
+* Quel OS ?
+* Quelle solution réseau ?
+
+===== Outils et ressources d'installation =====
+
+* kubeadm (pas de provisioning, utiliser ansible)
+* kubespray (supporté par la plupart des plateformes, basé sur ansible)
+* kops (aws, les autres en dev)
+* kube-aws
+
+* Minikube : single node local
+* Kind : cluster multi node dans des conteneurs docker agissant comme des noeuds kubernetes
+* Docker Desktop : avec un cluster kubernetes local
+* Microk8s : cluster local et cloud édité par Canonical
+* K3S : cluster léger local, cloud, IoT et edge édité par Rancher
+
+* Sur site :
+	* VMs : Vagrant, VMware vSphere, kvm avec ansible ou kubeadm pour l'automatisation
+	* Sur OS : RHEL, CoreOS, Debian, Fedora
+	* GKE On-Prem part of Google Cloud Anthos 
+	* IBM Private Cloud 
+	* OpenShift Container Platform by Red Hat
+
+* Dans le cloud :
+
+	**SaaS**
+	* Alibaba Cloud Container Service for Kubernetes (ACK) 
+	* Amazon Elastic Kubernetes Service (EKS) 
+	* Azure Kubernetes Service (AKS) 
+	* DigitalOcean Kubernetes 
+	* Google Kubernetes Engine (GKE) 
+	* IBM Cloud Kubernetes Service 
+	* Oracle Cloud Container Engine for Kubernetes (OKE) 
+	* Platform9 Managed Kubernetes (PMK) 
+	* Red Hat OpenShift 
+	* VMware Tanzu Kubernetes.
+
+	**IaaS**
+	* Alibaba Cloud 
+	* Amazon AWS (AWS EC2) 
+	* Google Compute Engine (GCE)
+	* IBM Cloud Private
+

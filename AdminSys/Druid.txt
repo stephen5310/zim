@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-23T08:51:38+00:00
+
+====== Druid ======
+
+Apache Druid est une base de données analytique en temps réel conçue pour l'analyse rapide en tranches et en dés (requêtes "OLAP") sur de grands ensembles de données. Druid est le plus souvent utilisé comme base de données pour alimenter des cas d'utilisation où l'acquisition en temps réel, la rapidité des requêtes et le temps de fonctionnement élevé sont importants. En tant que tel, Druid est couramment utilisé pour alimenter les interfaces graphiques des applications analytiques, ou comme backend pour les API hautement concurrentes qui nécessitent des agrégations rapides. Druid fonctionne mieux avec des données orientées événements.
+
+Les domaines d'application courants de Druid sont les suivants:
+
+* L'analyse du flux de clics (analyse du web et du mobile)
+* Analyse de la télémétrie du réseau (surveillance des performances du réseau)
+* Stockage des métriques de serveur
+* Analyse de la chaîne d'approvisionnement (mesures de fabrication)
+* Mesures de la performance des applications
+* Analyse du marketing numérique et de la publicité
+* Intelligence économique / OLAP

@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T11:25:16+00:00
+
+====== 2. Configuration ======
+
+* Initialiser un projet vagrant avec la box hashicorp/bionic64 (un fichier de configuration //**Vagrantfile**// sera créé dans le répertoire)
+```
+mkdir start
+cd start
+vagrant init hashicorp/bionic64
+```
+
+* Ajouter une autre box (pour l'utiliser dans les projets sans avoir à la télécharger): pour la liste des box disponibles (https://app.vagrantup.com/boxes/search)
+```
+vagrant box add nom/box
+```
+
+* Utiliser une box: éditer la Vagrantfile et mettre à jour l'option suivante
+```
+Vagrant.configure("2") do |config|
+  config.vm.box = "hashicorp/bionic64"
+end
+```
+
+* Démarrer une machine avec un provider différent de VirtualBox
+```
+vagrant up --provider=libvirt
+```

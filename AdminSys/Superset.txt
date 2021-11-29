@@ -1,0 +1,22 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2021-03-24T11:03:46+00:00
+
+====== Superset ======
+
+Apache Superset est une application web de business intelligence moderne et adaptée aux entreprises. Elle est rapide, légère, intuitive et dotée de nombreuses options qui permettent aux utilisateurs de toutes compétences d'explorer et de visualiser facilement leurs données, qu'il s'agisse de simples graphiques circulaires ou de graphiques géospatiaux deck.gl très détaillés.
+
+Superset fournit :
+
+* Une interface intuitive pour visualiser des ensembles de données et créer des tableaux de bord interactifs.
+* Un large éventail de superbes visualisations pour mettre en valeur vos données.
+* Un constructeur de visualisation sans code pour extraire et présenter des ensembles de données.
+* Un IDE SQL de classe mondiale pour préparer les données pour la visualisation, y compris un riche navigateur de métadonnées.
+* Une couche sémantique légère qui permet aux analystes de données de définir rapidement des dimensions et des métriques personnalisées.
+* Prise en charge immédiate de la plupart des bases de données SQL.
+* Des requêtes et une mise en cache asynchrones en mémoire transparentes.
+* Un modèle de sécurité extensible qui permet de configurer des règles très complexes pour déterminer qui peut accéder à quelles caractéristiques du produit et à quels ensembles de données.
+* Intégration avec les principaux backends d'authentification (base de données, OpenID, LDAP, OAuth, REMOTE_USER, etc.)
+* La possibilité d'ajouter des plugins de visualisation personnalisés.
+* Une API pour la personnalisation programmatique.
+* Une architecture "cloud-native" conçue dès le départ pour être évolutive.

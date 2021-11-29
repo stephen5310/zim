@@ -1,0 +1,41 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-02T09:33:12+00:00
+
+====== 3. Créer une machine virtuelle ======
+
+===== CentOS 7 =====
+
+* Mettre l'image ISO dans le répertoire ///var/lib/libvirt/boot// (télécharger si l'on n'en possède pas)
+```
+cd /var/lib/libvirt/boot
+wget http://mirror.marwan.ma/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso
+```
+* Vérifier l'image
+```
+wget http://mirror.marwan.ma/centos/7.9.2009/isos/x86_64/sha256sum.txt
+cat sha256sum.txt | grep CentOS-7-x86_64-Minimal-2009.iso > sha256checksum.txt
+sha256sum -c sha256checksum.txt
+```
+* Créer la machine virtuelle
+```
+virt-install \
+--virt-type=kvm \
+--name centos7 \
+--ram 2048 \
+--vcpus=1 \
+--os-variant=centos7.0 \
+--cdrom=/var/lib/libvirt/boot/CentOS-7-x86_64-Minimal-2009.iso \
+--network=bridge=br0,model=virtio \
+--graphics vnc \
+--disk path=/var/lib/libvirt/images/centos7.qcow2,size=40,bus=virtio,format=qcow2
+```
+* Configurer vnc pour permettre de se connecter depuis un autre terminal par ssh
+```
+virsh dumpxml centos7 | grep vnc
+```
+* Noter la valeur de la variable **port**. Elle sera utilisée pour se connecter par vnc:
+```
+ssh user@kvm-server -L port:127.0.0.1:port
+```
+* Une fois la connexion ssh établie, utiliser le client vnc pour se connecter par //localhost:port//.

@@ -1,0 +1,67 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-06-09T11:23:30+00:00
+
+====== a. Serveur central (sans SGBD) ======
+
+Exécuter les commandes suivantes:
+
+* Mise à jour du système et désactivation de SELinux
+```
+yum update -y
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+reboot
+```
+
+* Configuration du firewall et installation des composants
+```
+getenforce
+firewall-cmd --zone=public --add-service=ssh --permanent
+firewall-cmd --zone=public --add-service=http --permanent
+firewall-cmd --zone=public --add-service=snmp --permanent
+firewall-cmd --zone=public --add-service=snmptrap --permanent
+firewall-cmd --zone=public --add-port=5556/tcp --permanent
+firewall-cmd --zone=public --add-port=5669/tcp --permanent
+firewall-cmd --reload
+yum install -y centos-release-scl
+yum install -y http://yum.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
+yum install -y centreon-base-config-centreon-engine centreon-widget\*
+systemctl daemon-reload
+```
+
+==== **INSTALLER LE SGBD AVANT DE PASSER AUX ÉTAPES SUIVANTES** ====
+
+* Configuration
+
+```
+hostnamectl set-hostname new_server_name
+echo "date.timezone = Africa/Abidjan" >> /etc/opt/rh/rh-php73/php.d/50-centreon.ini
+systemctl restart rh-php73-php-fpm
+systemctl enable rh-php73-php-fpm httpd24-httpd centreon cbd centengine gorgoned snmptrapd centreontrapd snmpd
+systemctl start httpd24-httpd
+```
+
+==== Installation web ====
+
+Accéder à l'url http://<IP>/centreon et suivre les étapes de configuration jusqu'à la connexion à la console d'administration.
+
+==== Initialisation de la supervision ====
+
+* Depuis votre interface web, allez dans Configuration > Pollers,
+* Sélectionnez Central poller dans la liste et cliquez sur Export configuration,
+* Cochez la case Déplacer les fichiers d'exportation en plus de la sélection par défaut et cliquez sur Exporter,
+* Connectez-vous au serveur central,
+* Démarrez/redémarrez les processus suivants
+
+```
+systemctl restart cbd centengine
+systemctl restart gorgoned
+systemctl start snmptrapd centreontrapd
+systemctl start snmpd
+```
+
+==== Installation des extensions disponibles ====
+
+Allez dans le menu Administration > Extensions > Manager et cliquez sur Install all :
+
+{{./pasted_image.png?width=1000}}

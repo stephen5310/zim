@@ -1,0 +1,123 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-08-25T10:25:51+00:00
+
+====== 2. Installation ======
+
+L'image suivante donne un aperçu de l'architecture distribuée.
+
+{{./pasted_image001.png}}
+
+===== Installation du serveur primaire =====
+
+* Télécharger l'archive d'installation (celle de la version LTS) et extraire le dossier
+```
+curl -JLO 'https://pm.puppetlabs.com/puppet-enterprise/2019.8.8/puppet-enterprise-2019.8.8-el-7-x86_64.tar.gz'
+tar -xf puppet-enterprise-x.y.z-el-7-x86_64.tar.gz
+mv puppet-enterprise-2021.2.0-el-7-x86_64 puppet-enterprise
+cd puppet-enterprise/
+```
+
+* Éditer le fichier conf.d/pe.conf
+```
+vim conf.d/pe.conf
+```
+
+* Définir un mot de passe pour l'administrateur
+```
+"console_admin_password": "admin"
+```
+
+* Démarrer l'installation
+```
+./puppet-enterprise-installer
+```
+
+* Démarrer l'agent sur le serveur
+```
+puppet agent -t
+```
+
+* Ouvrir les ports dans le firewall
+```
+firewall-cmd --add-port=5432/tcp --add-port=8081/tcp --add-port=4433/tcp --add-port=8140/tcp --add-port=8142/tcp --add-port=8143/tcp --zone=public --permanent
+firewall-cmd --reload
+```
+
+===== Installation d'un agent =====
+
+L'installation d'un autre type de serveur commence par l'installation d'un agent.
+
+* L'installation d'un agent peut se faire via curl
+```
+curl --insecure "https://puppet-master-fqdn:8140/packages/current/install.bash" | sudo bash
+```
+
+* Démarrer l'agent pour qu'il essaie d'authentifier le noeud sur le master
+```
+puppet agent -t
+```
+
+* Lister les requêtes de signature de certificat sur le master
+```
+puppetserver ca list
+```
+
+* Signer le certificat du noeud sur le serveur master
+```
+puppetserver ca sign --certname puppet-node-fqdn
+```
+
+* Démarrer une nouvelle fois l'agent sur le node
+```
+puppet agent -t
+```
+
+===== Installation d'un compiler =====
+
+* Dans la console, cliquer sur **Node groups**, et dans le groupe **PE Infrastructure**, sélectionner le groupe **PE Agent > PE Infrastructure Agent**.
+* Dans l'onglet **Classes**, retrouvez la classe **puppet_enterprise::profile::agent** et spécifiez les paramètres suivants:
+	* **manage_puppet_conf** : true pour s'assurer que les réglages pour server_list sont persistants
+	* **pcp_broker_list** : Hostname du serveur primaire et du réplicat s'il y'en a un. Le nom d'hôte doit comporter le port 8142 (["PRIMARY.EXAMPLE.COM:8142", "REPLICA.EXAMPLE.COM:8142"])
+	* **primary_uris** et **server_list** : Hostname du serveur primaire et du réplicat s'il y'en a un. Ces paramètres prennent le port 8140 par défaut, à moins que vous ne précisiez un autre.
+	* retirer toutes les valeurs mises pour **pcp_broker_ws_uris**.
+	* commitez les changements
+	* Exécuter puppet sur tous les noeuds du groupe **PE Infrastructure Agent**
+
+* Connecter le serveur à provisionner en compiler aux serveurs du groupe **PE Infrastructure Agent** et démarrer l'agent sur le serveur:
+```
+puppet agent -t
+```
+
+* Exécuter la commande suivante sur le serveur primaire en tant que root
+```
+puppet infrastructure provision compiler <COMPILER_FQDN>
+```
+
+* Ouvrir les ports dans le firewall
+```
+firewall-cmd --add-port=8081/tcp --add-port=8140/tcp --add-port=8142/tcp --permanent
+firewall-cmd --reload
+```
+
+===== Configuration d'un compiler =====
+
+* Configurer les compilers pour qu'ils puissent router correctement les communications entre le serveur primaire et les agents
+	* Dans la console, cliquer sur **Node groups**, dans le groupe **PE Infrastructure**, sélectionner le groupe **PE Master**.
+	* Dans l'onglet **Configuration data**, sélectionner la classe **pe_repo** et spécifier les paramètres:
+		* **compile_master_pool_address** : Hostname du load balancer (celui du compiler s'il n'y en a pas)
+	* Cliquer sur **Add data** et committer les changements
+* Exécuter Puppet sur le compiler, ensuite sur le serveur primaire pour mettre à jour les configurations sur ces serveurs
+```
+puppet agent -t
+```
+
+* Configurer les agents pour connecter les agents d'orchestration au load balancer
+	* Dans la console, cliquer sur **Node groups**, et dans le groupe **PE Infrastructure** sélectionner le groupe **PE Agent**.
+	* Dans l'onglet **Classes**, retrouver la classe **puppet_enterprise::profile::agent** et spécifier les paramètres:
+		* **manage_puppet_conf** : true pour s'assurer que les réglages pour server_list sont persistants
+		* **pcp_broker_list** : Hostname des load-balancers (compiler s'il n'y en a pas). Le nom d'hôte doit comporter le port 8142 (["PRIMARY.EXAMPLE.COM:8142", "REPLICA.EXAMPLE.COM:8142"])
+		* **primary_uris** et **server_list** : Hostname des load-balancers (compiler s'il n'y en a pas). Ces paramètres prennent le port 8140 par défaut, à moins que vous ne précisiez un autre.
+		* retirer toutes les valeurs mises pour **pcp_broker_ws_uris**.
+		* commitez les changements
+		* Exécuter puppet sur le serveur primaire, ensuite sur les autres noeuds.

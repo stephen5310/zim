@@ -1,0 +1,186 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-11-25T15:24:49+00:00
+
+====== 7. Déployer une application ======
+Créée le jeudi 25 novembre 2021
+
+===== WEB UI =====
+
+* Démarrer le dashboard
+```
+minikube dashboard &
+```
+
+* Cliquer sur le bouton + en haut à droite
+* Cliquer sur **create from form**
+* Entrer les infos comme sur l'image suivante
+
+{{./pasted_image.png?width=400}}
+
+* Cliquer sur **Deploy**
+
+===== kubectl =====
+
+* Créer le fichier webserver.yml avec le contenu suivant:
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver
+  labels:
+	app: nginx
+spec:
+  replicas: 3
+  selector:
+	matchLabels:
+	  app: nginx
+  template:
+	metadata:
+	  labels:
+		app: nginx
+	spec:
+	  containers:
+	  - name: nginx
+		image: nginx:alpine
+		ports:
+		- containerPort: 80
+```
+* Créer le déploiement
+```
+kubectl create -f webserver.yml
+```
+* Vérifier si le ReplicaSet a été créé
+```
+kubectl get replicasets
+```
+* Vérifier si les pods ont été créés
+```
+kubectl get pods
+```
+
+===== Exposition du service =====
+
+* Créer un fichier webserver-svc.yml avec le contenu suivant : 
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  labels:
+	run: web-service
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+	protocol: TCP
+  selector:
+	app: nginx
+```
+* Créer le déploiement
+```
+kubectl create -f webserver-svc.yml
+```
+* Exposer le déploiement (si le service n'est pas exposé)
+```
+kubectl expose deployment webserver --name=web-service --type=NodePort
+```
+* Lister les services 
+```
+kubectl get services 
+```
+* Décrire le service web-service
+```
+kubectl describe service web-service
+```
+
+===== Accès à l'application =====
+
+* En ligne de commande
+```
+minikube service web-service
+```
+
+===== Liveness =====
+
+Liveness probe vérifie l'état de santé d'une application, et si le contrôle de santé échoue, kubelet redémarre automatiquement le conteneur concerné.
+
+Les Liveness Probes peuvent être définies en définissant :
+* Commandes Liveness
+* Requêtes HTTP Liveness
+* Sonde TCP Liveness
+
+==== Commande Liveness ====
+
+Dans l'exemple suivant, la commande liveness vérifie l'existence d'un fichier /tmp/healthy
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+	test: liveness
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+	image: k8s.gcr.io/busybox
+	args:
+	- /bin/sh
+	- -c
+	- touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600
+	livenessProbe:
+	  exec:
+		command:
+		- cat
+		- /tmp/healthy
+	  initialDelaySeconds: 3
+	  failureThreshold: 1
+	  periodSeconds: 5
+```
+
+Lors de l'exécution de l'argument de ligne de commande du conteneur, nous allons d'abord créer le fichier /tmp/healthy, puis nous le supprimerons après 30 secondes. 
+La suppression du fichier déclenchera un échec de la sonde, tandis que le paramètre failureThreshold défini à 1 indique à kubelet de déclarer le conteneur non sain après un seul échec de la sonde et de déclencher un redémarrage du conteneur en conséquence.
+
+==== Requêtes HTTP Liveness ====
+
+Dans l'exemple suivant, le kubelet envoie une requête HTTP GET au point de terminaison /healthz de l'application, sur le port 8080. 
+Si cette requête renvoie un échec, le kubelet redémarre le conteneur concerné ; sinon, il considère que l'application est vivante :
+```
+livenessProbe:
+   httpGet:
+	 path: /healthz
+	 port: 8080
+	 httpHeaders:
+	 - name: X-Custom-Header
+	   value: Awesome
+initialDelaySeconds: 3
+periodSeconds: 3
+```
+
+==== Sondes TCP Liveness ====
+
+Avec TCP Liveness Probe, le kubelet tente d'ouvrir le socket TCP vers le conteneur qui exécute l'application. 
+S'il y parvient, l'application est considérée comme saine, sinon le kubelet la marque comme malsaine et redémarre le conteneur concerné.
+```
+livenessProbe:
+	  tcpSocket:
+		port: 8080
+	  initialDelaySeconds: 15
+	  periodSeconds: 20
+```
+
+==== Sondes Readiness ====
+
+Nous utilisons des sondes de disponibilité pour attendre qu'une certaine condition se produise. 
+Ce n'est qu'alors que l'application peut servir le trafic.
+
+```
+readinessProbe:
+		  exec:
+			command:
+			- cat
+			- /tmp/healthy
+		  initialDelaySeconds: 5 
+		  periodSeconds: 5
+```

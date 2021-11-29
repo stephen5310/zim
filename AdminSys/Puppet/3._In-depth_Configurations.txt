@@ -1,0 +1,66 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-09-17T01:12:48+00:00
+
+====== 3. In-depth Configurations ======
+
+==== Les types de ressources natifs ====
+
+* Définition de la ressource **File** :
+	* Le nom ou namevar (chemin absolu)
+	* Les paramètres
+```
+file { '/root/README' :
+	  ensure => file,
+	  content => 'hello world',
+}
+```
+
+* Définition de la ressource **Service** :
+	* Le nom ou namevar (nom du service)
+	* Les paramètres
+```
+service { 'crond' :
+	ensure => running,
+	enable => true,
+}
+```
+
+==== Les fichiers [site].pp ====
+
+C'est le premier fichier dans lequel le Puppet Master recherche les configurations quand l'Agent le contacte.
+Ce fichier permet de déclarer le nodes, les ressources associées et l'état souhaité pour chaque ressource.
+
+==== Les modules ====
+
+Les modules sont des collections de ressources permettant de gérer un type de node (serveur web, base de données, etc).
+C'est un ensemble de répertoires organisés de manière à ce que Puppet puissse retrouver les fichiers qui l'intéressent.
+
+Parmi ces fichiers figurent :
+* Les **Manifests** : 
+	* Contiennent du code pour le module
+	* Il est conseillé de n'avoir qu'une classe par manifeste
+	* La classe doit porter le nom qui se trouve dans le fichier **init.pp** du module
+	* Par exemple la classe nginx du module nginx est définie dans manifests/init.pp
+* Le répertoire **/files** :
+	* Contient les fichiers statiques, censés être légers
+* Le répertoire **/templates** :
+	* Contient des templates dynamiques. Ils servent par exemple à dynamiser des fichiers de configuration.
+* Le répertoire **/lib** :
+	* Contient du code additionnel
+* Le répertoire **/task** :
+	* Contient des tâches à effectuer par Puppet Bolt ou par les outils d'orchestration de PE
+* Les répertoires **/exemple** pour des exemples d'exécution du module et **/spec** pour des tests automatisés
+* Le fichier **metadata.json** à la racine, utilisé par la forge pour spécifier les informations sur le module (dépendances, OS supportés, version, nom d'auteur)
+* Le fichier **README.md**
+
+La **Forge Puppet** est un site sur lequel on peut trouver des modules puppet. 
+Une fois qu'on a trouvé le module qui nous intéresse, on met son code dans une **Puppetfile** pour le télécharger avec r10k.
+Il faut ajouter à la Puppetfile les modules que l'on trouve en dépendances pour le module souhaité.
+On peut aussi utiliser la commande **puppet module **en ligne de commande.
+
+==== Les rôles et profils ====
+
+Les profils sont utilisés pour organiser le code. Le module nginx est un exemple de profils.
+Les rôles permettent de définir l'utilité business d'une machine. Une machine ne doit avoir qu'un seul rôle, et le rôle de doivent être constitués que de profils.
+

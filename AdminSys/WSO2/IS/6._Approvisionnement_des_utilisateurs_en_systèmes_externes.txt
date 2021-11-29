@@ -1,0 +1,43 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-05-21T10:05:22+00:00
+
+====== 6. Approvisionnement des utilisateurs en systèmes externes ======
+
+L'approvisionnement en utilisateurs est le processus de création et de maintenance des identités digitales dans un système et d'assignation des privilèges appropriés.
+
+{{./pasted_image.png?width=1000}}
+
+Les systèmes d'approvisionnement disposent généralement des fonctionnalités suivantes:
+* journaux et rapports d'audit
+* gestion du déroulement des opérations (workflow)
+* notifications
+* opérations self-service
+* création de groupes
+* réplication de structure organisationnelle
+* services d'approvisionnement et de dé-approvisionnement
+
+Les avantages:
+* gain de temps et d'argent
+* amélioration de la sécurité
+* intégration transparente
+
+{{./pasted_image001.png?width=1000}}
+
+
+===== Méthodes de provisionnement standards =====
+
+{{./pasted_image002.png?width=1000}}
+
+{{./pasted_image003.png?width=1000}}
+
+{{./pasted_image004.png?width=1000}}
+
+Les fonctionnalités de provisionnement de WSO2 IS:
+* SCIM APIs
+* SOAP APIs
+* utilisation d'un portail d'administration
+* portail d'auto-inscription
+* API d'auto-inscription
+* provisionnement just à temps (JIT)
+* connecteurs de provisionnement
