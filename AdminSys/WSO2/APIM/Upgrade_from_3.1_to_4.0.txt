@@ -1,0 +1,596 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2021-12-03T12:17:09+00:00
+
+====== Upgrade from 3.1 to 4.0 ======
+Créée le vendredi 03 décembre 2021
+
+===== Préparation de la migration =====
+
+==== Désactiver le versionnage dans la configuration du régistre s'il était activé ====
+
+
+Ouvrez le fichier registry.xml dans le répertoire <OLD_API-M_HOME>/repository/conf. Vérifiez si les configurations versioningProperties, versioningComments, versioningTags et versioningRatings sont à true.
+
+```
+<staticConfiguration>
+	<versioningProperties>true</versioningProperties>
+	<versioningComments>true</versioningComments>
+	<versioningTags>true</versioningTags>
+	<versioningRatings>true</versioningRatings>
+</staticConfiguration>
+```
+
+Si l'une d'entre elle est à true, vous devez exécuter le script suivant sur la base de données du régistre. Créer un fichier versioning.sql avec le contenu suivant :
+
+```
+-- Update the REG_PATH_ID column mapped with the REG_RESOURCE table --
+
+UPDATE REG_RESOURCE_TAG SET REG_RESOURCE_TAG.REG_PATH_ID=(SELECT REG_RESOURCE.REG_PATH_ID FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_TAG.REG_VERSION);
+
+UPDATE REG_RESOURCE_COMMENT SET REG_RESOURCE_COMMENT.REG_PATH_ID=(SELECT REG_RESOURCE.REG_PATH_ID FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_COMMENT.REG_VERSION);
+
+UPDATE REG_RESOURCE_PROPERTY SET REG_RESOURCE_PROPERTY.REG_PATH_ID=(SELECT REG_RESOURCE.REG_PATH_ID FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_PROPERTY.REG_VERSION);
+
+UPDATE REG_RESOURCE_RATING SET REG_RESOURCE_RATING.REG_PATH_ID=(SELECT REG_RESOURCE.REG_PATH_ID FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_RATING.REG_VERSION);
+
+
+-- Delete versioned tags, were the PATH_ID will be null for older versions --
+
+delete from REG_RESOURCE_PROPERTY where REG_PATH_ID is NULL;
+
+delete from REG_RESOURCE_RATING where REG_PATH_ID is NULL;
+
+delete from REG_RESOURCE_TAG where REG_PATH_ID is NULL;
+
+delete from REG_RESOURCE_COMMENT where REG_PATH_ID is NULL;
+
+delete from REG_PROPERTY where REG_ID NOT IN (select REG_PROPERTY_ID from REG_RESOURCE_PROPERTY);
+
+delete from REG_TAG where REG_ID NOT IN (select REG_TAG_ID from REG_RESOURCE_TAG);
+
+delete from REG_COMMENT where REG_ID NOT IN (select REG_COMMENT_ID from REG_RESOURCE_COMMENT);
+
+delete from REG_RATING where REG_ID NOT IN (select REG_RATING_ID from REG_RESOURCE_RATING);
+
+-- Update the REG_PATH_NAME column mapped with the REG_RESOURCE table --
+
+UPDATE REG_RESOURCE_TAG SET REG_RESOURCE_TAG.REG_RESOURCE_NAME=(SELECT REG_RESOURCE.REG_NAME FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_TAG.REG_VERSION);
+
+UPDATE REG_RESOURCE_PROPERTY SET REG_RESOURCE_PROPERTY.REG_RESOURCE_NAME=(SELECT REG_RESOURCE.REG_NAME FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_PROPERTY.REG_VERSION);
+
+UPDATE REG_RESOURCE_COMMENT SET REG_RESOURCE_COMMENT.REG_RESOURCE_NAME=(SELECT REG_RESOURCE.REG_NAME FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_COMMENT.REG_VERSION);
+
+UPDATE REG_RESOURCE_RATING SET REG_RESOURCE_RATING.REG_RESOURCE_NAME=(SELECT REG_RESOURCE.REG_NAME FROM REG_RESOURCE WHERE REG_RESOURCE.REG_VERSION=REG_RESOURCE_RATING.REG_VERSION);
+```
+
+Exécuter le script sur la base de données du régistre :
+
+```
+mysql -p -h <database_hostname> -u <database_user> <database_name> < path/to/test.sql
+```
+
+===== Première partie : Migration des configurations de l'API manager =====
+
+* Télécharger et extraire l'archive de la version 4.0.0 de l'API manager
+```
+wget https://product-dist.wso2.com/products/api-manager/4.0.0/wso2am-4.0.0.zip
+unzip wso2am-4.0.0.zip
+```
+
+* Modifier la configuration par défaut de l'API manager 4.0.0
+	* database.apim_db doit correspondre à la configuration de la base de données d'API
+	* database.shared_db doit correspondre à la configuration de la base de données du régistre et des utilisateurs
+
+```
+[database.apim_db]
+type = "mysql"
+url = "jdbc:mysql://localhost:3306/am_db"
+username = "username"
+password = "password"
+
+[database.shared_db]
+type = "mysql"
+url = "jdbc:mysql://localhost:3306/reg_db"
+username = "username"
+password = "password"
+```
+
+	* Si les utilisateurs sont enregistrés dans une base de données autre que celle du régistre, ajouter database.user_db et realm_manager à la configuration
+
+```
+[database.user]
+type = "mysql"
+url = "jdbc:mysql://localhost:3306/um_db"
+username = "username"
+password = "password"
+
+[realm_manager]
+data_source = "WSO2USER_DB"
+```
+
+* Copier les jdbc importants (le connecteur mysql-connector-java-XXX.jar en particulier) du répertoire APIM-3/repository/components/lib dans le répertoire APIM-4/repository/components/lib
+```
+cp APIM-3/repository/components/lib/mysql-connector-java-XXX.jar APIM-4/repository/components/lib/mysql-connector-java-XXX.jar
+```
+
+* Si vous avez ajouté manuellement des bundles OSGI personnalisés au répertoire APIM-3/repository/components/dropins, copiez-les dans le répertoire APIM-4/repository/components/dropins
+
+===== Deuxième partie : mise à niveau vers la version 4.0.0 =====
+
+* Arrêter tous les services WSO2 et faire des sauvegardes des bases de données
+```
+systemctl stop wso2am
+mysqldump WSO2_APIM > apim.sql
+mysqldump WSO2_SHARED > shared.sql
+```
+
+* Créer un fichier update_apim.sql avec le contenu suivant
+```
+ CREATE TABLE IF NOT EXISTS AM_KEY_MANAGER (
+  UUID VARCHAR(50) NOT NULL,
+  NAME VARCHAR(100) NOT NULL,
+  DISPLAY_NAME VARCHAR(100) NULL,
+  DESCRIPTION VARCHAR(256) NULL,
+  TYPE VARCHAR(45) NULL,
+  CONFIGURATION BLOB NULL,
+  ENABLED BOOLEAN DEFAULT 1,
+  TENANT_DOMAIN VARCHAR(100) NULL,
+  PRIMARY KEY (UUID),
+  UNIQUE (NAME,TENANT_DOMAIN)
+  );
+
+ CREATE TABLE IF NOT EXISTS AM_GW_PUBLISHED_API_DETAILS (
+  API_ID varchar(255) NOT NULL,
+  TENANT_DOMAIN varchar(255),
+  API_PROVIDER varchar(255),
+  API_NAME varchar(255),
+  API_VERSION varchar(255),
+  PRIMARY KEY (API_ID)
+ ) ENGINE=InnoDB;
+
+ CREATE TABLE IF NOT EXISTS AM_GW_API_ARTIFACTS (
+  API_ID varchar(255) NOT NULL,
+  ARTIFACT blob,
+  GATEWAY_INSTRUCTION varchar(20),
+  GATEWAY_LABEL varchar(255),
+  TIME_STAMP TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (GATEWAY_LABEL, API_ID),
+  FOREIGN KEY (API_ID) REFERENCES AM_GW_PUBLISHED_API_DETAILS(API_ID) ON UPDATE CASCADE ON DELETE NO ACTION
+ ) ENGINE=InnoDB;
+
+SELECT CONCAT("ALTER TABLE AM_APPLICATION_REGISTRATION DROP INDEX ",constraint_name)
+INTO @sqlst
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+WHERE TABLE_SCHEMA = database() AND TABLE_NAME = "AM_APPLICATION_REGISTRATION"
+AND constraint_type='UNIQUE';
+
+ALTER TABLE AM_APPLICATION_REGISTRATION ADD KEY_MANAGER VARCHAR(255) DEFAULT 'Resident Key Manager';
+ALTER TABLE AM_APPLICATION_REGISTRATION ADD UNIQUE (SUBSCRIBER_ID,APP_ID,TOKEN_TYPE,KEY_MANAGER);
+
+PREPARE stmt FROM @sqlst;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+SET @sqlst = NULL;
+
+ALTER TABLE AM_APPLICATION_KEY_MAPPING ADD UUID VARCHAR(50);
+UPDATE AM_APPLICATION_KEY_MAPPING SET UUID = UUID() WHERE UUID IS NULL;
+ALTER TABLE AM_APPLICATION_KEY_MAPPING ADD KEY_MANAGER VARCHAR(50) NOT NULL DEFAULT 'Resident Key Manager';
+ALTER TABLE AM_APPLICATION_KEY_MAPPING ADD APP_INFO BLOB;
+ALTER TABLE AM_APPLICATION_KEY_MAPPING ADD CONSTRAINT UNIQUE(APPLICATION_ID,KEY_TYPE,KEY_MANAGER);
+ALTER TABLE AM_APPLICATION_KEY_MAPPING DROP PRIMARY KEY;
+
+ALTER TABLE AM_WORKFLOWS ADD WF_METADATA BLOB NULL DEFAULT NULL;
+ALTER TABLE AM_WORKFLOWS ADD WF_PROPERTIES BLOB NULL DEFAULT NULL;
+
+ALTER TABLE AM_SUBSCRIPTION ADD TIER_ID_PENDING VARCHAR(50);
+
+ALTER TABLE AM_POLICY_SUBSCRIPTION ADD MAX_COMPLEXITY INT(11) NOT NULL DEFAULT 0;
+ALTER TABLE AM_POLICY_SUBSCRIPTION ADD MAX_DEPTH INT(11) NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS AM_API_RESOURCE_SCOPE_MAPPING (
+	SCOPE_NAME VARCHAR(255) NOT NULL,
+	URL_MAPPING_ID INTEGER NOT NULL,
+	TENANT_ID INTEGER NOT NULL,
+	FOREIGN KEY (URL_MAPPING_ID) REFERENCES   AM_API_URL_MAPPING(URL_MAPPING_ID) ON DELETE CASCADE,
+	PRIMARY KEY(SCOPE_NAME, URL_MAPPING_ID)
+);
+
+
+CREATE TABLE IF NOT EXISTS AM_SHARED_SCOPE (
+	 NAME VARCHAR(255),
+	 UUID VARCHAR (256),
+	 TENANT_ID INTEGER,
+	 PRIMARY KEY (UUID)
+);
+
+ALTER TABLE IDN_OAUTH2_RESOURCE_SCOPE DROP PRIMARY KEY;
+
+CREATE TABLE IF NOT EXISTS AM_TENANT_THEMES (
+  TENANT_ID INTEGER NOT NULL,
+  THEME MEDIUMBLOB NOT NULL,
+  PRIMARY KEY (TENANT_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS AM_GRAPHQL_COMPLEXITY (
+	UUID VARCHAR(256),
+	API_ID INTEGER NOT NULL,
+	TYPE VARCHAR(256),
+	FIELD VARCHAR(256),
+	COMPLEXITY_VALUE INTEGER,
+	FOREIGN KEY (API_ID) REFERENCES AM_API(API_ID) ON UPDATE CASCADE ON DELETE CASCADE,
+	PRIMARY KEY(UUID),
+	UNIQUE (API_ID,TYPE,FIELD)
+)ENGINE INNODB;
+
+UPDATE IDN_OAUTH_CONSUMER_APPS SET CALLBACK_URL="" WHERE CALLBACK_URL IS NULL;
+
+CREATE TABLE IF NOT EXISTS AM_SCOPE (
+	SCOPE_ID INTEGER NOT NULL AUTO_INCREMENT,
+	NAME VARCHAR(255) NOT NULL,
+	DISPLAY_NAME VARCHAR(255) NOT NULL,
+	DESCRIPTION VARCHAR(512),
+	TENANT_ID INTEGER NOT NULL DEFAULT -1,
+	SCOPE_TYPE VARCHAR(255) NOT NULL,
+	PRIMARY KEY (SCOPE_ID)
+)ENGINE INNODB;
+
+CREATE TABLE IF NOT EXISTS AM_SCOPE_BINDING (
+	SCOPE_ID INTEGER NOT NULL,
+	SCOPE_BINDING VARCHAR(255) NOT NULL,
+	BINDING_TYPE VARCHAR(255) NOT NULL,
+	FOREIGN KEY (SCOPE_ID) REFERENCES AM_SCOPE (SCOPE_ID) ON DELETE CASCADE
+)ENGINE INNODB;
+
+DELETE FROM IDN_OAUTH2_SCOPE_BINDING WHERE SCOPE_BINDING IS NULL OR SCOPE_BINDING = '';
+
+ALTER TABLE AM_API ADD API_UUID VARCHAR(255);
+ALTER TABLE AM_API ADD STATUS VARCHAR(30);
+ALTER TABLE AM_CERTIFICATE_METADATA ADD CERTIFICATE BLOB DEFAULT NULL;
+ALTER TABLE AM_API ADD REVISIONS_CREATED INTEGER DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS AM_REVISION (
+  ID INTEGER NOT NULL,
+  API_UUID VARCHAR(256) NOT NULL,
+  REVISION_UUID VARCHAR(255) NOT NULL,
+  DESCRIPTION VARCHAR(255),
+  CREATED_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CREATED_BY VARCHAR(255),
+  PRIMARY KEY (ID, API_UUID),
+  UNIQUE(REVISION_UUID)
+)ENGINE INNODB;
+
+CREATE TABLE IF NOT EXISTS AM_API_REVISION_METADATA (
+	API_UUID VARCHAR(64),
+	REVISION_UUID VARCHAR(64),
+	API_TIER VARCHAR(128),
+	UNIQUE (API_UUID,REVISION_UUID)
+)ENGINE INNODB;
+
+CREATE TABLE IF NOT EXISTS AM_DEPLOYMENT_REVISION_MAPPING (
+  NAME VARCHAR(255) NOT NULL,
+  VHOST VARCHAR(255) NULL,
+  REVISION_UUID VARCHAR(255) NOT NULL,
+  DISPLAY_ON_DEVPORTAL BOOLEAN DEFAULT 0,
+  DEPLOYED_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (NAME, REVISION_UUID),
+  FOREIGN KEY (REVISION_UUID) REFERENCES AM_REVISION(REVISION_UUID) ON UPDATE CASCADE ON DELETE CASCADE
+)ENGINE INNODB;
+
+ALTER TABLE AM_API_CLIENT_CERTIFICATE ADD REVISION_UUID VARCHAR(255) NOT NULL DEFAULT 'Current API';
+ALTER TABLE AM_API_CLIENT_CERTIFICATE DROP PRIMARY KEY;
+ALTER TABLE AM_API_CLIENT_CERTIFICATE ADD PRIMARY KEY(ALIAS,TENANT_ID, REMOVED, REVISION_UUID);
+
+ALTER TABLE AM_API_URL_MAPPING ADD REVISION_UUID VARCHAR(256);
+
+ALTER TABLE AM_GRAPHQL_COMPLEXITY ADD REVISION_UUID VARCHAR(256);
+
+ALTER TABLE AM_API_PRODUCT_MAPPING ADD REVISION_UUID VARCHAR(256);
+
+
+
+DROP TABLE IF EXISTS AM_GW_API_DEPLOYMENTS;
+DROP TABLE IF EXISTS AM_GW_API_ARTIFACTS;
+DROP TABLE IF EXISTS AM_GW_PUBLISHED_API_DETAILS;
+
+CREATE TABLE IF NOT EXISTS AM_GW_PUBLISHED_API_DETAILS (
+  API_ID varchar(255) NOT NULL,
+  TENANT_DOMAIN varchar(255),
+  API_PROVIDER varchar(255),
+  API_NAME varchar(255),
+  API_VERSION varchar(255),
+  API_TYPE varchar(50),
+  PRIMARY KEY (API_ID)
+)ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS AM_GW_API_ARTIFACTS (
+  API_ID VARCHAR(255) NOT NULL,
+  REVISION_ID VARCHAR(255) NOT NULL,
+  ARTIFACT blob,
+  TIME_STAMP TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (REVISION_ID, API_ID),
+  FOREIGN KEY (API_ID) REFERENCES AM_GW_PUBLISHED_API_DETAILS(API_ID) ON UPDATE CASCADE ON DELETE NO ACTION
+)ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS AM_GW_API_DEPLOYMENTS (
+  API_ID VARCHAR(255) NOT NULL,
+  REVISION_ID VARCHAR(255) NOT NULL,
+  LABEL VARCHAR(255) NOT NULL,
+  VHOST VARCHAR(255) NULL,
+  PRIMARY KEY (REVISION_ID, API_ID,LABEL),
+  FOREIGN KEY (API_ID) REFERENCES AM_GW_PUBLISHED_API_DETAILS(API_ID) ON UPDATE CASCADE ON DELETE NO ACTION
+) ENGINE=InnoDB;
+
+-- Service Catalog --
+CREATE TABLE IF NOT EXISTS AM_SERVICE_CATALOG (
+			UUID VARCHAR(36) NOT NULL,
+			SERVICE_KEY VARCHAR(100) NOT NULL,
+			MD5 VARCHAR(100) NOT NULL,
+			SERVICE_NAME VARCHAR(255) NOT NULL,
+			DISPLAY_NAME VARCHAR(255) NOT NULL,
+			SERVICE_VERSION VARCHAR(30) NOT NULL,
+			TENANT_ID INTEGER NOT NULL,
+			SERVICE_URL VARCHAR(2048) NOT NULL,
+			DEFINITION_TYPE VARCHAR(20),
+			DEFINITION_URL VARCHAR(2048),
+			DESCRIPTION VARCHAR(1024),
+			SECURITY_TYPE VARCHAR(50),
+			MUTUAL_SSL_ENABLED BOOLEAN DEFAULT 0,
+			CREATED_TIME TIMESTAMP NULL,
+			LAST_UPDATED_TIME TIMESTAMP NULL,
+			CREATED_BY VARCHAR(255),
+			UPDATED_BY VARCHAR(255),
+			SERVICE_DEFINITION BLOB NOT NULL,
+			METADATA BLOB NOT NULL,
+			PRIMARY KEY (UUID),
+			UNIQUE (SERVICE_NAME, SERVICE_VERSION, TENANT_ID),
+			UNIQUE (SERVICE_KEY, TENANT_ID)
+)ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS AM_API_SERVICE_MAPPING (
+	API_ID INTEGER NOT NULL,
+	SERVICE_KEY VARCHAR(256) NOT NULL,
+	MD5 VARCHAR(100) NOT NULL,
+	TENANT_ID INTEGER NOT NULL,
+	PRIMARY KEY (API_ID, SERVICE_KEY),
+	FOREIGN KEY (API_ID) REFERENCES AM_API(API_ID) ON DELETE CASCADE
+)ENGINE=InnoDB;
+
+-- Webhooks --
+CREATE TABLE IF NOT EXISTS AM_WEBHOOKS_SUBSCRIPTION (
+			WH_SUBSCRIPTION_ID INTEGER NOT NULL AUTO_INCREMENT,
+			API_UUID VARCHAR(255) NOT NULL,
+			APPLICATION_ID VARCHAR(20) NOT NULL,
+			TENANT_DOMAIN VARCHAR(255) NOT NULL,
+			HUB_CALLBACK_URL VARCHAR(1024) NOT NULL,
+			HUB_TOPIC VARCHAR(255) NOT NULL,
+			HUB_SECRET VARCHAR(2048),
+			HUB_LEASE_SECONDS INTEGER,
+			UPDATED_AT TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			EXPIRY_AT BIGINT,
+			DELIVERED_AT TIMESTAMP NULL,
+			DELIVERY_STATE TINYINT(1),
+			PRIMARY KEY (WH_SUBSCRIPTION_ID)
+)ENGINE INNODB;
+
+CREATE TABLE IF NOT EXISTS AM_WEBHOOKS_UNSUBSCRIPTION (
+			API_UUID VARCHAR(255) NOT NULL,
+			APPLICATION_ID VARCHAR(20) NOT NULL,
+			TENANT_DOMAIN VARCHAR(255) NOT NULL,
+			HUB_CALLBACK_URL VARCHAR(1024) NOT NULL,
+			HUB_TOPIC VARCHAR(255) NOT NULL,
+			HUB_SECRET VARCHAR(2048),
+			HUB_LEASE_SECONDS INTEGER,
+			ADDED_AT TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)ENGINE INNODB;
+
+-- Gateway Environments Table --
+CREATE TABLE IF NOT EXISTS AM_GATEWAY_ENVIRONMENT (
+  ID INTEGER NOT NULL AUTO_INCREMENT,
+  UUID VARCHAR(45) NOT NULL,
+  NAME VARCHAR(255) NOT NULL,
+  TENANT_DOMAIN VARCHAR(255),
+  DISPLAY_NAME VARCHAR(255) NULL,
+  DESCRIPTION VARCHAR(1023) NULL,
+  UNIQUE (NAME, TENANT_DOMAIN),
+  UNIQUE (UUID),
+  PRIMARY KEY (ID)
+)ENGINE INNODB;
+
+-- Virtual Hosts Table --
+CREATE TABLE IF NOT EXISTS AM_GW_VHOST (
+  GATEWAY_ENV_ID INTEGER,
+  HOST VARCHAR(255) NOT NULL,
+  HTTP_CONTEXT VARCHAR(255) NULL,
+  HTTP_PORT VARCHAR(5) NOT NULL,
+  HTTPS_PORT VARCHAR(5) NOT NULL,
+  WS_PORT VARCHAR(5) NOT NULL,
+  WSS_PORT VARCHAR(5) NOT NULL,
+  FOREIGN KEY (GATEWAY_ENV_ID) REFERENCES AM_GATEWAY_ENVIRONMENT(ID) ON UPDATE CASCADE ON DELETE CASCADE,
+  PRIMARY KEY (GATEWAY_ENV_ID, HOST)
+)ENGINE INNODB;
+
+ALTER TABLE AM_POLICY_SUBSCRIPTION ADD CONNECTIONS_COUNT INT(11) NOT NULL DEFAULT 0;
+
+ALTER TABLE AM_API_COMMENTS CHANGE COMMENT_ID COMMENT_ID VARCHAR(64);
+ALTER TABLE AM_API_COMMENTS CHANGE COMMENTED_USER CREATED_BY VARCHAR(512);
+ALTER TABLE AM_API_COMMENTS CHANGE DATE_COMMENTED CREATED_TIME TIMESTAMP NOT NULL;
+ALTER TABLE AM_API_COMMENTS ADD UPDATED_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE AM_API_COMMENTS ADD PARENT_COMMENT_ID VARCHAR(64) DEFAULT NULL;
+ALTER TABLE AM_API_COMMENTS ADD ENTRY_POINT VARCHAR(20) DEFAULT 'DEVPORTAL';
+ALTER TABLE AM_API_COMMENTS ADD CATEGORY VARCHAR(20) DEFAULT 'general';
+ALTER TABLE AM_API_COMMENTS ADD FOREIGN KEY(PARENT_COMMENT_ID) REFERENCES AM_API_COMMENTS(COMMENT_ID);        
+```
+
+* Exécuter le script sur la base de données apim_db
+```
+mysql -p -u wso2am WSO2_APIM < update_apim.sql
+```
+
+* Remplacer les keystores de la version récente par ceux de l'ancienne version
+```
+cp APIM-3/repository/resources/security/*.jks APIM-4/repository/resources/security
+```
+
+* Configurez le SymmetricKeyInternalCryptoProvider comme fournisseur de cryptage interne par défaut. Générez votre propre clé secrète à l'aide d'un outil comme OpenSSL.
+```
+openssl enc -nosalt -aes-128-cbc -k hello-world -P
+```
+
+* AJouter la clé à la configuration dans deployment.toml
+```
+[encryption]
+key = "<provide-your-key-here>"
+```
+
+==== Mettre à jour le composant d'Identité de la version 5.10.0 vers la version 5.11.0 ====
+
+* Télécharger et extraire les ressources de migration dans le répertoire de APIM-4
+```
+cd APIM-4
+wget https://github.com/wso2-extensions/apim-identity-migration-resources/releases/download/v1.0.148/org.wso2.carbon.is.migration-1.0.148.zip
+unzip org.wso2.carbon.is.migration-1.0.148.zip
+```
+
+* Modifier le fichier migration-config.yaml
+```
+vim wso2is-migration-1.0.148/migration-resources/migration-config.yaml
+```
+
+* Mettre les champs suivants aux valeurs indiquées:
+```
+migrationEnable: "true"
+currentVersion: "5.10.0"
+migrateVersion: "5.11.0"
+```
+
+* Retirer les parties suivantes du fichier. Elles se trouvent en dessous de version : "5.10.0"
+```
+	-
+		name: "MigrationValidator"
+		order: 2
+```
+```
+	-
+		name: "SchemaMigrator"
+		order: 5
+		parameters:
+		location: "step2"
+		schema: "identity"            
+```
+```
+	-
+		name: "TenantPortalMigrator"
+			 order: 11
+```
+
+* Copier la jar org.wso2.carbon.is.migration-1.0.148.jar dans APIM-4/repository/components/dropins
+```
+cp wso2is-migration-1.0.148/dropins/org.wso2.carbon.is.migration-1.0.148.jar repository/components/dropins/
+```
+
+* Donner les droits à l'utilisateur wso2am sur tout le répertoire de la version 4.0.0 et usurper son identité
+```
+chown -R wso2am: ./
+su wso2am
+```
+
+* Démarrer le service pour effectuer la migration du composant d'identité
+```
+./bin/api-manager.sh -Dmigrate -Dcomponent=identity
+```
+
+* Arrêter le service une fois la migration terminée avec ctrl+^c
+* Supprimer la jar org.wso2.carbon.is.migration-1.0.148.jar et le répertoire wso2is-migration-1.0.148
+```
+rm repository/components/dropins/org.wso2.carbon.is.migration-1.0.148.jar
+rm -rf wso2is-migration-1.0.148
+```
+
+==== Migrer les artéfacts du serveur d'identité ====
+
+* Changer le nom du la gateway de la version 4.0.0 en mettant le nom de la Gateway de l'ancienne version dans deployment.toml
+```
+apim.gateway.environment
+name = "<Nom_ancienne_gateway>"
+```
+
+* Télécharger les ressources de migration et extraire l'archive dans le répertoire APIM-4
+```
+cd APIM-4
+wget https://apim.docs.wso2.com/en/latest/assets/attachments/install-and-setup/migration-resources.zip
+unzip [[https://apim.docs.wso2.com/en/latest/assets/attachments/install-and-setup/migration-resources.zip|migration-resources.zip]]
+```
+
+* Télécharger la jar org.wso2.carbon.apimgt.migrate.client-4.0.0.jar de la migration dans le répertoire repository/components/dropins
+```
+cd repository/components/dropins
+wget https://apim.docs.wso2.com/en/4.0.0/assets/attachments/install-and-setup/org.wso2.carbon.apimgt.migrate.client-4.0.0.jar
+```
+
+* Donner les droits à l'utilisateur wso2am sur tout le répertoire de la version 4.0.0 et usurper son identité
+```
+chown -R wso2am: ./
+su wso2am
+```
+
+* Démarrer le service pour effectuer la migration des artéfacts
+```
+./bin/api-manager.sh -DmigrateFromVersion=3.1.0
+```
+
+* Arrêter le service une fois la migration terminée avec ctrl+^c
+* Supprimer la jar org.wso2.carbon.apimgt.migrate.client-4.0.0.jar et le répertoire migration-resources
+```
+rm repository/components/dropins/org.wso2.carbon.apimgt.migrate.client-4.0.0.jar
+rm -rf migration-resources
+```
+
+* Créer un fichier alter_apim.sql avec le contenu suivant
+```
+ALTER TABLE AM_API ADD CONSTRAINT API_UUID_CONSTRAINT UNIQUE(API_UUID);
+```
+
+* Exécuter le script alter_apim.sql sur la base de données APIM
+```
+mysql -p -u wso2am WSO2_APIM < alter_apim.sql
+```
+
+* Télécharger le fichier reg-index.sql
+```
+wget https://apim.docs.wso2.com/en/4.0.0/assets/attachments/install-and-setup/reg-index.sql
+```
+
+* Exécuter le script reg-index.sql sur la base de données du régistre
+```
+mysql -p -u wso2am WSO2_SHARED < reg-index.sql
+```
+
+* Si vous avez plusieurs tenants, téléchargez la jar tenant-loader dans le répertoire des dropins
+```
+cd repository/components/dropins/
+wget https://apim.docs.wso2.com/en/4.0.0/assets/attachments/install-and-setup/tenantloader-1.0.jar
+```
+
+* Ajouter la configuration suivante à deployment.toml
+```
+[indexing]
+re_indexing = 1
+```
+
+* Déplacer le répertoire APIM-4/solr dans un répertoire de sauvegarde
+```
+mv ./solr /path_to_backup/
+```
+
+* Donner les droits à l'utilisateur wso2am sur tout le répertoire de la version 4.0.0 et usurper son identité
+```
+chown -R wso2am: ./
+su wso2am
+```
+
+* Démarrer le service
+```
+./bin/api-manager.sh start
+```
+
+* Si vous avez plusieurs tenants, arrêtez le service, supprimer le tenant-loader du répertoire dropins et démarrez le service
