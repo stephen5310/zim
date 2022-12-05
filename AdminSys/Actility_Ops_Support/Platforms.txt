@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-03-31T16:55:31+02:00
+
+====== Platforms ======
+Created jeudi 31 mars 2022
+
+===== Wireless Customers =====
+
+* Cisco
+
+===== Enterprise Customers =====
+
+* Cisco

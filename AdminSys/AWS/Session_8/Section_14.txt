@@ -1,0 +1,254 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-08-30T12:47:08+02:00
+
+====== Section 14 ======
+Created mardi 30 août 2022
+
+====== Advanced S3 & Athena ======
+
+===== MFA Delete =====
+
+* Enable Versioning on S3 bucket
+* Needed to :
+	* Permanently delete an object version
+	* Suspend Versioning on the bucket
+* Not needed to :
+	* Enable Versioning
+	* List deleted versions
+* Only the root account can enable/disable MFA-delete
+* Can only be enabled using the CLI
+* Set up an MFA device for the root account before
+* Create access keys and setup the cli with these keys
+* The commands below will help :
+
+'''
+# generate root access keys
+aws configure --profile <root_account>
+
+# enable mfa delete
+aws s3api put-bucket-versioning --bucket <S3_bucket_name> --versioning-configuration Status=Enabled,MFADelete=Enabled --mfa "<arn-of-mfa-device> <mfa-code>" --profile <root_account>
+
+# disable mfa delete
+aws s3api put-bucket-versioning --bucket <S3_bucket_name> --versioning-configuration Status=Enabled,MFADelete=Disabled --mfa "<arn-of-mfa-device> <mfa-code>" --profile <root_account>
+
+# delete the root credentials in the IAM console!!!
+'''
+
+
+* After that check on the UI if it is enabled
+
+===== Default Encryption =====
+
+* Option to use to make sure everything in the bucket is encrypted
+* Evaluated after the policies
+* Edit in the properties to enable
+
+===== Access Logs =====
+
+* For audit purpose
+* Log all access attempts, successes and failures to S3 buckets
+* Logs can be analyzed using data analysis tools like Amazon Athena
+* Log format is available at https://docs.aws.amazon.com/AmazonS3/latest/dev/LogFormat.html
+* **Do not set the logging bucket as the monitored bucket. It will create a logging loop and the bucket will grow in size exponentially**
+* Enable the Server Access Logging property and choose the target bucket
+* It updates the bucket policy
+
+===== Replication (Cross Region and Same Region) =====
+
+* Must enable Versioning in source and destination
+* Buckets can be in different accounts
+* Copy is asynchronous
+* Must give proper IAM permissions to S3 (can use the Create a new role option during replication rule creation for that)
+* CRR is for compliance, lower latency access, replication across accounts
+* SRR is for log aggregation, live replication between prod and test accounts
+* Only the new objects are replicated after activation (Can use Replicate existing objects option during replication rule creation)
+* Use S3 Batch Replication to replicate all objects
+* Delete markers can be replicated if enabled in Additional replication options
+* Deletions with a version ID are not replicated
+* Replication is not chained : If B1 is replicated to B2 which is to B3, B1 is not to B3
+* To enable go to Management and add Replication rules
+
+===== Pre-signed URLs =====
+
+* Can be generated using SDK or CLI
+	* Can use CLI and UI to generate for downloads
+	* Must use SDK to generate for uploads
+* Default is 3600s expiration time
+* Provides permissions of the person who generated to the user
+* Used to :
+	* Allow only logged-in users to download a premium video on the bucket
+	* Allow an ever changing list of users to download files by generating URLs dynamically
+	* Allow temporarily a user to upload a file to a precise location in the bucket
+* Go to Object actions and select Share with a presigned URL
+
+===== Storage Classes =====
+
+* Can move between classes manually or using S3 Lifecycle configurations
+* Go to object properties to do it manually
+* Go to management to create lifecycle rules to do it automatically
+* High durability storage (99.999999999%, 11 9s) :
+	* Expect to lose 1/10,000,000 objects every 10,000 years
+	* Same for all storage classes
+* Availability measures how readily available a service is
+	* Varies depending on storage class
+	* Example : S3 standard has 99.99% availability = not available 53 minutes a year
+
+==== Standard - General Purpose ====
+
+* 99.99% Availability
+* For frequently accessed data
+* Low latency and high throughput
+* Sustain 2 concurrent facility failures
+* Used for : Big Data analytics, mobile & gaming apps, content distribution...
+
+==== Infrequent Access ====
+
+* Data is less frequently accessed, but requires rapid access when needed
+* Lower cost than S3 Standard
+* 30d min storage duration
+
+==== Standard - Infrequent Access ====
+
+* 99.9% Availability
+* Used for Disaster Recovery, backups
+
+==== One Zone - Infrequent Access ====
+
+* High Durability (99.999999999%) in a single AZ; data lost when AZ is destroyed
+* 99.5% Availability
+* Use Cases : Storing secondary backup copies of on-premise data, or data you can recreate
+
+==== Glacier ====
+
+* Low-cost object storage meant for archiving / backup
+* Paid storage and paid retrieval
+
+==== Glacier Instant Retrieval ====
+
+* ms retrieval, great for data accessed once a quarter
+* 90 days min storage duration
+
+==== Glacier Flexible Retrieval ====
+
+* Three tiers
+	* Expedited for 1 to 5 min retrieval
+	* Standard for 3 to 5 hours retrieval
+	* Bulk for 5 to 12 hours retrieval
+* 90 days min storage duration
+
+==== Glacier Deep Archive ====
+
+* Two tiers
+	* Standard for 12 hours retrieval
+	* Bulk for 48 hours retrieval
+* 180 days min storage duration
+
+==== Intelligent Tiering ====
+
+* Small monthly monitoring and auto-tiering fee
+* Moves objects automatically between Access Tiers based on usage
+* No retrieval charges
+* Options are :
+	* Frequent Access tier (automatic) : default
+	* Infrequent Access tier (automatic) : objects not accessed for 30 days
+	* Archive Instant Access tier (automatic) : objects not accessed for 90 days
+	* Archive Access tier (optional) : configurable from 90 days to 700+ days
+	* Deep Archive Access tier (optional) : configurable from 180 days to 700+ days
+
+==== Lifecycle Rules ====
+
+* Go to management to create
+{{.\pasted_image.png}}   
+* STANDARD_IA is for infrequently accessed objects
+* GLACIER or DEEP_ARCHIVE are for objects you don't need in real-time
+* Lifecycle configuration is a way of automating objects movement by defining rules :
+	* Transition actions : define when objects are transitioned to another storage class
+	* Expiration actions : configure objects to expire (delete) after some time
+	* Can be created for a certain prefix (ex - s3://mybucket/mp3/*)
+	* Can be created for certain objects tags (ex - Department: Finance)
+
+=== Analytics ===
+	* Can be setup to help determine when to transition objects from Standard to Standart_IA
+	* Does not work for ONEZONE_IA or GLACIER
+	* Report is updated daily
+	* Takes about 24h to 48h to first start
+	* Good first step to put together Lifecycle Rules (or improve them)
+
+===== Performance =====
+
+==== Baseline Performance ====
+
+* Automatically scales to high request rates, latency bet 100-200ms
+* App can achieve at least 3,500 PUT/COPY/POST/DELETE and 5,500 GET/HEAD requests per second per prefix (directory) in a bucket
+* No limits to the number of prefixes in a bucket
+
+==== KMS Limitation ====
+
+* GenerateDataKey API is called during uploads
+* Decrypt API is called during downloads
+* Quota/s limited by default to 5500, 10000 or 30000 req/s depending on the region
+* Quota increase can be requested using the Service Quotas Console
+
+==== More improvements ====
+
+* Multi-Part upload parallelizing to speed up transfers
+* Transfer Acceleration to increase speed by transferring to an edge location before forwarding the data to the bucket in the target region
+	* Compatible with MP upload
+* Byte-Range Fetches to improve resilience and speed up downloads by :
+	* Parallelizing GETs by requesting specific byte ranges
+
+=== S3 Select & Glacier Select ===
+* Retrieve less data using SQL by performing server side filtering
+* Can filter by rows & columns (simple SQL statements)
+* Less network transfer, less CPU cost client-side
+
+===== Event Notifications =====
+
+* Enable in bucket properties :
+	* Create events manually and configuer to be sent to a service (add an access policy to allow the bucket to send data to the service) or
+	* Activate Eventbridge to send all events there and manage them
+* Events are :
+	* S3:ObjectCreated, S3:ObjectRemoved, S3:ObjectRestore, S3:ObjectReplication
+* Events on objects can be filtered by object name (*.jpg)
+* Used to trigger actions
+* No limit to the number of events
+* Notification are delivered in seconds but can sometimes take a minute or longer
+* Amazon EventBridge to sotre all events of a bucket :
+	* Rules can be defined to send events to more than 18 services as destinations
+	* Advanced filtering options are available with JSON rules (metadata, object size, name...)
+	* Multiple destinations (Step Functions, Kinesis Streams / Firehose ...)
+	* EventBridge Capabilities (Archive, Replay Events, Reliable delivery)
+
+==== Requester Pays ====
+* Enable to make the requester pay the cost of the request and the data download from the bucket
+* Requesters must be authenticated in AWS
+
+===== Athena =====
+
+* Another AWS Service
+* Use the editor and define a query result location in S3
+* Serverless query service to perform analytics against S3 objects
+* Uses standard SQL language to query the files
+* Supports CSV, JSON, ORC, Avro and Parquet (built on Presto)
+* Pricing is $5.00/TB scanned
+* Use compressed or columnar data for cost-savings
+* Used for BI / analytics / reporting, analyze and query VPC Flow Logs, CloudTrail trails, etc...
+
+===== Glacier Vault lock =====
+
+* To adopt a WORM (Write Once Read Many) model
+* Lock the policy for future edits
+* Helpful for compliance and data retention
+
+===== S3 Object Lock =====
+
+* Adopt a WORM model
+* Block an object version deletion for a specified amount of time
+* Versioning must be enabled
+* Object retention : 
+	* Retention Period : specified a fixed period
+	* Legal Hold : same protection, no expiry date
+* Modes :
+	* Governance : Special permissions to delete, overwrite or alter a lock
+	* Compliance : Nobody even root can change retention mode and period after setting

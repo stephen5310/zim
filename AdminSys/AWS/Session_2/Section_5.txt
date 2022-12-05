@@ -1,0 +1,110 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-06-22T17:50:05+02:00
+
+====== Section 5 ======
+Created mercredi 22 juin 2022
+
+====== EC2 Fundamentals ======
+
+===== Characteristics =====
+
+* Elastic Compute Cloud 
+* IaaS
+* Allows to :
+	* Rent VMs (EC2)
+	* Store data on virtual drives (EBS)
+	* Distribute load accross machines (ELB)
+	* Scale services using an auto-scaling group (ASG)
+* Sizing and configuration options :
+	* OS : Linux, Windows or Mac OS
+	* CPU (power and cores)
+	* RAM 
+	* Storage (type and amount)
+	* Network card (speed, public IP)
+	* Firewall rules (security group)
+	* Bootstrap script (EC2 User Data, executed with root user)
+* Useful free tier EC2 instance : t2.micro
+
+===== Create an instance for a website =====
+
+* Go to EC2 > Instances > Launch instances, fill in the form and submit
+* Use the User Data script to install and start httpd, and create a welcome page 
+* Click on the Instances refresh button for your instance to appear in the list
+* Go to Instance state to start, stop, or terminate
+* **Restarting an instance will cause the change of the public IP**
+
+===== Instance types =====
+
+* The types are optimized for different use cases
+* AWS uses a naming convention : m5.2xlarge
+	* m : instance class
+	* 5 : generation
+	* 2xlarge : size within the class
+* Types are :
+	* General purpose : web servers, code repos
+	* Compute optimized : HP processors for HP tasks (Batch processing, Media transcoding, HPC, ML, Gaming)
+	* Memory Optimized: : large data sets in RAM (HPerf DBs, Distributed Web caches, BI, Real time Big Data)
+	* Storage Optimized : high rw access to large data sets on storage (DBs, DWHouses, DFS, DBs cache, High frequency online transaction processing)
+* For comparisons go to https://instances.vantage.sh/
+
+===== Security groups =====
+
+* Control how traffic is allowed into or out (firewall)
+* Only contain allow rules
+* Reference by IP or by security group
+* Can be attached to multiple instances
+* **Use a separate SG for ssh access**
+* Application not accessible (time out) => SG issue
+* Application connection refused => application error or not launched
+* By default :
+	* all inbound traffic is blocked
+	* all outbound traffic is authorized
+* Go to Network Security > Security groups
+* Click on the ID to edit the SG
+
+===== Connect to instance =====
+
+* Using SSH :
+	* download the certs
+	* command : ssh -i <path_to_pem> ec2-user@<public_ip>
+* Using EC2 Instance Connect
+	* Click on Connect
+	* Terminal on Web page
+	* Don't need to manage keys
+	* Does not work if SSH is not authorized by SG
+* Putty (not interested)
+
+===== Roles =====
+
+* Used to provide AWS credentials to resources (EC2 for instance)
+* **Don't use aws configure in EC2 terminal (anyone connected can retrive the credentials)**
+* Go to IAM > Access management > Roles to create a role (with IAMReadOnlyAccess for demo purposes)
+* We can use the demo role for EC2
+* To attach a role go to EC2 > Instances > Actions > Security > Modifiy IAM role
+
+===== Instances Purchasing Options =====
+
+* On-demand instances : short workload, predictable pricing, pay by second **[2nd most expensive]**
+
+* Reserved : **[Up to 70% discount]**
+	* Reserved instances : long workloads 
+	* Convertible reserved instances : long workloads with flexible instances
+
+* Savings Plans : commitment to an amount of usage, long workload **[Up to 69% discount]**
+
+* Spot instances : short workloads, cheap, can lose instances (less reliable) **[Up to 90% discount] Cheapest**
+	* When the cost exceeds the max spot price you have //2min// to :
+		* Stop the instance and restart it when the price will allow you
+		* Terminate it, then you will start with a new instance later
+	* You can also block your instance during a period (1H to 6H) using //spot block// (no longer available)
+	* Spot fleets is a feature that allows to lauch a fleet of spot instances (with optional On-demand) that will try to meet automatically the target capacity with price constraints
+	* The picture below describes the lifecycle of spot instances
+
+{{.\pasted_image.png}}
+
+* Dedicated hosts : book an entire physical server but hardware is shared, control instance placement **[Most expensive]**
+
+* Dedicated instances : no other customers will share your hardware **[Most expensive]**
+
+* Capacity Reservations : reserve capacity in a specific AZ for any duration **[Most expensive]**

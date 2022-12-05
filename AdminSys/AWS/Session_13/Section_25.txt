@@ -1,0 +1,118 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-15T17:48:12+02:00
+
+====== Section 25 ======
+Created jeudi 15 septembre 2022
+
+====== Identity and Access Management (IAM) - Advanced ======
+
+===== Organizations =====
+
+* Global service to manage multiple AWS accounts
+* The main account is the management account
+* Other accounts are member accounts
+* Member accounts can only be part of one org
+* Consolidated billing across all acc - single payment method
+* Pricing benefits from aggregated usage (vol discount for EC2, S3, ...)
+* Shared reserved instances and Savings Plans discounts across accounts
+* API is available to automate AWS account creation
+* Root Organizational Unit to create Management Account
+* Organizational Units (others) inside the Root one for Member Accounts :
+	* Can be organized by Business Unit, Environmental Lifecycle, Project
+* Advantages :
+	* Multi Account vs One Account Multi VPC
+	* Use tagging standards for billing purposes
+	* Enable CloudTrail on all acc, send logs to central S3 acc
+	* Send CloudWatch Logs to central logging acc
+	* Establish Cross Account Roles for Admin purposes
+* Security : Service Control Policies
+	* IAM policies applied to OU or Accounts to restrict Users and Roles
+	* They do not apply to the management acc (full admin power)
+	* Must have an explicit allow (does not allow anything by default - like IAM)
+	* No SCP can be applied to the Management Account
+
+===== Conditions =====
+
+* Deny or Allow with specific condition
+* aws:SourceIP : restrict the client IP from which API calls are being made
+* aws:RequestedRegion : restrict the region the API calls are made to
+* Based on tags : ec2:ResourceTag or aws:PrincipalTag
+* Force MFA : aws:MultiFactorAuthPresent
+
+==== IAM for S3 ====
+* Make difference between :
+	* Bucket level permission : applies to bucket
+	* Object level permission : applies to objects within bucket
+
+===== IAM Roles vs Resource Based Policies =====
+
+* User assuming a role gives up his original permissions :
+	* He is no longer allowed to do what he was allowed to before
+* User using a resource-based policy does not give up his permissions
+* Supported by S3 buckets, SNS topics, SQS queues, ...
+* EventBridge Security :
+	* Rules need permissions on target
+	* Resource-based policy for Lambda, SNS, SQS, CloudWatch Logs, API Gateway...
+	* IAM role for KDS, Systems Manager Run Command, ECS task
+
+===== Policy Evaluation Logic (Permission boundaries) =====
+
+* Permisison Boundaries are supported for users and roles (not groups)
+* Advanced feature to use managed policy to set max permissions an IAM entity can get
+* Permissions given to a user outside its permission boudary result in no permissions
+* Boundary is used to :
+	* Delegate responsibilities to non admin within their permission boundaries
+	* Allow developers to self-assign policies and manage their own permissions, while making sure they can't escalate their privileges
+	* Restrict on specific user
+* Evaluation Logic :
+	1. Deny evaluation
+	2. Organizations SCPs
+	3. Resource-based policies
+	4. Identity-based policies
+	5. IAM permission boundaries
+	6. Session policies
+
+===== Single Sign-On (SSO) =====
+
+* Centrally manage SSO to multi-acc and 3rd party business apps
+* Integrated with AWS Orgs
+* Supports SAML 2.0 markup
+* Integration with on-premise AD
+* Centralized permission management
+* Centralized auditing with CloudTrail
+
+==== AssumeRoleWithSAML ====
+
+* API using 3rd Party IDP login portal
+* Query Identity Store for auth
+* Returns SAML response to client
+* Client send SAML assertion to STS
+* STS delivers sec credentials
+* Client use credentials to access AWS
+
+===== Cognito =====
+
+* Give user identity to interact with app
+
+==== Cognito User Pools ====
+
+* Sign-in functionality for app users
+* Integrate with API Gateway & ALB
+* Serverless database of users
+* Simple login : username [[/]] email / password
+* Password reset, email & Phone number verif, MFA
+* Federated Identities : Facebook, Google, SAML
+* Integrates 
+
+==== Cognito Identity Pools (Federated Identity) ====
+
+* Provide temporary AWS credentials to users so they can access AWS resources directly
+* Integrate with CUP, 3rd party logins, etc, as an IDP
+* Users can access services directly or through API Gateway
+* IAM policies applied to the credentials are defined in Cognito
+* Can be customized based on the user_id for fine-grained control
+* Default IAM roles for authenticated and guest users
+* Allows to enable row level security in DynamoDB
+
+* Supports hundreds of users, mobile users, auth with SAML

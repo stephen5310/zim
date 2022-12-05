@@ -1,0 +1,116 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-06-27T16:34:23+02:00
+
+====== Section 7 ======
+Created lundi 27 juin 2022
+
+====== EC2 Instance Storage ======
+
+===== EBS Volume =====
+
+* Elastic Block Store
+* Network drive
+* Can be attached to a running instance (one at a time)
+* Allows to persist data even after termination
+* AZ bound (snapshot to move it)
+* Free tier : 30GB EBS SSD or Magnetic / month
+* Specify size and IOPS in advance
+* Delete on termination option available
+* Go to EBS > Volumes > Create volume
+
+===== EBS Snapshots =====
+
+* Make backup
+* Recommended to detach the EBS before (not necessary)
+* Can be copied to another AZ to restore an EBS there
+* Archive tier allows 75% savings but takes 24H to 72H to restore
+* Can use a recycle bin for deleted snapshot retention (1D to 1Y)
+* The copy option is in EBS > Snapshots > Actions > Copy
+* We must create a retention rule for the recycle bin
+
+===== AMI =====
+
+* Amazon Machine Image
+* Customization of EC2 instance
+	* own software, conf, OS, monitoring
+	* Faster boot/conf time
+* AZ bound
+* EC2 instances can be launched from :
+	* Public AMIs : provided by AWS
+	* Our own AMIs : made and maintained by ourselves
+	* AWS Marketplace : made by someone else (may be not free)
+* To build an AMI :
+	* Start the EC2 instance and customize it
+	* Stop it
+	* Right-click on the instance and click on Image and templates > Create image to build the AMI (will also create EBS snapshots)
+	* Instances can now be launched from the created AMI
+
+===== EC2 Instance Store =====
+
+* Connected physically
+* Better I/O
+* Lost if EC2 instance is stopped
+* Backup and replication managed by the user
+* Good for buffer, cache, scratch data or temporary content
+
+===== EBS Volume Types =====
+
+* Characterized in Size, Throughput, IOPS
+* General purpose SSD (balanced price and performance) : 
+	* gp2 (IOPS and size linked)
+	* gp3 (IOPS and size not linked) 
+	* (1GiB - 16GiB)
+* Highest perf SSD (mission-critical low-latency or high-throughput) : 
+	* io1 (4GiB - 16TiB)
+	* io2 (more durability and IOPS at the same price) 
+	* io2 Block Express (4GiB - 64TiB) sub-millisecond latency and more IOPS
+	* EBS **Multi-attach AZ bound**
+* Low cost HDD (frequently accessed, throughput-intensive) : st1
+* Lowest cost HDD (less frequently accessed) : sc1
+* Only gp2/gp3 and io1/io2 can be used as boot bolumes
+
+===== EBS Encryption =====
+
+* Select the Encryption option during the volume creation
+* Is encrypted :
+	* data at rest inside the volume
+	* data moving between the instance and the volume
+	* snapshots
+	* volumes created from snapshot
+* Encryption and decryption are handled transparently
+* Minimal impact on latency
+* AES-256 is used
+* Copy an unencrypted snapshot to allow its encryption
+* Encrypt a snapshot of an unencrypted volume to create an encrypted copy
+
+===== EFS =====
+
+* Elastic FS is a different service from EBS
+* Managed NFS (NFSv4.1)
+* Can be mounted on many EC2 instances
+* **Not AZ bound**
+* HA, scales automatically, expensive, pay per use
+* Used for content management, web serving, data sharing, Wordpress
+* Access control with Security Group
+* Encryption at rest using KMS
+* POSIX FS with standard file API
+* EFS scale :
+	* 1000s of concurrent NFS clients, 10 GB+/s throughput
+	* Grow to Petabyte-scale automatically
+* Performance mode (set at creation time)
+	* General purpose : latency sensitive use cases (web server, CMS, etc...)
+	* Max I/O : higher latency, throughput, highly parallel (big data, media processing)
+* Throughput mode :
+	* Bursting (1TB = 50MiB/s + burst of up to 100MiB/s)
+	* Provisioned : set your throughput regardless of storage size
+* Storage tiers (lifecycle management) :
+	* Standard (frequently accessed files)
+	* Infrequent access (EFS-IA) :
+		* cost to retrieve files
+		* lower price to store
+		* enable with a lifecycle policy
+* Availability and durability :
+	* Regional : Multi-AZ, great for prod
+	* One Zone : great for dev, backup enabled, compatible with IA for over 90% in cost savings
+* To create go to EFS > Create a file system > Customize

@@ -1,0 +1,45 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-26T16:48:05+02:00
+
+====== Shutdown script ======
+Created lundi 26 septembre 2022
+
+Create script in [[/etc/init.d/<script_name]]>
+Can use the format below :
+
+```
+#!/bin/sh
+# chkconfig: <runlevels> <start_seq_num> <kill_seq_num>
+# description: An example init script to run a command at shutdown
+
+# runmycommandatshutdown runs a command at shutdown. Very creative.
+
+LOCKFILE=/var/lock/subsys/
+start(){
+	# Touch our lock file so that stopping will work correctly
+	touch ${LOCKFILE}
+}
+
+stop(){
+# Remove our lock file
+rm ${LOCKFILE}
+# Run that command that we wanted to run
+mycommand
+}
+
+case "$1" in
+	start) start;;
+	stop) stop;;
+	*)
+		echo $"Usage: $0 {start|stop}"
+		exit 1
+esac
+exit 0
+```
+
+Commands below to create simlinks in different /etc/rc directories for the different runlevels.
+Simlinks start with S for startup executions and K for shutdown executions.
+
+update-rc.d <script_name> default
+chkconfig --add <script_name>

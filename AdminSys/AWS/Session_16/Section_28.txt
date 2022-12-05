@@ -1,0 +1,131 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-18T21:12:18+02:00
+
+====== Section 28 ======
+Created dimanche 18 septembre 2022
+
+====== Disaster Recovery ======
+
+* A disaster is an event that has negative impact on business continuity or finances
+* DR is about preparing for and recovering from a disaster
+* Three kinds of DR :
+	* On-prem to on-prem
+	* On-prem to cloud (hybrid)
+	* Cloud to cloud
+* Recovery Point Objective :
+	* How much data loss is allowed after recovery from disaster
+	* Depends on frequency of backups
+	* Time between last backup and disaster
+* Recovery Time Objective :
+	* How much downtime is allowed between disaster and service restoring
+* Strategies :
+	* Backup and restore :
+		* High RPO and RTO
+		* Cheap and easy
+	* Pilot Light :
+		* Small version of app always running
+		* Useful for critical core
+		* Failover to have time to restore initial app
+		* Lower RPO and RTO
+	* Warm Standby :
+		* Full system up and running at minimum size
+		* Failover in case of disaster and can scale to take place of initial app
+	* Hot Site / Multi Site approach : 
+		* Very low RTO, very expensive
+		* Full production scale app running on Cloud and on premise
+		* Active active setup
+	* Can go global with multi-region
+* Automate recovery with :
+	* CloudFormation or BeansTalk to re-create whole environment
+	* Recover / Reboot EC2 instances with CloudWatch if Alarms fail
+	* AWS Lambda functions for customized automations
+* Chaos monkeys to test
+
+===== Database Migration Service =====
+
+* DMS
+* Quickly and securely migrate databases to AWS, resilient, self-healing
+* The souce DB remains available during migration
+* Supports homogeneous and heterogeneous migrations :
+	* Uses Schema Conversion Tool for heterogeneous
+* Continuous Data Replication using Change Data Capture CDC
+* Must create EC2 instance to perform replication tasks
+* Continuous replication example :
+	* From on-premise Oracle DB to RDS for MySQL
+	* Install SCT Server on-premise for continuous schema conversion to AWS
+	* Setup DMS replication instance in Public Subnet and use CDC + Full load for data migration
+
+==== RDS & Aurora MySQL Migrations ====
+* Option 1 : Restore snapshots from RDS to MySQL
+* Option 2 : Create an Aurora Read Replica from RDS , when replication lag is 0 and promote as DB cluster
+* Option 1 & 2 are same for PostgreSQL
+* External MySQL to Aurora :
+	* Option 1 : Create backup in S3 with Percona XtraBackup, Create Aurora MySQL DB from S3 backup
+		* For PostGreSQL import using aws_S3 Aurora extension
+	* Option 2 : Create Aurora MySQL DB, dump MySQL data and restore to Aurora DB
+* Use DMS if db are up and running
+
+===== On-Premise strategy with AWS =====
+
+* Amazon linux available in ISO
+* VM Import / Export :
+	* Migrate existing apps into EC2
+	* Create DR repository strategy for on-premise VMs
+	* Can export back from EC2 to on-premise
+* DMS
+* Server Migration Service (SMS)
+	* Incremental replication of on-premise live servers to AWS
+
+==== App Discovery Service ====
+* Gather info about on-premise servers to plan migration
+* Server utilization and dependency mappings
+* Two ways :
+	* Agentless Discovery Connector (less detailed )
+	* Agent-based Discovery with App Discovery Agent (more details)
+* Track with AWS Migration Hub
+* AWS Migration Service (MGN) :
+	* Evolution of CloudEndure Migration, replacing SMS
+	* Lift-and-shift (rehost) solution which simplify migrating apps to AWS
+	* Converts physical, virtual and cloud-based servers to run natively on AWS
+	* Supports wide range of platforms, OS and dbs
+	* Minimal downtime, reduced costs
+
+===== Backup =====
+
+* Fully managed service
+* Centrally manage and automate backups across AWS services
+* No need to do it manually or by scripts
+* Supports : EC2, EBS, S3, RDS, Aurora, DynamDB, DocumentDB, Neptune, EFS, FSx, Storage GW
+* Supports cross-region and cross-account backups
+* Supports PITR for supported services
+* On-Demand and Scheduled backups
+* Tag-based backup policies
+* You create backup policies known as Backup plans :
+	* Define frequency, window, transition to cold storage, retention period
+
+==== Vault Lock ====
+* Can enforce WORM
+* Even root user cannot delete backups when enabled
+
+===== Transferring Large amount of data into AWS =====
+
+* S2S VPN :
+	* Immediate setup
+	* Take too much time
+* Direct connect :
+	* Long one time setup (over 1month)
+	* Take less time but long too
+* Snowball :
+	* Many in parallel
+	* About 1w for e2e transfer
+	* Can be combined to DMS
+* For on-going replication / transfers : S2S VPN or DX with DMS or DataSync
+
+===== VMWare Cloud =====
+
+* Extend VMWare cloud from on-premise to AWS
+* Migrate vSphere-based workloads to AWS
+* Run production workloads across hybrid env
+* Have disaster recovery strategy
+* Connect to AWS services

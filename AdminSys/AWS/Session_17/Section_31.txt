@@ -1,0 +1,54 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-19T18:40:37+02:00
+
+====== Section 31 ======
+Created lundi 19 septembre 2022
+
+====== WhitePapers and Architectures ======
+
+===== Well Architected Framework =====
+
+* 6 Pillars :
+	1. Operational Excellence
+	2. Security
+	3. Reliability
+	4. Performance Efficiency
+	5. Costi Optimization
+	6. Sustainability
+
+===== Well Architected Tool =====
+
+* Free tool to review architectures against the 6 pillars and adopt best practices
+* Usage :
+	* Select workload and answer questions
+	* Review answers against pillars
+	* Obtain advice : get videos and doc, generate a report, see results in dashboard
+
+===== Trusted Advisor =====
+
+* No need to install anything - high level AWS account assessment
+* Analyze AWS accounts and provides recommendation
+* Core checks and recommendations
+* Can enable weekly email notifs from the console
+* Full Trusted Advisor - Available for Business & Enterprise support plans :
+	* Ability to set CloudWatch alarms when reaching limits
+	* Programmatic Access using AWS Support API
+* Cost Optimization :
+	* Low utilization EC2 instances, idle load balancers, under-utilized EBS volumes...
+	* Reserved instances & savings plans optimizations
+* Performance :
+	* High utilization EC2 instances, CloudFront CDN optimizations
+	* EC2 to EBS throughput optimizations, Alias records recommendations
+* Security :
+	* MFA enabled on Root Account, IAM key rotation, exposed Access Keys
+	* S3 Bucket Permissions for public access, SGs with unrestricted ports
+* Fault Tolerance :
+	* EBS snapshots age, Availability Zone Balance
+	* ASG Multi-AZ, RDS Multi-AZ, ELB conf
+* Service Limits
+
+===== Architecture and Solutions Centers =====
+
+* aws.amazon.com/architecture
+* aws.amazon.com/solutions

@@ -1,0 +1,105 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-05T12:54:12+02:00
+
+====== Section 15 ======
+Created lundi 05 septembre 2022
+
+====== CloudFront & Global Accelerator ======
+
+===== CloudFront =====
+
+* Go to CloudFront service to create
+* Connect with the distribution domain name
+* Content Delivery Network (CDN)
+* Improves read performance, content is cachet at the edge
+* 216 PoP globally (edge locations)
+* DDoS protection, integration with Shield, Web App Firewall
+* Can expose external HTTPS and talk to internal HTTPS backends
+
+==== Origins (data sources) ====
+
+* S3 bucket :
+	* Distribute files and cache them at the edge
+	* Enhance security with CloudFront Origin Access Identity (OAI) which is an IAM role for the data source
+	* Can be used as an ingress (to upload files to S3)
+* Any HTTP Origin :
+	* ALB (must be public and allow public IPs of Edge Locations)
+	* EC2 instance (must be public and allow public IPs of Edge Locations)
+	* S3 website (must first enable the bucket as a static S3 website)
+	* Any HTTP backend
+* List of cloudfront IPs at https://d7uri8nf7uskq.cloudfront.net/tools/list-cloudfront-ips
+
+==== Geo Restrition ====
+
+* Restrict access with whitelist or blacklist
+* Based on countries
+* Use 3rd party Geo-IP database to determine country
+* Used for Copyright Laws to control access to content
+
+==== Signed URL / Signed Cookies ====
+
+* To distribute paid shared content to premium users over the world
+* Used to attach a policy with :
+	* URL expiration :
+		* Short for a shared content (movie, music)
+		* Even years for a content private to the user
+	* IP ranges to access the data from
+	* Trusted signers
+* URL = access to one file
+* Cookie = access to many files, can be updated
+* To generate a signed URL :
+	* Create an app for client auth
+	* This app will use AWS SDK to generate signed URL
+	* The app will return the URL to the client
+
+==== S3 CRR vs CFront ====
+
+* Must setup for each region VS Global Edge Network
+* File updated in near real-time VS Files cached for a TTL
+* Great for dynamic content available in few regions VS Great for static content available everywhere
+
+==== Pricing ====
+
+* Cost of data out per edge location varies
+* Can reduce number of edge locations for cost reduction
+* Three price classes :
+	* All : all regions
+	* 200 : most regions, but with the most expensive ones
+	* 100 : only the least expensive ones
+
+==== Multiple Origin ====
+
+* Route to different kind of origines based on the content type
+* Based on path pattern :
+	* [[/images/*]] redirect to LB
+	* [[/*]] redirect to bucket
+
+==== Origin Group ====
+
+* Increase HA and do failover
+* One primary and one secondary
+* The second is used when the primary fails
+
+==== Field Level Encryption ====
+
+* Protect user sensitive info through app stack
+* Adds additional layer of security along with HTTPS
+* Sensitive info encrypted at the edge close to the user
+* Asymmetric encryption
+* How to : 
+	* Specify set of fields in POST requests that you want to be encrypted (up to 10)
+	* Specify the public key to encrypt them
+
+===== Global Accelerator =====
+
+* Leverage AWS internal network to route to app
+* Client talks to closest edge location
+* 2 anycast IP are created for the app
+* The anycast IP sends traffic directly to edge locations
+* Work with Elastic IP, EC2, ALB, NLB, public or private
+* Consistent Performance
+* Health Checks
+* Security :
+	* Only 2 IP to be whitelisted by client
+	* DDoS protection with AWS Shield

@@ -1,0 +1,262 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-17T16:01:39+02:00
+
+====== Section 27 ======
+Created samedi 17 septembre 2022
+
+====== Networking VPC ======
+
+* Virtual Private Cloud
+* Max 5 / region
+* Max CIDR / VPC is 5, for each CIDR :
+	* Min is [[/28]] and max is [[/16]]
+* Only private IPv4 addresses allowed
+* Default AWS Private range : 172.16.0.0/12
+* All new AWS account get a default VPC
+* New EC2 instances are launched in default VPC if no subnet is specified
+* Default VPC has internet connectivity and all EC2 instances inside have 
+	* Public IPv4 addresses
+	* Public and private DNS names
+
+===== Subnets =====
+* 5 Addresses are reserved in each subnet
+* For 10.0.0.0/24 :
+	* 10.0.0.0 is the network address
+	* 10.0.0.1 is the VPC router address
+	* 10.0.0.2 is the Amazon-provided DNS address
+	* 10.0.0.3 is for future use
+	* 10.0.0.255 is the broadcast address
+
+===== Internet GW and Route tables =====
+
+* Create two Subnets in VPC, one for private and one for public usage
+* Create an EC2 instance in public sbn
+* Create an Internet GW and attach to VPC
+* Create two route tables in VPC :
+	* Attach each to public and private sbn
+* Add a default route to public route table to go to internet (0.0.0.0/0) with IGW as target
+
+===== Bastion Host =====
+
+* EC2 instance in the public subnet with :
+	* A special SG Bastion-host SG :
+		* Must allow SSH on 22/tcp from internet for specific CIDR
+	* Connection to all private subnets
+	* Necessary hop to SSH into private EC2 instances :
+		* SGs on EC2 instances must allow SG from Bastion Host or its private IP
+
+===== NAT instances =====
+
+* Instances in public subnet that allow instances in private subnet to access internet
+* Must disable EC2 setting source/destination check
+* Must have an Elastic IP attached
+* Route tables must be configured to route private traffic to NAT instance
+* Preconfigured AMI available, not HA
+* Internet traffic BandWidth depends on EC2 instance type
+* Must manage SG rules
+	* Allow pings if you want pings
+
+===== NAT Gateways =====
+
+* Fully managed NAT, High bandwidth, HA
+* Pay per hour of usage and bandwidth
+* Created in a specific AZ, uses an elastic IP :
+	* Must create mutiple NATGW in multiple AZ for fault tolerance
+	* No cross AZ failover because if one goes down it does not need NAT
+* Can't be used by EC2 instance in the same subnet
+* Requires an IGW
+* 5Gps with auto scaling to 45 Gps
+* No SG to manage
+
+===== NACL =====
+
+* Network Access Control List
+* Filter traffic from and to subnets before SGs
+* Stateless : inbound and outbound rules are evaluated for each traffic
+* One per subnet (new are assigned the default NACL)
+* Rules defined by user :
+	* Have number from 1 to 32766 to define precedence
+	* The lower the number, the higher the precedence
+	* First match wins
+	* The last rule is by default a deny * (all)
+	* Recommended to add rules by increment of 100
+* Great way to deny specific IP addr at subnet level
+* Default NACL allow everything in and out
+* Ephemeral ports :
+	* Opened temporary by client to communicate with a server
+	* MS Windows 10 : 49152 to 65535
+	* Linux : 32768 to 60999
+* NACL with ephemeral ports :
+	* Allow port range 1024 to 65535 from disired subnet
+
+===== Reachability Analyzer =====
+
+* Used to test network connectivity between AWS resources
+
+===== Peering =====
+
+* Privately connect two VPCs and make them behave as if they were in the same network
+* Peering can be cross-account, cross-region
+* Must not have overlapping CIDRs
+* Peering connection is not transitive
+* Route tables must be updated to allow traffic in each VPC
+* Can reference SG from a peered VPC (cross-account, same region)
+
+===== Endpoints =====
+
+* Allows to connect to AWS services using private network
+* Uses AWS PrivateLink
+* Are redundant, scale horizontally
+* In case of issues check DNS resolution and route tables
+* Two types : 
+	* Interface Endpoint :
+		* Uses an ENI with private IP and must attach an SG
+		* Supports most services 
+		* Pay per hour and per GBs of data processed
+	* Gateway Endpoint :
+		* Provisions a GW and must be used as target in a route table (no SG needed)
+		* Supports S3 and DynamoDB
+		* Free
+* The Interface Endpoint is only used when we want to access from on premises, a different VPC or region
+* ClassicLink to connect EC2-classic EC2 instances privately to VPC
+
+===== Flow Logs =====
+
+* Capture info about IP traffic going into interfaces :
+	* VPC flow
+	* Subnet flow
+	* ENI flow
+* Helps monitor and troubleshoot traffic issues
+* Logs can go to S3 / CloudWatch logs, can be queried with :
+	* Athena and QuickSight for visualization
+	* CloudWatch Logs Insights for statistics
+	* CloudWatch Alarms and SNS for alerts
+* Captures network info from AWS managed interfaces too :
+	* ELB, RDS, ElastiCache, Redshift, WorkSpaces, NATGW, Transit GW
+* The fields in the syntax :
+	* srcaddr & dstaddr help identify problematic IP
+	* srcport & dstport help identify problematic port
+	* Action tells success or failure of the request regarding SG or NACL
+	* Can be used for analytics on usage patterns or malicious behaviour
+
+===== Site to site VPN =====
+
+* Virtual Private GW :
+	* VPN concentrator on AWS side of VPN connection
+	* VGW is created and attached to VPC from which the connection will be created
+	* Customizable Autonomous System Number (ASN)
+	* Must enable Route Propagation for VGW in subnets route tables
+* Customer Gateway (CGW) :
+	* Software or device on customer side of the connection
+	* Use public IP of the GW, or public IP of the NAT device if behind NAT
+	* Make sure to add ICMP in inbound SG rules for ping
+
+==== CloudHub ====
+* Provide secure communication between multiple sites, for multiple S2S VPN connections
+* Low-cost hub-and-spoke model for primary or secondary network connectivity between different locations
+* Connect multiple VPN to the same VGW, setup dynamic routing and configure route tables
+
+===== Direct Connect =====
+
+* Provides dedicated private connection from a remote network to VPC
+* Dedicated connection must be setup between DC and AWS DC locations
+* Need to setup VGW on VPC
+* Access private and public resources on same connection
+* Use cases :
+	* Increase bandwidth throughput, working with large data sets, lower costs
+	* More consistent network experience, apps using rt data feeds
+	* Supports on prem + cloud
+* Setup : 
+	* Private virtual interface to connect customer router, AWS DC location router and DC endpoint, AWS VGW, private instances
+	* Public virtual interface to connect to go the same way and end up directly on public services / instances
+* DC Gateway to connect to many VPC in different regions (same account)
+* Two connection types :
+	* Dedicated : 1GBps, 10Gbps and 100Gbps capacity physical ethernet port
+		* Request made to AWS first, then completed by AWS DC partners
+	* Hosted : 50Mbps, 500Mbps to 10Gbps 
+		* Request made to AWS DC partners
+		* Capacity added and removed on demand
+		* More than 1Gbps capacity available only at select DC partners
+* Longer than 1month to establish a new connection
+* Can add encryption with IPSec VPN
+* Resiliency with multiple connections :
+	* In same DC location
+	* In different DC locations
+	* And termination on different end devices
+* Can add a backup S2S VPN connection in case of failure
+
+===== Transit Gateway =====
+
+* Transitive connections between thousands of VPCs, on-premises, hub-and-spoke (star) connection
+* Regional but can work cross-region
+* Share cross-account using Resource Access Manager
+* Can peer Transit GWs accross regions
+* Route tables to limit which VPC can talk to another
+* Works with DC GW and VPN connections
+* **Only service to support IP Multicast**
+
+==== Site-to-site VPN ECMP ====
+* Equal-cost multi-path routing
+* Routing strategy to allow to forward a packet over multiple best paths
+* Create multiple site-to-site VPN connections to increase connection to AWS bandwidth
+* Pay per GB of data processed by TGW and additional charges for ECMP
+
+==== Share DC between multiple accounts ====
+* Use TGW to connect accounts VPCs
+* Connect DC to DCGW, then to TGW
+
+===== Traffic mirroring =====
+
+* Capture and inspect network traffic
+* Route traffic to security appliances
+* Capture traffic from ENIs to ENIs or NLBs
+* Enable option on ENI to mirror all or part of traffic
+* Source and Target can be in same or different VPCs (peering)
+
+===== IPv6 in VPC =====
+
+* Can be enabled to operate in dual stack mode 
+* EC2 instances will : 
+	* Get at least a private internal IPv4 and a public IPv6
+	* Be able to communicate using either IPv4 or IPv6 via an IGW
+* Troubleshooting :
+	* Cannot lauch EC2 instance if there is no more IPv4 addresses available in subnet
+
+===== Egress only IGW =====
+
+* NAT GW for IPv6 only
+* Allow outbound while preventing internet inbound IPv6 connections
+* Must update route tables
+
+===== Networking costs =====
+
+* Free incoming traffic on EC2 instances
+* Free traffic between EC2 instances in same AZ using private IP
+* $0.01/GB between EC2 instances in same region but different AZ using private IP
+* $0.02/GB between EC2 instances in same region but different AZ using ENI (same for cross region)
+* S3 cross region replication is $0.02/GB
+* VPC endpoint is $0.01/GB in and out same region
+* Ingress traffic is typically free :
+	* S3 to CloudFront is free
+* Egress traffic is expensive :
+	* S3 to internet is $0.06/GB, add $0.04 to 0.08 with Transfer acceleration
+	* CloudFront to internet is $0.085/GB
+* Try to keep as much internet traffic within AWS for savings
+* Use private IPs for better perf and savings
+* Use same AZ for max savings
+
+===== Network Firewall =====
+
+* Protect entire VPC from L3 to L7
+* Can inspect everything in any direction
+	* VPC to VPC traffic
+	* Internet inbound and outbound
+	* To / from DC & S2S VPNs
+* Internally uses the GW LB
+* Rules can be centrally managed accross accounts by Firewall Manager to apply to many VPCs
+* Fined grained control with more than 1000s rules :
+	* IP, port, protocol, domain, pattern with regex
+* Traffic filtering : allow, drop or alert
+* Active flow inspection as IDS and IPS
+* Sends logs to S3, CloudWatch Logs, KDF

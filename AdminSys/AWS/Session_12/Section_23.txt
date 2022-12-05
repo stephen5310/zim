@@ -1,0 +1,119 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-14T19:48:18+02:00
+
+====== Section 23 ======
+Created mercredi 14 septembre 2022
+
+====== Machine Learning ======
+
+===== Rekognition =====
+
+* Find objects, people, text, scenes in images and videos using ML
+* Facial analysis and facial search to do user verification, people counting
+* Create a database of familiar faces or compare against celebrities
+* Use cases :
+	* Labeling
+	* Content Moderation
+	* Text Detection 
+	* Face Detection and Analysis
+	* Face Search and Verification
+	* Celebrity Recognition
+	* Pathing (for sports game analysis)
+* Content Moderation :
+	* Detect content that is inappropriate, unwanted, offensive
+	* Used in social media, broadcast media, advertising, e-commerce situations to create safer user exp
+	* Set a Minimum Confidence Threshold for items that will be flagged
+	* Flag sensitive content for manual review in Amazon Augmented AI (A2I)
+	* Help comply with regulations
+
+===== Transcribe =====
+
+* Automatically convert speech to text
+* Uses a deep learning process called automatic speech recognition ASR to convert speech to text quickly and accurately
+* Automatically remove Personally Identifiable Information PII using Redaction
+* Use cases :
+	* Transcribe customer service calls
+	* Automate closed captioning and subtitling
+	* Generate metadata for media assets to create a fully searchable archive
+
+===== Polly =====
+
+* Turn text into lifelike speech using deep learning
+* Allows to create apps that talk
+* Can use Lexicon to :
+	* Customize the pronunciation of words with Pronunciation lexicons
+	* Upload the lexicons and use them in the SynthesizeSpeech operation
+* Generate speech from plain text or from documents marked up with Speech Synthesis Markup Language SSML - enables more customization
+	* emphasize specific words or phrases
+	* using phonetic pronunciation
+	* including breathing soungs, whispering
+	* using the Newscaster speaking style
+
+===== Translate =====
+
+* Natural and accurate language translation
+* Allows to localize content for international users
+* Easily translate large volumes of data
+
+===== Lex =====
+
+* ASR and Natural Language Understanding to determine intention
+* Helps build chatbots, call center bots
+
+===== Connect =====
+
+* Cloud-based virtual call center
+* Receive and create contact flows
+* Integrate with CRM systems or AWS
+* No upfront payment, 80% cheaper than classic call centers
+
+===== Comprehend =====
+
+* Fully managed NL Processing service
+* Use ML to find insights and relationships in text :
+* Used to :
+	* Analyze customer interactions to find what leads to a positive or negative experience
+	* Create and group articles by topics that comprehend will uncover
+
+=== Comprehend Medical ===
+* Detects and returns useful information in unstructured clinical text
+* Uses NLP to detect Protected Health Information PHI - DetectPHI API
+* Store docs in S3, analyze rt data with KDF, or use Transcribe to transcribe patient narratives into texts that can be analyzed by Medical
+
+===== SageMaker =====
+
+* Fully managed service to build ML models
+* Typically difficult to do ML in one place on AWS
+* Simplifies the process
+
+===== Forecast =====
+
+* Fully managed ML service to do highly accurate forecasts
+* 50% more accurate than looking at the data itself
+* Reduce forecast time from months to hours
+* Used for Product demand planning, Financial planning, Resource planning
+
+===== Kendra =====
+
+* Fully managed document search service powered by ML
+* Extract answers from within docs
+* Natural Language search capabilities
+* Learn from users interactions/feedbacks to promote preferred results (Incremental Learning)
+* Ability to manually fine-tune search results (importance of data, freshness, custom, ...)
+
+===== Personalize =====
+
+* Fully managed ML service to build apps with rt personalized recommendations
+* Used for personalized product recommendations/re-rankin, customized direct marketing
+* Used by Amazon.com
+* Integrates to existing websites, apps, SMS, email marketing systems, ...
+* Implement in days, not months
+* Used by retail stores, media and entertainment
+
+===== Textract =====
+
+* Automatically extracts text, handwriting, and data from any scanned document using AI and ML
+* Extract data from forms and tables
+* Read and process any type of doc
+* Used by Financial services, Healthcare, Public sector

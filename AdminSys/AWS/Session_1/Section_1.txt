@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-06-15T19:05:33+02:00
+
+====== Section 1 ======
+Created mercredi 15 juin 2022
+
+===== Create an AWS accound =====
+
+* go to https://portal.aws.amazon.com
+* follow the steps
+* you need a credit card even for the free tier
+
+
+

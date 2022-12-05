@@ -1,0 +1,249 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-13T02:28:26+02:00
+
+====== Section 19 ======
+Created mardi 13 septembre 2022
+
+====== Serverless ======
+
+* Don't manage servers
+* Just deploy code
+* Can use functions, databases, messaging, storage, etc
+* The services are Lambda, DynamoDB, Cognito, API Gateway, S3, SNS, SQS, KDF, Aurora Serverless, Step Functions, Fargate
+
+===== Lambda =====
+
+* Virtual functions - no servers to manage
+* Limited by time - 15mn max
+* On-demand
+* Scales automatically 
+* Pricing : 
+	* Pay per request and compute time
+	* Free tier of 1,000,000 AWS Lambda requests and 400,000 GBs of compute time
+* Supports the whole suite of AWS services :
+	* API Gateway : Create REST API to invoke functions
+	* KDF : Data tranformation on the fly
+	* DynamoDB : Create triggers to invoke functions when smth happens
+	* S3 : Invoke function based on events
+	* CloudFront : Lambda@edge
+	* CloudWatch Events EventBridge : Events on AWS infra that trigger functions
+	* CloudWatch Logs : Stream logs
+	* SNS : React to notifications
+	* SQS : Process messages
+	* Cognito : React to actions from users (Login, Logout)
+* Supports many programming languages (JS, Python, Java 8, C#, Golang, Ruby, Rust)
+* Easy monitoring with CloudWatch
+* Easy to get more resources per functions (up to 10GB of RAM!)
+* Increasing RAM will also improve CPU and network !
+* Use Lambda Container Image :
+	* The container image must implement the Lambda Runtime API
+	* ECS / Fargate is preferred for running arbitrary Docker images
+
+==== Limits ====
+
+* Per region
+* Execution :
+	* Memory allocation : 128 MB - 10GB (1MB increments)
+	* Max execution time : 900s (15mn)
+	* Environment variables max 4KB
+	* Disk capacity in the function container (/tmp) : 512MB to 10GB
+	* Concurrency executions : 1000 (can be increased)
+* Deployment :
+	* Function deployment size (compressed .zip) : 50 MB
+	* Size of uncompressed deployment (code + dependencies) : 250MB
+	* Can use [[/tmp]] directory to load other files at startup
+	* Environment variables max 4KB
+
+==== Lambda@Edge ====
+
+* Deploy Lambda functions alongside CloudFront CDN
+* Build more responsive apps
+* Don't manage servers, Lambda is deployed globally
+* Customize CDN content
+* Pay only for what is used
+* Used to change CloudFront requests and responses (viewer and origin)
+* Used to generate responses to viewers without ever sending the request to the origin
+* Use Cases :
+	* Website Security and Privacy
+	* Dynamic Web Application at the Edge
+	* Search Engine Optimization (SEO)
+	* Intelligently Route Across Origins and Data Centers
+	* Bot Mitigation at the edge
+	* Real-time Image Transformation
+	* A/B Testing
+	* User Authentication, Authorization, Prioritization, Tracking and Analytics
+
+==== Step Functions ====
+
+* Build serverless visual workflow to orchestrate Lambdas
+* Features : sequence, parallel, conditions, timeouts, error handling, ...
+* Can integrate with EC2, ECS, On-premises servers, API Gateway, SQS queues, ...
+* Possibility of implementing human approval feature
+* Used for order fulfillment, data processing, web apps, any workflow
+
+==== Lambda in VPC ====
+
+* By default Lambda functions are launched outside customer VPC, in AWS VPC
+* Therefore it cannot acces customer VPC resources
+* To allow access customer must create functions into his VPC :
+	* Define VPC ID, Subnets and SGs
+	* Lambda will create an ENI in subnets
+
+=== RDS Proxy ===
+* Direct connections of Lambda functions will open too many connections under high load
+* Improves scalability by pooling and sharing DB connections
+* Improves availability by reducing by 66% the failover time and preserving connections
+* Enforce IAM auth and storing credentials in Secrets Manager
+* Never publicly accessible
+
+===== DynamoDB =====
+
+* Fully managed, Multi AZ HA
+* NoSQL with transaction support
+* Scales to massive workloads, distributed database
+* Millions of requests per seconds, trillions of rows, 100s of TB of storage
+* Fast and consistent in performance (single-digit ms)
+* Integrated with IAM for security, authorization and administration
+* Low cost and auto-scaling capabilities
+* No maintenance or patching, always available
+* Standard & Infrequent Access (IA) Table Class
+
+==== Basics ====
+
+* Made of Tables
+* Each table has a Primary Key
+* Each table can have an infinite num of items = rows
+* Each item has attributes (can be added over time)
+* Max item size is 400KB
+* Data types supported are :
+	* Scalar : String, Num, Binary, Boolean, Null
+	* Document : List, Map
+	* Set : String set, Num set, Binary set
+* Can rapidly evolve schemas
+
+==== R/W Capacity Modes ====
+
+* Control how you manage your tables's capacity (read/write throughput)
+* Provisioned Mode (default) : 
+	* Specify num r/w per sec
+	* Need to plan capacity
+	* Pay for provisioned Read Capacity Units & Write Capacity Units
+	* Possibiliy to add auto-scaling mode for RCU & WCU
+* On-Demand Mode :
+	* r/w scale up/down auto with workload
+	* No capacity plan needed
+	* Pay per usage, more expensive
+	* For unpredictable workloads, steep sudden spikes
+
+==== DAX ====
+
+* Accelerator
+* Fully-managed, HA, semaless in-memory cache for DynamoDB :
+	* Individual ojects cache
+	* Query & Scan cache
+* For Aggregation results use ElastiCache
+* Help solve read congestion by caching
+* Microseconds latency for cached data
+* Does not require app logic modif (compatible with existing DynamoDB APIs)
+* Default 5mn TTL for cache
+
+==== Stream Processing ====
+
+* Ordered stream of item-level modif (create/update/delete) in table
+* Used to :
+	* React to changes in real-time (welcome email to users)
+	* Real-time usage analytics
+	* Insert into derivative tables
+	* Implement cross-region replication
+	* Invoke AWS Lambda on changes to your DynamoDB table
+* 24H retention
+* Limited number of consumers
+* Process using AWS Lambda Triggers, or DynamoDB Stream Kinesis adapter
+
+==== Global Tables ====
+
+* Tables accessible with low latency in multiple regions
+* Active-Active replication
+* Applications can READ and WRITE to the table in any region
+* Must enable DynamoDB Streams as a pre-requisite
+
+==== TTL ====
+
+* Automatically delete items after expiry timestamp
+* Keeping only current items, adhere to regulatory obligations, web session handling
+
+==== Backups for disaster recovery ====
+
+* Continuous backups using point-in-time recovery
+	* Optionally enabled for the last 35d
+	* PITR to any time within the backup window
+	* Recovery process creates new tables
+* On-demand backups
+	* Full backups for long-term retention, until explicitely deleted
+	* Does not affect performance or latency
+	* Can be configured and managed in AWS Backup (enables cross-region copy)
+	* Recovery process creates new tables
+
+==== Integration with S3 ====
+
+* Export to S3 (must enable PITR)
+	* Works for any PIT in the last 35d
+	* Does not affect the read capacity
+	* Perform data analysis on top of DynamoDB
+	* Retain snapshots for auditing
+	* ETL on top of S3 data before importing back into DynamoDB
+	* Export in DynamoDB JSON or ION format
+* Import from S3
+	* Import csv, DynamoDB JSON or ION format
+	* Does not consume any write capacity
+	* Creates new table
+	* Import errors are logged in CloudWatch Logs
+
+===== API Gateway =====
+
+* Lambda + API Gateway : No infra to manage
+* Supports WebSocket Protocol
+* Handle API versioning, different env, security
+* Create API keys, handle request throttling
+* Swagger / Open API import to quickly define APIs
+* Transform and validate requests and responses
+* Generate SDK and API specs
+* Cache API responses
+
+==== Integrations High Level ====
+
+* Lambda Function
+	* Invoke
+	* Easy way to expose REST API
+* HTTP
+	* Expose HTTP enpoints in backend
+	* Ex : internal HTTP API on premise, ALB, ...
+	* Add rate limiting, caching, user auth, API keys, ...
+* AWS Service
+	* Expose any AWS API through the API Gateway
+	* Ex : Start AWS Step Function workflow, post msg to SQS
+	* Add auth, deploy publicly, rate control, ...
+
+==== Endpoint Types ====
+
+* Edge-Optimized (default) : For global clients
+	* Requests are routed through the CloudFront Edge locations (improves latency)
+	* The API GW stays in only one region
+* Regional :
+	* For clients within the same region
+	* Could manually combine with CloudFront (more control over the caching strategies and the distribution)
+* Private :
+	* Can only be accessed from your VPC using an interface VPC endpoint (ENI)
+	* Use a resource policy to define access
+
+==== Security ====
+
+* User auth through
+	* IAM roles (useful for internal apps)
+	* Cognito (identity for extenal users - example mobile users)
+	* Custom Authorizer (your own logic)
+* Custom Domain Name HTTPS security through integration with AWS Certificate Manager (ACM)
+	* If using Edge-Optimized endpoint, then the certificate must be in us-east-I
+	* If using Regional endpoint, the certificate must be in the API Gateway region
+	* must setup CNAME or A-alias record in Route 53

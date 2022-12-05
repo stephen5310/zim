@@ -1,0 +1,61 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-03-24T09:54:49+00:00
+
+====== Orange ======
+Created jeudi 24 mars 2022
+
+===== Se connecter =====
+
+Accéder à https://mtgs.site1.orange.com/dana-na/auth/url_2/welcome.cgi avec ses accès.
+Accéder au cactus interne et à l'application Eburo10 Cactus Externe JRE 17. Une session citrix sera ouverte.
+Une fois connecté, choisir le CACTUS PORTAL et se connecter avec ses accès.
+Cliquer sur la machine à laquelle on veut accéder depuis l'interface et cliquer sur lancer putty.
+Les machines de prod ont leurs noms en rouge et les machines de préprod leurs noms en noir.
+
+===== Spécificités Orange =====
+
+* Pas de RCA ni de SLRC, utilisent leur fortinet pour gérer les certificats des GW et le VPN
+* Pas de Store ni de Portal ni de Billing
+* Deux proxys HTTP :
+	* Interne pour les VM actility
+	* Externe utilisé par LOM
+* Live Object Management (LOM) à la place de la GUI Actility, la plateforme sert de backend à LOM
+* Que des GW IBTS Macro et des Cisco
+	* On peut y accéder par ssh depuis les machines bastion
+
+===== Les sites =====
+
+Trois sites pour la redondance :
+
+Prod :
+* opidomas (Massena)
+* opidobag (Bagnolet)
+* opidoaub (Aubervilliers)
+
+Préprod :
+* uaidos1
+* uaidos2
+* uaidos1
+
+Labs :
+
+
+
+
+Régis Emmanuel : Exploitation et contact clients
+Follet Romain : Développement
+
+===== Live Objects =====
+
+Interface d'Orange pour les clients finaux à laquelle Actility n'a pas accès.
+Utilise les APIs de ThingPark.
+
+Des scripts sont exécutés chaque nuit pour synchroniser les contenus Live Objects et TPE.
+La synchronisation échoue parfois ce qui cause des incohérances.
+
+===== Tickets =====
+
+==== [[#87972]] ====
+
+* Redémarrage du lrc1 ne marchait pas : binaire lrcinit modifié

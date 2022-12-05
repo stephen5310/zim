@@ -1,0 +1,162 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-08-09T16:54:07+02:00
+
+====== Section 11 ======
+Created lundi 22 août 2022
+
+====== Classic Solutions Architecture Discussions ======
+
+===== __WhatsTheTime.com__ =====
+
+A website that tell what time it is (stateless)
+
+==== Starting Simple ====
+
+* 1 Public EC2
+* 1 Elastic IP Address (to keep after restart)
+* t2 micro
+* Server tells what time it is
+
+==== Scaling vertically ====
+
+* From t2 micro to m5 large
+* Keep elastic IP
+* Downtime
+
+==== Scaling horizontally 1st level ====
+
+* More m5 large
+* More elastic IP (bad)
+
+==== Leverage Route53 ====
+
+* Remove elastic IPs
+* Use Route53 A (simple) record
+
+==== Scaling horizontally 2nd level ====
+
+* Removing instances causes downtime (TTL in DNS and IP change after restart)
+* ELB with HC (not the cause) and SG in the same AZ
+* Use Alias A to link to instance instead of IP
+* Use ASG in the same AZ for auto scaling
+
+==== High Availability ====
+
+* Change ELB and HC to multi AZ
+* Change ASG to multi AZ
+
+==== Diminishing the costs ====
+
+* Reserve minimum 2 AZ in ASG, one instance per AZ
+
+===== __MyClothes.com__ =====
+
+* Allows people to buy clothes online
+* Shopping cart
+* Hundreds of users at the same time
+* Must stay stateless even when scaling
+
+==== Starting architecture ====
+
+* Multi AZ ELB and ASG with R53 Alias record
+
+==== Statelessness level 1 ====
+
+* Use ALB and enable stickiness
+* If instance is unavailable, data is lost
+
+==== Statelessness level 2 ====
+
+* Use User Cookies to store session data
+* HTTP content can become large
+* Security issue (Cookies data can be modified by attackers)
+* Cookies must be validated
+* Cookies size must be < 4KB
+
+==== Statelessness level 3 ====
+
+* Send session_id in Cookies
+* Session data is store with session_id in an ElastiCache (or DynamoDB) cluster
+* Faster and more secure
+
+==== Scale reads level 1 ====
+
+* User data is stored in RDS
+* Use RDS cluster with Master for writes and Read Replicas
+* More CPU load on RDS
+
+==== Scale reads alternative 2 ====
+
+* User data is stored in ElastiCache and RDS
+* Read in ElastiCache before reading in RDS
+* Write in ElastiCache if it did not provide requested data
+* Less load on RDS
+* Improved performance
+* Cache maintenance
+
+==== High Availability ====
+
+* Move RDS and ElastiCache to multi AZ
+
+==== Security ====
+
+* Allow all traffic from HTTP/S on LB from internet
+* Restrict traffic to EC2 from LB
+* Restrict traffic to ElastiCache SG from EC2 SG
+* Restrict traffic to RDS SG from EC2 SG
+
+===== __MyWordPress.com__ =====
+
+* Fully scalable WordPress website
+* Access and display picture uploads
+* User data, blog content stored in MySQL database
+
+==== Initial architecture ====
+
+* R53 with multi AZ ALB, ASG and Aurora MySQL(rr)
+
+==== Storing images ====
+
+* M5 each connected to an EBS volume storage
+
+==== Scaling with image storage ====
+
+* All M5 connected to EFS, each using an ENI to connect
+
+===== __Instantiating apps quickly__ =====
+
+==== EC2 instances ====
+
+* Use a Golden AMI : Install everything beforehand and launch from the golden AMI
+* Bootstrap using User Data for dynamic configuration
+* Hybrid to mix the first two options (Elastic Beanstalk)
+
+==== RDS Databases ====
+
+* Restore from a snapshot
+
+==== EBS Volumes ====
+
+* Restore from a snapshot
+
+===== __Beanstalk__ =====
+
+* Developer centric view of deploying an app
+* Managed service :
+	* Automatically handles capacity provisioning, lb, scaling, app health monitoring, instance conf, ...
+	* The developer only manages the app code
+* We still have full control over the conf
+* Free service but you pay for components
+
+==== Components ====
+
+* Application: collection of Elastic Beanstalk components (env, versions, confs, ...)
+* Application Version : interation of the app code
+* Env : 
+	* Collection of AWS resources running an app version
+	* Tiers : Web Server Env Tier & Worker Env Tier
+	* Can create multiple envs (dev, test, prod, ...)
+{{.\pasted_image.png}}
+
+

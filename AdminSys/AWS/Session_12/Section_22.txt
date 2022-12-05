@@ -1,0 +1,226 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-09-14T13:51:43+02:00
+
+====== Section 22 ======
+Created mercredi 14 septembre 2022
+
+====== Data & Analytics ======
+
+===== Athena =====
+
+* Serverless query service to analyze data stored in S3
+* Uses SQL (built on Presto)
+* Supports csv, JSON, ORC, Avro, and Parquet
+* Pricing : $5.00 per TB of data scanned
+* Commony used with Quicksight for reporting/dashboards
+* Used for BI, analytics, reporting, analyze & query VPC Flow Logs, ELB Logs, CloudTrail trails, ...
+* Analyze data in s3 using serverless SQL
+
+==== Performance Improvement ====
+
+* use columnar data for cost-savings for less scan :
+	* Apache Parquet or ORC recommended
+	* Huge perf improvement
+	* Use Glue to convert data
+* Compress data for smaller retrievals
+* Partition datasets in S3 for easy querying on virtual columns
+* Use larger files > 128 MB to minimize overhead
+
+===== Redshift =====
+
+* Based on PostgreSQL, but no used for OLTP
+* It is OLAP - online analytical processing (analytics and data warehousing)
+* 10x better perf than other data warehouses, scale to PBs of data
+* Columnar storage of data & parallel query engine
+* Pay as you go basesd on the instances provisioned
+* SQL interface for queries
+* BI tool such as Quicksight or Tableau are supported
+* Faster queries / joins / aggregations than Athena thanks to indexes
+* Architecture :
+	* Leader node : for query planning, results aggregation
+	* Compute node : for performing the queries, send results to leader
+	* Node size is provisioned in advance
+	* Can use Reserved Instances for cost saving
+* Enhanced VPC Routing ro force all COPY and UNLOAD traffic moving between cluster and data repositories through VPCs
+
+==== Snapshots and Data recovery ====
+
+* No Multi-AZ mode
+* Snapshots are PIT backups of a cluster stored internally
+* Snapshots are incremental
+* You can restore a snapshot into a new cluster
+* Automated : every 8H, 5GB, or on a schedule. Set retention
+* Manual snapshot is retained until customer deletes it
+* Can configure Redshift to automatically copy snapshots to another Region
+
+==== Loading data into Redshift ====
+
+* Large inserts are MUCH better
+* Three ways :
+	* KDF through S3 copy
+	* S3 COPY command
+	* EC2 Instance JDBC driver
+
+==== Spectrum ====
+
+* Query data already in S3 without loading it
+* Must have a Redshift cluster available to start the query
+* The query is then submitted to thousands of Redshift Spectrum nodes
+
+===== OpenSearch Service =====
+
+* Successor to ElasticSearch
+* In DynamoDB, queries only exist by primary key or indexes
+* You can search any file, even partially matches
+* Used commonly as a complement to another database
+* Requires cluster of instances (not serverless)
+* Does not support SQL
+* Ingestion from KDF, AWS IoT and CloudWatch Logs
+* Security through Cognito & IAM, KMS encryption, TLS
+* Comes with OpenSearch Dashboards (visualization)
+* DynamoDB pattern :
+	* CRUD => DynamoDB Table => DynamoDB Stream => Lambda Function => OpenSearch
+	* Create API to allow users to search items from OpenSearch and retrieve them from DynamoDB Table
+* CloudWatch Logs pattern :
+	* CloudWatch Logs => Subscription Filter => Lambda Function => (realtime) OpenSearch
+	* CloudWatch Logs => Subscription Filter => KDF => (near realtime) OpenSearch
+* Kinesis Data Streams pattern :
+	* KDS => KDF => (near realtime) OpenSearch
+	* KDS => Lambda Function => (realtime) OpenSearch
+
+===== EMR =====
+
+* Elastic MapReduce
+* Helps creating Hadoop clusters to analyze and process vast amount of data
+* Clusters can be made of hundreds of EC2 instances
+* Comes bundled with Spark, HBase, Presto, Flink...
+* Takes care of all the provisioning and conf
+* Auto-scaling and integrated with Spot instances
+* Used for data processing, machine learning, web indexing, big data...
+
+==== Node types & purchasing ====
+
+* Master : manages the cluster, coordinate, manage health - long running
+* Core : run tasks and store data - long running
+* Task (optional) : just to run tasks - usually Spot
+* Purchasing options :
+	* On-demand for Master and Core nodes if usage duration will be < 1y
+	* Reserved (min 1 year) for Master and Core nodes
+	* Spot instances for Task nodes
+* Can have long-running or transient cluster
+
+===== QuickSight =====
+
+* Serveless machine learning-powered BI service to create interactive dashboards
+* Fast, automatically scalable, embeddable, with per-session pricing
+* Used for Business analytics, Building visualizations, Perform ad-hoc analysis, Get Business insights using data
+* Integrated with : 
+	* AWS data sources : RDS, Aurora, Athena, Redshift, S3...
+	* Other SaaS data sources : Salesforce, Jira
+	* On-premises Databases JDBC :
+	* Data Sources for Imports : xlsx, csv, JSON, .tsv, ELF & CLF
+* In-memory computation using SPICE engine if data is imported into QuickSight
+* Enterprise edition : Possibility to setup Column-Level security (CLS)
+
+==== Dashboard & Analysis ====
+
+* Define Users (standard version) and Groups (enterprise version)
+	* These only exist within QuickSight, not IAM
+* A dashboard :
+	* Is a read-only snapshot of an analysis that can be shared with Users or Groups
+	* Must first publish before sharing
+	* Users who see the dashboard can also see the underlying data
+	* Preserves the conf of the analysis (filtering, params, controls, sort)
+
+===== Glue =====
+
+* Managed ETL service
+* Useful to prepare and transform data for analytics
+* Fully serverless service
+* Used to :
+	* Extract from RDS or S3, transform and load into RedShift
+	* Extract from S3 in a format, transform to Parquet format and put back to S3 to analyze with Athena
+		* Configure an Event notification to trigger a Lambda Function or EventBrige on S3 PUT to launch the ETL automatically
+
+==== Data Catalog ====
+
+* Catalog of datasets
+* Glue Data Crawler to crawl data sources (S3, RDS, JDBC, ...) to retrieve metadata
+* GDCr writes metadata to Glue Data Catalog
+* The info of GDCat are leveraged by Glue jobs to perform ETL
+* Athena, Redshift Spectrum and EMR also leverage info of GDCat for data discovery
+
+==== Other features ====
+
+* Job Bookmarks : prevent re-processin old data
+* Elastic Views : 
+	* Combine and replicate data across multiple data stores using SQL
+	* No custom code, Glue monitors for changes in the data source, serverless
+	* Leverages a virtual table (materialized view)
+* DataBrew : clean and normalize data unig pre-built transformation
+* Studio : new GUI to create, run and monitor ETL jobs in Glue
+* Streaming ETL (built on Apache Spark Structured Streaming) : compatible with KDS, Kafka, MSK (managed Kafka)
+
+===== Lake formation =====
+
+* Central place to have all data for analytics purposes
+* Fully managed service that makes easy to setup data lake in days
+* Discover, cleanse, transform and ingest data into data lake which is stored in S3
+* Automates many complex manual steps (collecting, cleansing, ...) and de-duplicate using ML Transforms
+* Combine structured and unstructured data in the data lake
+* Out-of-the-box source blueprints to ingest data : S3, RDS, Relational & NoSQL DB, ...
+* Fine-grained Access Control for your applications (row and column-level)
+* Built on top of AWS Glue to leverage Source Crawlers, ETL and Data Prep, Data Catalog
+* Use Security Settings and Access Control to protect data
+* Output to Athena, Redshift, EMR, Spark ...
+* Centralized Permissions to ease access control :
+	* All data is stored in one place
+	* Access Control Column-level security
+	* Services see only what they have the right to see
+
+===== Kinesis Data Analytics for Apache Flink =====
+
+* Use Flink (Java, Scala or SQL) to process and analyze streaming data
+* Reads from KDS and Amazon MSK
+* Run any Apache Flink app on a managed cluster on AWS
+	* Provisioning compute resources, parallel computation, auto scaling
+	* App backups (implemented as checkpoints and snapshots)
+	* Use any Apache Flink programming features
+	* Does not read from Firehose
+
+===== MSK =====
+
+* Managed Streaming for Kafka
+* Alternative to Kinesis
+* Fully managed Kafka on AWS
+	* Allows to create, update, delete clusters
+	* Creates & managees brokers and zookeeper nodes
+	* Deploy MSK cluster in customer's VPC, multi-AZ (up to 3 for HA)
+	* Automatic recovery from common Apache Kafka failures
+	* Data is stored on EBS volumes for as long as you want
+* MSK Serverless 
+	* Run Kafka on MSK without managing the capacity
+	* Automatically provisions resources and scales compute & storage
+* Default limit to 1M/msg, can go up to 10MB
+* Use Topics with Partitions
+* Can only add partitions to a topic
+* PLAINTEXT or TLS In-flight Encryption
+* KMS at-rest encryption
+* Consumers can be :
+	* KDA for Apache Flink
+	* Glue for Streaming ETL Jobs, powered by Apache Spark Streaming
+	* Lambda
+	* Apps running on EC2, ECS, EKS
+
+===== Big Data Ingestion Pipeline =====
+
+* Producers : IoT Devices
+* IoT Core to harvest data from IoT devices
+* Kinesis for real-time data collection
+* Firehose delivers data to S3 in near real-time
+* Lambda helps Firehose with data transformations
+* S3 can trigger notifs to SQS
+* Lambda can subscribe to SQS
+* Athena can be used for serverless SQL and store results in an S3 bucket
+* Reporting bucket contains analyzed data and can be used by reporting tools such as QuickSight, RedShift, ...

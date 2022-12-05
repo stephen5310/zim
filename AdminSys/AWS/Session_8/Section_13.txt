@@ -1,0 +1,20 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-08-30T12:46:57+02:00
+
+====== Section 13 ======
+Created mardi 30 août 2022
+
+====== AWS SDK, IAM Roles and Policies ======
+
+* To create IAM policies :
+	* Use JSON
+	* Use the visual editor
+	* Use AWS Policy Generator
+* To test IAM policies
+	* Use IAM Policy Simulator
+	* Use the CLI :
+		* To retrieve EC2 Instance Metadata from http://169.254.169.254/latest/meta-data/
+		* Cannot retrieve IAM Policy from the previous url
+* To attach policies to IAM roles
+* SDK API calls use us-east-I region by default if you don't specify

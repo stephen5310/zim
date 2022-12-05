@@ -7,6 +7,17 @@ Created jeudi 27 janvier 2022
 
 ===== Opérations sur le SaaS Actility =====
 
+==== Commandes spéciales lrr ====
+
+* Redémarrage en force : killall lrr.x
+* Redémarrage simple : [[/etc/init.d/lrr]] restart
+
+==== Taguer des GW ====
+
+* Le tag est pour les GW
+* Il permet d'envoyer des downlinks en multicast depuis la GW
+* On crée le multicast group comme un device sur la GW
+
 ==== Débloquer des commandes ====
 
 * se connecter à l'instance marketplace en cherchant les accès dans pleasant (pwm)
@@ -18,6 +29,11 @@ Created jeudi 27 janvier 2022
 	* Abort si les actions précédentes n'ont pas fonctionné
 * on peut aussi annuler la transaction directement dans la base de données lorsque les actions depuis l'interface n'ont pas fonctionné
 * se connecter à la plateforme du client pour vérifier si la transaction a abouti
+
+==== Connectivity plan inconsitency ====
+
+* Only for TPW 6.1
+* Execute the following command on an SMP server : 
 
 ==== Connexion en reverse ssh à une BS ====
 
@@ -44,6 +60,12 @@ Created jeudi 27 janvier 2022
 * rechercher le subscriber du client en filtrant les subscribers par organization
 * impersonner le subscriber pour avoir accès à sa vue
 
+==== Augmenter le niveau de logs sur une GW ====
+
+* lrr shell $ID tracep <level> : pour level essayer 0 ou 1 et vérifier, parfois modifier le fichier et redémarrer ne suffit pas
+
+* lrrshell $GW "setiniparam checkvpn2 checkvpn2 tracelvl 1" et relancer le process après
+
 ==== Mise à jour des LRR ====
 
 * mettre les LRRID dans un array
@@ -53,6 +75,7 @@ Created jeudi 27 janvier 2022
 
 ==== Génération, révocation, renouvellement de certificats ====
 
+=== Ancienne façon ===
 * créer le fichier csv avec le format approprié en utilisant les LRRID
 * copier le fichier sur le RCA (10.112.13.112) s'y connecter par SSH
 * copier le fichier dans le répertoire /usr/local/ejbca/input en passant root (sudo rootsh)
@@ -61,6 +84,27 @@ Created jeudi 27 janvier 2022
 	* pour Swisscom : python ../bin/LRR_manager_Swisscom.py <file_name> Swisscom
 	* pour les autres : python ../bin/LRR_manager.py <file_name> <vendor_name>
 * l'exécution peut être longue. Se connecter par ssh au bastion (54.171.132.100) si on veut exécuter un tmux (tmux new -s <session_name>)
+
+=== Nouvelle façon ===
+1. Se connecter à la machine RCA2 - EU
+ssh 10.112.23.112
+[centos@aws-eu-prd-rca2 ~]$ sudo rootsh
+[root@aws-eu-prd-rca2 centos]# podman exec -it ejbca bash
+[jboss@aws-eu-prd-rca2 ~]$ cd /opt/scripts/
+
+2. Créer le fichier csv par exemple:
+cat test-swisscom1.csv
+revoke-and-delete;004A09XX;1
+create;004A09XX;1
+
+3. Lancer le script de création de cert
+python LRR_manager_swisscom.py test-swisscom1.csv Swisscom
+
+4. Lancer le script de chiffrage des certificats:
+/opt/scripts/swisscom_enc.sh
+
+5. Se deconnecter du container et envoyer les certs sur les SLRC Swisscom
+[[/root/vpn_cfg_sync.sh]]
 
 ==== Mise à jour des certificats sur les BS Swisscom ====
 
@@ -85,7 +129,7 @@ Created jeudi 27 janvier 2022
 
 ==== Génération des rescue ports pour les BS ====
 
-* mettre les fonctions autoreverse et autoreversev2 dans .bashrc ou                                                                     .zshrc
+* mettre les fonctions autoreverse et autoreversev2 dans .bashrc ou .zshrc
 * mettre les LRRID dans un array
 * passer en boucle sur l'array pour générer le port et le mettre dans un fichier : 
 	* pour les gateways qui utilisent le LRRID (Que les Swisscom sauf Tektelik) : autoreverse
@@ -93,22 +137,72 @@ Created jeudi 27 janvier 2022
 
 ==== Exécuter un script sur une BS ====
 
-* mettre le script (exécutable) sur le LRC
-* compresser dans un fichier avec l'extension .tar.gz : 
-* mettre le checksum md5 dans un fichier du même nom avec l'extension .md5 : 
-* mettre les deux fichiers dans le répertoire /var/ftp : 
-* se connecter à la BS depuis le LRC :
+* mettre le script (exécutable : chmod +x <script_name>) sur le LRC : scp <script_name>  <username>@<lrc_address>:~/
+* compresser dans un fichier avec l'extension .tar.gz : tar czf <archive_name>.tar.gz <script_name>
+* mettre le checksum md5 dans un fichier du même nom avec l'extension .md5 : md5sum <archive_name>.tar.gz | awk '{print $1}' > <archive_name>.md5
+* mettre les deux fichiers dans le répertoire /var/actility-ftp : cp <archive_name>.* /var/actility-ftp/
+* se connecter à la BS depuis le LRC pour exécuter la commande dngentar :
 	* telnet 0 2009
 	* lrr shell <lrr_id>
 	* dngentar -T <archive_name> -D /home/actility ?
 
+==== Mise à jour de LRR avec les commandes lrrshell ====
+
+* Changements majeurs
+	* dngentar -T <archive_name> -D /home/actility ?
+* Changements mineurs
+	* upgrade -V <version>
+* Quand ça marche pas
+	* vérifier l'espace disque, particulièrement charon
+	* ouvrir une connexion en reverse sur la GW et copier l'archive depuis le serveur support
+
+==== Mise à jour de LRR à partir de l'archive ====
+
+=== Multitech ===
+
+cd /home/actility/;
+mv lrr lrr.bkp
+tar xvf $archive
+$ROOTACT/lrr/com/sysconfiglrr.sh
+/etc/init.d/lrr restart
+rm $archive
+
+==== Connexion remote en rescue ====
+
+* Définir les variables d'environnement :
+# export sockets_root=/home/tpe-ocp/remote-sockets
+# export session_name=<session_id>
+
+* Ouvrir les connexions vers le serveur support en utilisant le remote reverse ssh user/pwd :
+# sudo ssh -L127.0.0.1:9090:$sockets_root/$session_name.cockpit.socket -L127.0.0.1:443:$sockets_root/$session_name.https.socket -L127.0.0.1:30003:$sockets_root/$session_name.ssh.socket -p 443 sligue@tpe-remote-support.actility.com -N -f
+
+* Se connecter par ssh au noeud primaire de l'installation du client en utilisant le pwd donné par ce dernier :
+# ssh -p 30003 remote-support@localhost
+
+* Se connecter à cockpit en utilisant les mêmes accès que précédemment via l'url https://127.0.0.1:9090
+
+* Mettre le  DNS hostname configuré par le client à l'adresse locale pour se connecter à la GUI en utilisant le user rescue@thingpark.local, le même mdp que précédement via l'url https://<dns_hostname>
+
 ==== Reflasher le FPGA ====
 
+lrr shell <lrrid> dngentar -T <fpga_archive>
 
+=== Manually for ufispace macro v2 ===
+
+1. copy file fpga to GW /tmp directory
+2. extract the file tar –xvzf documents.tar.gz
+3. cp /tmp/GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic /home/root
+		   GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
+4. chown root:root GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
+5. ./fpga_flash_loader -b 0 -d /dev/spidev2.0 -w -i -f GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
 
 ===== Builder des images de LRR =====
 
 ==== Build de l'image ====
+
+
+
+=== Multitech ===
 
 * cloner le repo git GatewayPackager_<constructeur> (https://git.int.actility.com/NetOps/runbooks/-/tree/master/platform_remote_access)
 * copier le répertoire de config correspondant au client ou à la plateforme : pour les TPE le répertoire Tpe_SAAS_EU.nfr920 est utilisé comme référence
@@ -118,6 +212,10 @@ Created jeudi 27 janvier 2022
 	* sudo -i
 	* pour une pico : ./genrootfs.sh -c new_config -l lrr-2.4.97-fcpico -g pico
 	* pour une macro : ./genrootfs.sh -c Swisscom_new -l lrr-2.4.97-fcloc -g macro2.0
+
+=== Kerlink ===
+
+
 
 ==== Connexion au lab d'Actility pour tester l'image ====
 

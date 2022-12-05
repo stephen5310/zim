@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-06-13T12:06:08+02:00
+
+====== Issues ======
+Created lundi 13 juin 2022
+
+==== GWs connected showing not connected in the GUI ====
+
+GW -> LRC -> Kafka Topic (OSS) <- twa-ran -> Mongo / SQL -> GUI
+
+* Check the consumer groupo twa-ran on kafka container :
+/opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group twa-ran
+
+
+kafka-console-consumer.sh --consumer-property group.id=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1` --bootstrap-server 127.0.0.1:9092 --topic "OSS.LRR.v1"
+

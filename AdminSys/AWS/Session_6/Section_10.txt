@@ -1,0 +1,142 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-07-14T13:30:49+02:00
+
+====== Section 10 ======
+Created jeudi 14 juillet 2022
+
+====== Route 53 ======
+
+* HA, scalable, fully managed and authoritative
+* Domain Registrar
+* Health checks
+* Only service with 100% availability
+* 53 for traditional DNS port
+* $0.50 / month / hosted zone
+* To define a domain go to Route 53 > Domains > Registered domains :
+	* A public hosted zone is created directly with the NS and SOA records
+* To create a record go to Hosted zones :
+	* Select the zone and click on Create record
+
+===== CNAME vs ALIAS =====
+
+==== CNAME ====
+* CNAME points hostname to another hostname for non root DN
+* Select CNAME record type
+* Not AWS native
+* Paid
+
+==== Alias ====
+* Points hostname to an AWS resource for both root and non root DN
+* Record types A and AAAA
+* Tick Alias option to select the resource
+* free of charge
+* native health check
+* automatically detect resource's IP change
+* targets : 
+	* ELB
+	* CloudFront Distros
+	* API GW
+	* Elastic Beanstalk environments
+	* S3 Websites
+	* VPC Interface Endpoints
+	* Global Accelerator accelerator
+	* R53 record in the same hosted zone
+* Cannot target EC2 DNS name
+
+===== Routing Policies =====
+
+* Define how R53 responds to DNS queries
+
+==== Simple ====
+* Routing to single resource
+* Supports multiple values in the same record
+* A random one is chosen by the client for multiple values
+* Only one AWS resource when alias is enabled
+* Does not support Health checks
+
+==== Weighted ====
+* Records weighted to define % of requests
+* Weights don't need to sum up to 100
+* DNS records are added separately so they must have the same name and type
+* Supports Health checks
+* Used for :
+	* Load balancing between regions
+	* testing new application versions
+
+==== Latency ====
+* Redirect to the resource with least latency
+* Based on traffic btw users and AWS regions
+* Supports Health checks
+* DNS records are added separately so they must have the same name and type
+* Specify the region from which the latency is measured for each record
+
+==== Failover ====
+* Active-passive HA
+* Two records to add
+* HC on Primary, failover on secondary if failure
+
+==== Geolocation ====
+* Based on user location retrieved from IP
+* Specify location by Continent, Country or US State
+* Create a Default location record in case of no match
+* Used for website localization, to restrict content distribution, load balancing
+* Supports HC
+
+==== Geoproximity ====
+* Must use R53 Traffic Flow for this feature
+* Use bias to size a geographic region and shift more traffic to resources :
+	* Positive bias (1 to 99) expand region for more traffic
+	* Negative (-99 to -1) shrink region for less traffic
+* Resources can be :
+	* AWS (specify region)
+	* Non-AWS (specify Latitude and Longitude)
+* Go to R53 > Traffic flow > Traffic policy
+
+==== Multi-Value ====
+* When routing to multiple resources
+* Return multiple values
+* Supports HC
+* Up to 8 healthy records are returned for each Multi-Value query
+* Not a substitute of ELB
+
+===== Health checks =====
+
+* Check health only for public resources
+* Go to R53 > Health Checks to create
+* Used for automatic DNS failover
+* Can monitor :
+	* Endpoints (app, server, AWS resource) :
+		* 15 global health checkers (for each region)
+		* Can set thresholds and intervals
+		* Supports HTTP, HTTPS, TCP
+		* Min 18% health checkers validation for Healthy
+		* Can choose location for checks
+		* 2xx and 3xx status codes in endpoint response for success
+		* Can configure failure / success based on the text in the first 5120bytes of the response
+		* Configure router/firewall to accept R53 health checkers
+	* Health checks (calculated)
+		* Combine results of multiple into single HC
+		* Supports OR, AND and NOT
+		* Up to 256 child HC
+		* Specify how many HC for parent to pass
+		* Used for maintenance without causing HC failure
+	* CloudWatch Alarms (throttles of DynamoDB, RDS, custom metrics)
+		* Used to monitor private hosted zones
+		* Create CW metric and associate with CW alarm
+		* Create HC to check alarm
+* Natively integrated with CloudWatch metrics
+
+===== Traffic flow =====
+
+* Simplify the process of creating and maintaining records in large and complex configurations
+* Visual editor to manage complex routing decision trees
+* Configurations can be saved as Traffic Flow Policy
+	* Can be applied to different R53 hosted zones
+	* Supports versioning
+* Go to R53 > Traffic flow
+
+===== 3rd Party Registrar with Route 53 as DNS =====
+
+* Create a hosted zone in R53
+* Update NS Records on 3rd party registrar website to use R53 Name Servers

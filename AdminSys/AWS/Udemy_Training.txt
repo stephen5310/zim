@@ -1,0 +1,28 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-05-03T10:24:30+02:00
+
+====== Udemy Training ======
+Created mardi 03 mai 2022
+
+==== Ultimate AWS Certified Solutions Architect Associate ====
+
+* 31 sections
+* 2H a session
+* 17 Sessions :
+	* Section 1 to 4
+	* Section 5
+	* Section 6 and 7
+	* Section 8
+	* Section 9
+	* Section 10
+	* Section 11 and 12
+	* Section 13 and 14
+	* Section 15 and 16
+	* Section 17 and 18
+	* Section 19, 20 and 21
+	* Section 22 and 23
+	* Section 24 and 25
+	* Section 26
+	* Section 27
+	* Section 28 to 33

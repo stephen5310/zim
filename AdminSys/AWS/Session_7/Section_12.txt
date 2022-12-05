@@ -1,0 +1,148 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-08-29T19:15:19+02:00
+
+====== Section 12 ======
+Created lundi 29 août 2022
+
+====== Amazon S3 ======
+
+* Infinitely scaling storage
+* Main building block of AWS
+* Allows people to store objects (files) in buckets (directories)
+* Regional service
+
+==== Buckets ====
+
+* Must have a globally unique name in AWS
+* Are defined at the region level
+* Naming convention :
+	* No uppercase, underscore
+	* 3-63 characters long
+	* Not an IP
+	* Must start with lowercase letter or number
+
+==== Objects ====
+
+* Have a **Key** (full path) :
+	* s3://my-bucket/**my_file.txt**
+	* s3://my-bucket/**my_folder/another_folder/my_file.txt**
+* It is composed of the prefix (**my_folder/another_folder/**) and the object name (**my_file.txt**)
+* There is no concept of directories
+* Have a **Value** which is the content of the body :
+	* Max Object Size is 5TB
+	* Max Upload Size is 5GB, must use multi-part upload
+* Can have **Metadata** (list of text key/value pairs - system or user metadata)
+* Can have **Tags** (Unicode key/value pair - up to 10) - useful for security / lifecycle
+* Have a **Version ID** (if versioning is enabled)
+
+==== Versioning ====
+
+* Enable it at the bucket level
+* Same key overwrite will increment the version of the bucket
+* It protects against unintended deletes
+* Easy rollback to previous version
+* Any file not versioned prior to enabling will have version null
+* Suspending versioning does not delete the previous versions
+* Deleting create a delete marker to make it appear so instead of getting rid of the file
+* Deleting the delete marker restores the file
+* Deleting the delete marker simultaneously with a file version will delete this file version also
+
+==== Encryption ====
+
+* 4 Methods of encrypting objects in S3
+* Encryption can be defined for each file or for as a default option for a bucket
+
+=== SSE-S3 ===
+
+* Encrypts S3 objects using keys handled and managed by AWS
+* Server Side Encryption
+* AES-256 
+* Must set header : "x-amz-server-side-encryption":"AES256"
+
+=== SSE-KMS ===
+
+* Leverage AWS key Management Service to manage encryption keys
+* User control and audit trail
+* Encryption is server side
+* Must set header : "x-amz-server-side-encryption":"aws:kms"
+* Encryption key is called Customer Master Key (CMK)
+
+=== SSE-C ===
+
+* When you want to manage your own encryption keys (you provide)
+* Does not store the key
+* HTTPS must be used
+* Key must be provided in HTTP header, for every request made
+
+=== Client Side Encryption ===
+
+* Client library like S3 Encryption Client
+* Clients must encrypt data themselves before sending to S3
+* Clients must decrypt data themselves when retrieving from S3
+* Customer fully manages the keys and encryption cycle
+
+==== Security ====
+
+=== User based ===
+
+* IAM policies : which API calls an IAM user is allowed from the console
+* An IAM user can access an S3 object if :
+	* His permission allows it or The resource policy allows it
+	* And there is no explicit DENY
+
+=== Resource based ===
+
+* Bucket policies :
+	* JSON based :
+		* Resources : buckets and objects
+		* Actions : Set of API to Allow or Deny
+		* Effect : Allow or Deny
+		* Principal : The account or user to apply the policy to
+	* Used to :
+		* Grant public access to the bucket
+		* Force objects to be encrypted at upload
+		* Grant access to another account (cross account)
+	* Bucket settings to Block Public Access :
+		* Block public access to buckets and objects granted through new ACLs, any ACLs, new public bucket or access point policies
+		* Block public and cross-account access to buckets and objects through any public bucket or access point policies
+		* Settings created to prevent data leaks
+		* Activated by default, should not be deactivated if you don't want the bucket to become public
+		* Can be set at account level
+* Object ACL
+* Bucket ACL
+
+=== Other ===
+
+* Networking :
+	* VPC endpoints (for instances in VPC without www internet)
+* Logging and Audit :
+	* S3 Access Logs can be stored in another S3 bucket
+	* API calls can be logged in CloudTrail 
+* User security:
+	* MFA delete : MFA required in versioned buckets to delete objects
+	* Pre-Signed URLs : URLs that are valid only for a limited time
+
+==== Websites ====
+
+* Enable Static Website Hosting in the options
+* S3 can host static websites and have them accessible on the www
+* The url will be :
+	* <bucket_name>.s3-website-<AWS-region>.amazonaws.com
+* 403 Forbidden error means the bucket policy does not allow public reads
+	* Disable the block public access policies
+	* Write a new policy to allow public access
+
+==== CORS ====
+
+* Edit CORS settings to add settings in JSON
+* An origin is a scheme (protocol), host (domain), port
+* Cross-Origin Resource Sharing
+* Web browser security
+* Different origins : http://www.example.com and http://other.example.com
+* The requests won't be fulfilled unless the other origin allows for the requests, using CORS Headers (ex: Access-Control-Allow-Origin)
+* For S3 it can be allowed for a specific origin or for all origins on the Cross-Origin bucket
+
+==== Consistency ====
+
+* S3 has become strongly consistent since December 2020
