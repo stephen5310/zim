@@ -1,0 +1,137 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-27T09:30:59+00:00
+
+====== Process ======
+Created jeudi 27 janvier 2022
+
+===== Opérations sur le SaaS Actility =====
+
+==== Débloquer des commandes ====
+
+* se connecter à l'instance marketplace en cherchant les accès dans pleasant (pwm)
+* usurper l'identité du supplier avec l'ID actility-sup pour accéder à sa vue supplier
+* accéder à l'onglet Orders et lancer la recherche pour voir la liste des commandes et leur état
+* cliquer sur éditer pour choisir une méthode de débloquage :
+	* Retry notification lorsqu'une erreur est survenue
+	* Continue without notification lorsque l'application est déjà active
+	* Abort si les actions précédentes n'ont pas fonctionné
+* on peut aussi annuler la transaction directement dans la base de données lorsque les actions depuis l'interface n'ont pas fonctionné
+* se connecter à la plateforme du client pour vérifier si la transaction a abouti
+
+==== Connexion en reverse ssh à une BS ====
+
+* se connecter au LRC en fonction du client (Swisscom, SaaS)
+* se connecter en telnet : telnet 0 2009
+* ouvrir un port (commence par deux et a 5 caractères) pour la connexion : lrr shell <lrrid> openssh -P <portnumber> ?
+* générer le mot de passe root de la BS
+* il faudra parfois se connecter au TWA du client pour déterminer le UUID pour la génération du mot de passe
+* se connecter au serveur support pour se connecter par reverse ssh à la BS en utilisant le mot de passe généré: ssh root@localhost -p <port_number>
+* se déconnecter du serveur et fermer les connexions en telnet depuis le LRC : lrr shell <lrrid> closessh ?
+
+==== Déterminer le LRRID à partir du UUID ====
+
+* lorsque la BS est déclarée à partir de son UUID son ID est généré par le TWA
+* exécuter la commande suivante sur le LRC dans le répertoire /home/actility/FDB_lora/l/  :
+	* grep -ril 001558-4658425300003B0D
+	* a pour les devices
+	* l pour les BS
+* on peut aussi se rendre dans la BS sur RCA
+
+==== Supervision des BS sur le SaaS TPE ====
+
+* chaque subscriber est son propre network provider
+* rechercher le subscriber du client en filtrant les subscribers par organization
+* impersonner le subscriber pour avoir accès à sa vue
+
+==== Mise à jour des LRR ====
+
+* mettre les LRRID dans un array
+* vérifier la connectivité en vérifiant la version : lrrshell <lrr_id> version
+* lancer l'upgrade (lance le redémarrage aussi) sur chaque BS en parcourant l'array : lrrshell <lrr_id> "upgrade -V 2.6.56_2 ?"
+* lancer la commande de vérification de la version après redémarrage (2mn à 3mn après l'upgrade)
+
+==== Génération, révocation, renouvellement de certificats ====
+
+* créer le fichier csv avec le format approprié en utilisant les LRRID
+* copier le fichier sur le RCA (10.112.13.112) s'y connecter par SSH
+* copier le fichier dans le répertoire /usr/local/ejbca/input en passant root (sudo rootsh)
+* usurper l'identité de jboss-as : sudo -u jboss-as -s
+* exécuter la commande suivante dans le répertoire /usr/local/ejbca/input : 
+	* pour Swisscom : python ../bin/LRR_manager_Swisscom.py <file_name> Swisscom
+	* pour les autres : python ../bin/LRR_manager.py <file_name> <vendor_name>
+* l'exécution peut être longue. Se connecter par ssh au bastion (54.171.132.100) si on veut exécuter un tmux (tmux new -s <session_name>)
+
+==== Mise à jour des certificats sur les BS Swisscom ====
+
+* se connecter par ssh au LRC (10.13.10.12)
+* utiliser le script update_certs.sh dans le répertoire ~/stephen_update_certs/
+* vérifier si la connexion est établie avec la BS : lrrshell <lrr_id> "ps | ipsec listcerts ?"
+* faire un checkvpn et redémarrer la BS : lrrshell <lrr_id> "ps | /etc/init.d/checkvpn clean && reboot"
+* vérifier si le certificat a été mis à jour :  lrrshell <lrr_id> "ps | ipsec listcerts ?"
+
+==== Copie des certificats depuis le serveur support sur les BS ====
+
+* copier le certificat depuis le RCA sur le serveur support : sftp download23@slrc1.eu.thingpark.com:/Lrr_prod-eu_apik-ope_0B0310B9/Lrr_prod-eu_apik-ope_0B0310B9.tar.gz.enc   /tmp/
+* envoyer le certificat depuis le serveur support sur la GW : scp -P <GW_Port> <Cert_Name>.tar.gz.enc root@localhost:/tmp/secure
+
+==== Génération des mots de passe root et USB keys pour les BS ====
+
+* mettre la fonction lrrpass dans .bashrc ou .zshrc
+* mettre les LRRID avec les lettres en minuscule dans un array
+* passer en boucle sur l'array pour générer le mot de passe de chaque gateway et le mettre dans un fichier : 
+	* pour les BS multitech : lrrpass <serial_number> <vendor_name>
+	* pour toutes les autres BS : lrrpass <last_8_of_UUID_or_ID> <vendor_name>
+
+==== Génération des rescue ports pour les BS ====
+
+* mettre les fonctions autoreverse et autoreversev2 dans .bashrc ou                                                                     .zshrc
+* mettre les LRRID dans un array
+* passer en boucle sur l'array pour générer le port et le mettre dans un fichier : 
+	* pour les gateways qui utilisent le LRRID (Que les Swisscom sauf Tektelik) : autoreverse
+	* pour les gateways qui utilisent le LRRUUID (Tous ceux qui sont sur le SaaS et qui ont TPE, et que les Tektelik chez Swisscom) : autoreverse2
+
+==== Exécuter un script sur une BS ====
+
+* mettre le script (exécutable) sur le LRC
+* compresser dans un fichier avec l'extension .tar.gz : 
+* mettre le checksum md5 dans un fichier du même nom avec l'extension .md5 : 
+* mettre les deux fichiers dans le répertoire /var/ftp : 
+* se connecter à la BS depuis le LRC :
+	* telnet 0 2009
+	* lrr shell <lrr_id>
+	* dngentar -T <archive_name> -D /home/actility ?
+
+==== Reflasher le FPGA ====
+
+
+
+===== Builder des images de LRR =====
+
+==== Build de l'image ====
+
+* cloner le repo git GatewayPackager_<constructeur> (https://git.int.actility.com/NetOps/runbooks/-/tree/master/platform_remote_access)
+* copier le répertoire de config correspondant au client ou à la plateforme : pour les TPE le répertoire Tpe_SAAS_EU.nfr920 est utilisé comme référence
+	* cp -r Tpe_SAAS_EU.nfr920 new_config
+* copier tous les fichiers de configuration depuis une GW qui fonctionne bien dans les répertoires de build de l'image
+* lancer le build de l'image en root. Les options demandées sont la version (pico pour pico, mlb pour macro1.5, loc pour macro2.0)
+	* sudo -i
+	* pour une pico : ./genrootfs.sh -c new_config -l lrr-2.4.97-fcpico -g pico
+	* pour une macro : ./genrootfs.sh -c Swisscom_new -l lrr-2.4.97-fcloc -g macro2.0
+
+==== Connexion au lab d'Actility pour tester l'image ====
+
+* se connecter au wiki https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product%20Group%20Portal/Ecosystem%20Base%20Station/Base%20Station%20Lab/ pour voir les instructions et les liens
+* accéder à l'inventaire par le lien Ecosystem GW LAB Inventory pour sélectionner et réserver une GW libre sur une période
+* la réservation se fait en ajoutant une entrée comme  (Stephen 3 - 7 Jan) sur la ligne du lab de la GW en question dans la feuille de calcul Booking Timetable
+* accéder à la GW en passant par l'un des serveurs de lab (main lab par exemple) pour bénéficier de sa connexion avec un clable série aux GW
+* on peut accéder à la GW directement
+* copier l'image sur la GW et effectuer l'upgrade
+* déclarer le GW sur la plateforme du client pour tester (accéder au networkManager du client en utilisant le pwm de actility)
+
+==== Installation de l'image sur les BS des clients ====
+
+* copier l'image sur le LCR du client
+* écrire un script pour exécuter les commandes d'installation
+* suivre les étapes de **Exécuter un script sur une BS** en archivant le script et l'image
+* lancer l'exécution sur les BS avec une boucle

@@ -1,0 +1,163 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T16:54:03+00:00
+
+====== 2. Control Flow Tools ======
+Created lundi 07 novembre 2022
+
+===== while Loops =====
+
+* Executes as long as the condition remains true
+while a < 10 :
+	instructions
+
+===== if Clauses =====
+
+* Tests condition before execution
+* Executes only for the first true condition and does not check the others
+* elif parts can be one or more, else part is single, these parts are optional
+if x < 0 :
+	instructions
+elif x == 0 :
+	instructions
+else :
+	instructions
+	
+
+===== for Loops =====
+
+* Iterates over items of any sequence (list, array, string) in the sequence order to execute :
+for w in words :
+	print(w, len(w))
+
+===== range Function =====
+
+* Used to generate arythmetic progressions : range(start,stop,step)
+* Useful to iterate over a sequence without creating it explicitly thus saving space
+for i in range(len(list)) :
+	print(i, a[i])
+
+===== break and continue Statements, and else Clauses on Loops =====
+
+* **break** breaks the innermost enclosing for or while loop
+* The **else** clause is executed for a loop when the loop terminates through exhaustion of the iterable or for a while loop when the condition becomes false
+* The **else** clause is not executed for a loop when it is terminated by a **break** statement
+* The **continue** statement continues with the next iteration of the loop, bypassing the instructions after it in the loop
+
+===== pass Statements =====
+
+* Does nothing, is silently ignored
+* Can be used when a statement is required but the program requires no action
+class MyEmptyClass :
+	pass
+def initlog(*args) :
+	pass # Remember to imprement this !
+
+===== match Statements (comprehension incomplete) =====
+
+* Takes an expression and compare its value to successive patterns
+* Only the first match is executed
+* Can extract components from the value into variables
+* (_) character acts as a wildcard and is like else statement
+* (|) can be used as ("or")
+match status :
+	case 400 :
+		return "Bad request"
+	case 401 | 402 | 403 :
+		return "Not allowed"
+	case 404 :
+		return "Not found"
+	case _:
+		return "Something's wrong with the internet"
+
+* Patterns can look like unpacking assignments and can be used to bind variables 
+# point in an (x, y) tuple
+match point :
+	case (0, 0) :
+		print("Origin")
+	case (0, y) :
+		print(f"Y={y}")
+	case (x, 0) :
+		print(f"X={x}")
+	case (x, y) :
+		print(f"X={x}, Y={y}")
+	case _:
+		raise ValueError("Not a point")
+
+* Patterns can be arbitrarily nested : case [Point(0,Y) , Point(0,X)]
+* An if clause can be added as guard to a pattern : case Point(x, y) if x == y:
+* If the guard is false, match goes on to try the next case block
+* Only standalone names (like var) are assigned to variables (not x or ...)
+* Supports extended unpacking : (x, y, *rest) or [x, y, *rest]
+* Patterns may use named constants. These must be dotted names to prevent them from being interpreted as capture variable: Color.RED
+
+===== Defining functions =====
+
+* Basic example :
+def function(arg) :
+	instructions
+
+* Variables in functions are local by default
+* References look first for local var, then in enclosing functions till reaching global var
+* Global vars and vars of enclosing functions cannot be modified by inner ones
+* Vars must defined in a global or nonlocal statement for it to be modified by inner functions
+* References are modified
+* None is returned if there is no return instruction
+* Falling off the end of a function also returns None
+==== Default arg values ====
+* Default args are defined with '=' : def function(arg1, arg2='default')
+* If the default is a mutable object (list, dict, class Obj) it will take all the changes of the object
+* To avoid that an imutable (i.e. None) must be used as default, and changes can be made with instructions
+
+==== Keyword args ====
+* They are args with keywords
+* The function must be called with non-kwargs before kwargs
+* Final formal param of the form **name receives a dict
+* A formal param of the form *name will receive a tuple with all positional params beyond **name
+* *name must always come before **name
+* The order in which the args are in the function call is the same in the dict and the tuple
+
+==== Special params ====
+* A function definition may look like:
+
+def f(pos1, pos2, /, pos_or_kwd, *, kwd1, kwd2):
+	  -----------------   --------------------     ------------------
+			  |                         |                            |
+			  |        Positional or keyword      |
+			  |                                           - Keyword only
+	-- Positional only
+* '/' and '*' are optional
+* They are used to define the way the params are passed for the three types of call mentioned
+* No '/' means no positional only params
+* Only a '*' means keywords only
+* As guidance:
+	* Use positional-only if you want the name of the parameters to not be available to the user. This is useful when parameter names have no real meaning, if you want to enforce the order of the arguments when the function is called or if you need to take some positional parameters and arbitrary keywords.
+	* Use keyword-only when names have meaning and the function definition is more understandable by being explicit with names or you want to prevent users relying on the position of the argument being passed.
+	* For an API, use positional-only to prevent breaking API changes if the parameter’s name is modified in the future.
+
+==== Unpacking args ====
+* Use '*' to unpack from lists for functions that need it : range(*list)
+* Use '**' to unpack from dicts
+
+==== Lambdas ====
+* Small anonymous functions created with the lambda keyword : lambda x : 5*x
+* Can be passed as an arg to other functions
+
+==== Doc string ====
+* Documentation of the function 
+def function(arg) :
+	"""Docu is docu
+	
+	End of Docu
+	"""
+	instructions
+	
+* Can be printed : print(function.__doc__)
+==== Annotations ====
+* Optional metadata information about the types used by user-defined functions
+* Stored in the __annotations__ attribute of the function as a dictionary and have no effect on any other part of the function
+* Defined by a colon after the parameter name, followed by an expression evaluating to the value of the annotation
+
+==== Coding style ====
+
+* Use https://peps.python.org/pep-0008/ as a reference

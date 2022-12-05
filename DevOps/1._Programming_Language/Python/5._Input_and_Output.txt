@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T16:58:01+00:00
+
+====== 5. Input and Output ======
+Created lundi 07 novembre 2022
+
+===== Fancier Output Formatting =====
+
+* Formatted string litterals : f'Results of the {literal} {event}' or F'Results of the {year} {event}'
+* The str.format to use { and } to mark where a variable will be substituted and provide detailed formatting directives : '{:-9} YES votes  {:2.2%}'.format(yes_votes, percentage)
+* The str() function is meant to return representations of values which are fairly human-readable
+* The repr() is meant to generate representations which can be read by the interpreter but are not interpreted in output (i.e. \n will not go to next line)
+* 

@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T15:56:44+00:00
+
+====== Python ======
+Created lundi 07 novembre 2022
+
+Excited to revise !!!!
+
+Useful resources :
+* Official doc : https://docs.python.org
+* Official Python Enhancement Proposals (PEPs) : https://peps.python.org/pep-0000/
+* W3 exercises : https://www.w3resource.com/python-exercises/

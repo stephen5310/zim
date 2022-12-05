@@ -1,0 +1,200 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-19T15:57:32+00:00
+
+====== 1. Point de départ ======
+Created mercredi 19 janvier 2022
+
+===== Tâches essentielles d'un sysadmin =====
+
+* Contrôler les accès
+* Ajouter du matériel physique comme virtuel
+* Automatiser des tâches
+* Superviser les sauvegardes et se charger des restaurations
+* Installer et mettre à jour des logiciels
+* Superviser le système en général (détecter et régler les problèmes avant que les dégâts ne soient connus du public)
+* Déboguer ou faire déboguer par un expert
+* Maintenir une documentation locale
+* Superviser la sécurité de façon vigilante
+* Améliorer les performances
+* Développer les polices du site
+* Travailler avec les fournisseurs d'équipements et de services
+* Résoudre tous types d'incident
+
+===== Choix d'une distribution linux =====
+
+Les questions importantes sont les suivantes :
+* Sera-t-elle encore disponible dans 5 ans ?
+* Restera-t-elle à la pointe des mises à jour de sécurité ?
+* A-t-elle une communauté active et une documentation suffisante ?
+* Si je rencontre des problèmes, le fournisseur échangera-t-il avec moi, combien cela me coûtera-t-il ?
+
+Les sites suivants donnent une liste compréhensive des distributions : 
+* lwn.net/Distributions
+* distrowatch.com
+
+===== Les pages de manuel =====
+
+**man** [ //section //] title
+exemples :
+	* man sync : manuel pour la commande utilisateur
+	* man 2 sync : manuel pour l'appel système
+	* man passwd : manuel pour la commande utilisateur
+	* man 5 passwd : manuel pour le format du fichier
+
+Les man pages sont organisées en sections :
+1. Commandes et applications niveau utilisateur
+2. Appels système et codes d'erreur du noyau
+3. Appels de librairie
+4. Pilotes de périphériques et protocoles réseau
+5. Formats de fichier standards
+6. Jeux et démonstrations
+7. Fichiers et documents divers
+8. Commandes d'administration du système
+9. Spécifications et interfaces obscures du noyau
+
+Un sujet recherché peut apparaître dans plusieurs sections. Il faut dans ce cas faire attention à la section en lisant une man page.
+**passwd** par exemple est à la fois une commande et un fichier système. Il apparaît donc dans les sections 1 et 5.
+Lorsque la commande est appelée sans préciser la section, les sections 1 et 8 sont parcourues en première position. Les sections restantes sont parcourues dans l'ordre croissant de leurs numéros.
+
+**apropos** keyword
+**man -k **keyword
+exemples :
+	* man -k translate : liste des man pages dont le résumé contient le mot clé
+
+La commande **manpath** permet d'afficher les chemins vers les répertoires dans lesquels la recherche des manuels est effectuées.
+La liste peut être modifiée en définissant la variable **MANPATH** et en lui affectant les chemins souhaités.
+
+==== Autres sources d'information ====
+
+**Pour les informations**
+darkreading.com : nouvelles, tendances et discussions sur la cybersécurité
+linuxfoundation.org : site web de la fondation linux
+lwn.net : articles fréquents et de bonne qualité sur Linux et OSS
+lxer.com : aggrégateur de nouvelles sur linux
+securityfocus.com : rapports de vulnérabilité et mailing lists en rapport avec la sécurité
+oreilly.com/topics : Ressources d'apprentissage de O'Reilly sur plusieurs sujets
+
+**Pour les tutos**
+linuxconfig.org
+wiki.archlinux.org
+askubuntu.com
+digitalocean.com/community/tutorials
+kernel.org 
+serverfault.com et stackoverflow.com
+serversforhackers.com : formations de bonne qualité en sysadmin pour développeurs
+
+**Pour les conférences**
+LISA Varies Q4 Large Installation System Administration
+Monitorama Portland June Monitoring tools and techniques
+OSCON Varies (US/EU) Q2 or Q3 Long-running O’Reilly OSS conference
+SCALE Pasadena Jan Southern California Linux Expo
+DefCon Las Vegas July Oldest and largest hacker convention
+Velocity Global Varies O’Reilly conference on web operations
+BSDCan Ottawa May/June Everything BSD from novices to gurus
+re:Invent Las Vegas Q4 AWS cloud computing conference
+VMWorld Varies (US/EU) Q3 or Q4 Virtualization and cloud computing
+LinuxCon Global Varies The future of Linux
+RSA San Francisco Q1 or Q2 Enterprise cryptography and infosec
+DevOpsDays Global Varies A range of topics on bridging the gap between development and ops teams
+QCon Global Varies A conference for software developers
+
+===== Trouver et installer des logiciels =====
+
+==== Trouver des logiciels installés ====
+
+**which** binary_name
+exemple : 
+	* which java : chemin vers le binaire java, dépend du chemin de recherche du shell
+
+**whereis** binary_name
+exemple :
+	* whereis java : chemins vers le binaire java, recherche dans plus de répertoires et ne dépend pas du chemin de recherche du shell
+
+**locate** binary_name
+exemple :
+	* locate java : chemins vers le binaire java, consulte un index pré-compilé du système de fichier pour retrouver les fichiers dont le nom correspond à une expression particulière
+
+**rpm** -q package_name # RHEL
+exemple :
+	* rpm -q python : déterminer si le package python est installé ainsi que la version installée
+
+**rpm** -qf file_path # RHEL 
+exemple :
+	* rpm -qf /etc/httpd : déterminer à quel package le fichier appartient
+
+**dpkg-query** -S file_path # Debian
+exemple :
+	* dpkg-query -S /etc/apache2 : déterminer à quel package le fichier appartient
+
+**pkg which** file_path # FreeBSD
+exemple :
+	* pkg which /usr/local/sbin/httpd : déterminer à quel package le fichier appartient
+
+==== Installer fraîchement des logiciels ====
+
+=== Avec les gestionnaires de packets ===
+
+sudo **apt-get** install package_name # Debian
+exemple :
+	* sudo apt-get install tcpdump : installer le packet tcpdump
+
+sudo **yum** install package_name # RHEL
+exemple :
+	* sudo yum install tcpdump : installer le packet tcpdump
+
+sudo **pkg** install -y package_name # FreeBSD
+exemple :
+	* sudo pkg install -y tcpdump : installer le packet tcpdump
+
+=== Builder depuis la source ===
+
+1. Identifier le code
+Les éditeurs de logiciels maintiennent un index des releases sur le site web du projet, ou un lien vers github.
+Ces releases sont téléchargeables sous forme d'archives tarballs ou zip.
+
+2. Cloner le dépôt, créer une branche de la version taguée qu'on veut builder, configurer, builder et installer
+Exemple de tcmdump
+
+```
+cd /tmp
+git clone https://github.com/the-tcpdump-group/tcpdump.git # clonage du dépôt
+cd tcpdump 
+git checkout tags/tcpdump-4.7.4 -b tcpdump-4.7.4 # création d'une branche de la version taguée à builder
+./configure # configuration
+make # build
+sudo make install # installation
+```
+
+3. Noter que la séquence configure/make/make install est commune aux logiciels programmés en C et fonctionne sur tous les systèmes Linux et UNIX. Vérifier le README ou le INSTALL du paquet pour des précisions particulières sur l'installation.
+
+4. L'environnement de développement et tous les pré-requis correspondant aux paquets doivent être installés au préalable.
+
+5. On est souvent amenés à modifier la configuration du build
+	* ./configure --help : voir les options disponibles pour chaque paquet
+	* ./configure --prefix=directory : choisir un répertoire de compilation autre que /usr/local
+
+=== À partir d'un script téléchargé depuis un site web ===
+
+Il s'agit de télécharger le script d'installation depuis un site web et de l'exécuter.
+Exemple :
+	* curl -o /tmp/saltboot -sL https://bootstrap.saltstack.com : télécharger le script de saltboot depuis le site de saltstack et le mettre dans le fichier /tmp/saltboot
+	* sudo sh /tmp/saltboot : exécuter le script téléchargé avec les privilèges d'administrateur
+
+Ce type d'installation est utilisé lorsque le processus d'installation est plutôt complexe, mais le fournisseur veut faciliter la tâche aux utilisateurs.
+Les URLs sans SSL sont suspiscieuses.
+
+===== Où héberger =====
+
+Les options disponibles sont :
+	* Les datacenters privés
+	* Les plateformes cloud
+	* Les établissements de colocation
+	* Une combinaison des trois options précédentes
+
+Les fournisseurs de service **cloud publics** sont recommendés pour les nouveaux projets. Ils présentent les avantages suivants face aux datacenters :
+	* Pas de capex et des opex réduits
+	* Pas besoin d'installer, de sécuriser ni de gérer du matériel
+	* Ajustment à la demande du stockage, de la bande passante et de la puissance de calcul
+	* Solutions prête à être utilisées pour la plupart des besoins annexes comme les bd, lb, files, supervision, et autres
+	* Haute disponibilité et rédondance des systèmes moins chère et plus facile à mettre en place

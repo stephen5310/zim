@@ -1,0 +1,53 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T16:48:53+00:00
+
+====== 1. Interpreter and Basic Operations ======
+Created lundi 07 novembre 2022
+
+====== Using the interpreter ======
+
+Using the CLI :
+* Invoke : python or py or python3 or python2
+* Exit : quit() or exit() or ctrl+d
+* Line-editing features supported on systems with GNU Readline library
+* Test line-editing : ctrl+p
+* Inline usage : python -c "command [arg]" // python -c "print('hello')"
+* Inline usage of module : python -m module [arg] // python -m "base64" -t 'Aladdin:open sesame'
+* Enter interactive mode after script execution : python -i script [arg] // python -i /usr/lib/python3.10/base64.py -t 'Aladdin:open sesame'
+
+===== Argument passing =====
+
+* The script name and additional arguments will be in a list of strings named **argv** in the sys module
+* Access the list of arguments : import sys and sys.argv
+* Script name can be given as '-' meaning standard input
+* When -c command is used sys.argv[0] is set to '-c'
+* When -m command is used sys.argv[0] is set to the full name of the located module
+* Options found after -c or -m are not consumed by the interpreter but left in sys.argv for the command or module to handle
+
+===== Source Code Encoding =====
+
+* UTF-8 is used by default
+* To declare an encoding a special comment line is added as the **first line** of the file as follows : # -*- coding: encoding -*-
+	* encoding is one of the valid codecs supported by Python
+* On UNIX the shebang line should be the first line and the encoding should come second
+
+===== Basic calculus =====
+
+* Addition (+), subtraction (-), classic division (/), multiplication (*)
+* Floor division (//), modulo (%), exponent (**)
+
+===== Variables =====
+
+* Assignment with (=) : var = value
+* Spaces are not taken into account unless in quotes
+* Double quotes (") precede single (') ones
+* Three double (""") or (''') single quotes for a multiple lines string 
+* Escape (\), new line (\n)
+* Ignore special characters in string output with (r) called raw string : print(r'string \n string')
+* Strings can be multiplied and summed but not divided nor subtracted
+* Strings are indexed but does not support item assignment, they are immutable
+* Lists slices are new lists, for a shallow copy use : list[:]
+* Lists support concatenation, item assignment, slice assignment
+* Modifications to shallow copy are made to original
+* Lists can be nested

@@ -1,0 +1,8 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-14T17:21:42+00:00
+
+====== Linux ======
+Created vendredi 14 janvier 2022
+
+Je regroupe ici tout  ce qu'il y a à savoir sur linux en général et sur le noyau en particulier.

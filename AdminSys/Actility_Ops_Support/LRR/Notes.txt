@@ -1,0 +1,66 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-17T10:26:58+00:00
+
+====== Notes ======
+Created mercredi 12 janvier 2022
+
+LRR  » LRC » 
+
+lrr.x
+ipfailover
+checkvpn
+
+10.152.12.10 .9 LRC
+10.152.12.25 SUPPORT
+10.152.12.33 SLRC
+
+connect to IT vpn
+
+ssh 10.152.12.10 (AWS LRC)
+
+telnet 0 2009 (123) : 
+	open reverse ssh to gateways : lrr shell <lrrid> openssh -P portnumber(5charStartBy2) ?
+	close reverse ssh to gateways : lrr shell 1000034b closessh ?
+
+Connect to the gateway :
+	generate a password for the gateway on Actility keypass (needs lrrid and customer flag)
+	connect to support serverds
+
+Gateway rescue port : 
+	opened when the gw can't establish a connection with the ns (certs expiration, etc)
+	calculated with the lrrid
+	* ssh root@localhost -p
+
+later 10.152.
+
+LoRA trafi : TRACE.log
+
+checkvpn2 : ensure the gw will connect to servers with an encrypted connection
+ipsec status
+find / -name checkvpn2.sh
+[[/home/actility/lrr/ipsecmgr/checkvpn2sh]] -v
+netstat | grep 2404
+
+having the wrong routes in ipfailover2 will result in connection errors in the GUI
+
+after changing iptables rules :
+	/etc/init.d/firewall restart
+
+see all the uplinks and downlinks of a BS :
+	track <LRR_ID> 
+
+Meeeeeeeeeeee
+
+connect to the lrc , telnet , list gateways , open reverse ssh to a gateway with a Port
+connect to support , connect to ssh mlbadmin@localhost -p Port (pwd root)
+BS logs are deleted after restart
+Learn ftp, sftp, dns, http, ipsec, iptables,
+NTP is very important because a problem of synchronisation could lead to a loss of information (downlink sent when the reception window of the device is closed)
+For network problems, first LRC logs, next LRR logs
+For gateway connection problems, stop LRR and check vpn before restarting it
+For troubleshooting purposes, master log checking and APIs
+
+Définir un topic sur MQTT
+
+Provisioned using UUID, downloaded the keys,

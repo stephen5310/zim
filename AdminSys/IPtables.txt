@@ -1,0 +1,7 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-12T14:38:13+00:00
+
+====== IPtables ======
+Created mercredi 12 janvier 2022
+

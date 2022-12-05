@@ -1,0 +1,46 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-21T15:10:24+00:00
+
+====== 2. Démarrage et daemons de gestion du système ======
+Created vendredi 21 janvier 2022
+
+Booter est le terme utilisé pour désigner le démarrage d'un ordinateur.
+Le processus de démarrage est constitué de quelques tâches bien définies :
+	* Trouver, charger et exécuter le code démarrage
+	* Trouver, charger et exécuter le noyau du système d'exploitation
+	* Exécuter les scripts de démarrage et les daemons du système
+	* Maintenir une bonne hygiène des processus et gérer les états de transition du système
+	* Maintenir le système à l'état précédent tant qu'il est up
+
+===== Aperçu du processus de démarrage =====
+
+Le schéma suivant décrit le processus de démarrage.
+
+{{./pasted_image.png}}
+
+Les administrateurs ont un contrôle interactif très réduit sur la plupart des ces étapes.
+Ils peuvent par contre modifier la configuration de démarrage en éditant des fichiers de configuration pour les scripts de démarrage du système, ou en changeant les arguments de démarrage que le boot loader passe au noyau.
+
+Avant que le système ne soit complètement démarré, le système de fichier doit être vérifié et monté, et les daemons du système démarrés. Ces procédures sont gérées par une série de scripts shell (**init scripts**) ou fichiers unit qui sont exécutés séquentiellement par init ou analysés par systemd.
+
+===== Microprogramme système =====
+
+Lorsqu'une machine est démarrée, le processeur est cablé pour exécuter le code de démarrage situé dans la ROM.
+
+Le microprogramme système sait typiquement tout sur les périphériques se trouvant sur la carte mère comme les controlleurs SATA, les interfaces réseau, et les capteurs de puissance et de température. En plus de permettre une configuration matérielle de ces périphériques, le micrologiciel permet de soit les exposer à l'OS, soit les désactiver et les lui cacher.
+
+Durant un démarrage normal, le microprogramme recherche le matériel et les disques, exécute un ensemble simple de contrôles de santé, et ensuite recherche la prochaine étape du code du processus de démarrage.
+
+**BIOS vs. UEFI**
+Le micrologiciel traditionnel des PC était les BIOS, pour Basic Input/Output System.
+UEFI pour Unified Extensible Firmware Interface l'a supplanté avec un standard plus formalisé et moderne.
+
+**BIOS**
+Le BIOS traditionnel suppose que le périphérique démarrage commence avec un enregistrement appelé **MBR** (Master Boot Record).
+Le MBR est composé d'un boot loader de niveau 1 et d'une table de partition de disque primitive. L'espace disque disponible pour le boot loader est tellement réduit qu'il est obligé de charger et exécuter un boot loader de niveau 2.
+
+Ni le bloc d'amorçage, ni le BIOS ne sont assez sophistiqués pour lire tous les types de fs, donc le boot loader de niveau 2 doit être stocké de sorte à être facile à trouver. 
+Dans un scénario typique, le bloc d'amorçage lit les informations de partitionnement depuis le MBR et identifie la partition de disque marquée comme active. Ensuite il lit et exécute le boot loader de niveau 2 depuis le début de cette partition. Ce schéma est connu sous le nom d'enregistrement de volume de démarrage.
+Alternativement, le boot loader de niveau 2 peut résider dans une zone morte qui se trouve entre le MBR et le début de la partition de disque. Pour des raisons historiques, la première partition démarre au 64ème bloc de disque, donc cette zone contient normalement au moins 32KB de stockage (ce qui est assez pour stocker un
+{{./pasted_image001.png}}

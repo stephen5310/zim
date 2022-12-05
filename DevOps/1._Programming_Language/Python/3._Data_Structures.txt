@@ -1,0 +1,53 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T16:54:46+00:00
+
+====== 3. Data Structures ======
+Created lundi 07 novembre 2022
+
+===== List comprehension =====
+
+* Consists of brackets containing an expression followed by a for clause, then zero or more for or if clauses
+* The result will be a new list resulting from evaluating the expression in the context of the for and if clauses which follow it
+* Example : [(x, y) for x in [1,2,3] for y in [3,1,4] if x != y]
+
+===== Tuple unpacking =====
+
+* A tuple is an immutable sequence
+* Unpacking example : 
+t = 12345, 54321, 'hello!'
+x, y, z = t
+
+===== Set =====
+
+* Unordered collection with no duplicate elements
+* Definition :
+basket = {'apple', 'orange', 'apple', 'pear', 'orange', 'banana'}
+a = set('abracadabra') # {'a', 'r', 'b', 'c', 'd'}
+
+* Support maths operations on sets
+	* Union : a | b
+	* Intersection : a & b
+	* Difference : a - b # in a but not in b
+	* XOR : a ^ b
+* Support comprehension
+a = {x for x in 'abracadabra' if x not in 'abc'}
+
+===== Dictionary =====
+
+* Set of //key : value// pairs
+* Declare : 
+	* tel = {'jack': 4098, 'sape': 4139} 
+	* tel = dict([('sape', 4139), ('guido', 4127), ('jack', 4098)])
+	* tel = {x: x**2 for x in (2, 4, 6)}
+	* tel = dict(sape=4139, guido=4127, jack=4098)
+* Add : tel['guido'] = 4127
+* Remove : del tel['sape']
+* Retrieve keys : list(tel)
+* Retrieve keys sorted : sorted(tel)
+
+===== Looping techniques =====
+
+* Loop through dict with //key : value// : for k, v in tel.items()
+* Loop through sequence with //index : value// : for i, v in enumerate(seq)
+* Loop over two lists at the same time : for q, a in zip(questions, answers)

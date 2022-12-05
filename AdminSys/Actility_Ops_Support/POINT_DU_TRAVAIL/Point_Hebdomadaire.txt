@@ -1,0 +1,67 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-14T16:36:00+00:00
+
+====== Point Hebdomadaire ======
+Created vendredi 14 janvier 2022
+
+__Semaine 2 : Lundi 10 au Vendredi 14 __
+
+* Plus de meetings 
+	* point hebdomadaire de l'équipe opération lundi
+	* point en 15 de l'équipe support mercredi
+	* formation de Amarild le Mercredi sur le débogage
+	* formation sur TPC avec  le Vendredi
+	* débogage de problèmes de downlinks avec Amarild
+	* débogage de problèmes de connexion IPsec de gateway avec le ns avec Djibril
+
+* Terminé avec TPOCP sur OVH
+	* installation de bout en bout
+	* connexion d'une gateway
+	* connexion d'un device
+	* ajout d'une application http et réception des données
+	* ajout d'une application mqtt et réception des données
+	* configuration smtp
+	* mise à jour vers la dernière version expérimentale 2.7
+
+* Semaine prochaine
+	* plus de tickets TPE
+	* des tickets community aussi
+	* lire et se former à l'aide du wiki et autre sur :
+		* architecture TPEOCP, TPW et TPC
+		* ftp
+		* sftp
+		* dns
+		* http
+		* ipsec
+		* iptables
+		* linux de base
+		* mqtt
+
+__Semaine 3 : Lundi 17 au Vendredi 21__
+
+* Moins de meetings
+	* formation de Djibril sur l'installation de TPE
+* Un peu plus de tickets
+	* Mises à jour de LRR vers la version 
+	* Déboge de l'installation de TPE (type de disque SCSI sinon ça marche pas)
+
+__Semaine 4 : Lundi 24 au Vendredi 28__
+
+* Djibril conseille de
+	* me spécialiser sur les API DX, IoT-flow
+	* voir un peu plus la partie backend (infrastructure)
+	* on verra la création d'image la semaine prochaine
+* Mises à jour des LRR
+* Génération et renouvellement de certificats
+* Génération de mots de passe et de usb keys
+
+__Semaine 5 : Lundi 31 au Vendredi 04 Février__
+
+* Documentation en cours
+* Des tickets pas traités (BAD)
+* Création d'images Ufispace
+* Travaux à prévoir sur les BS Swisscom, passage de l'ID au UUID
+* Zoho : gérer ses emails avec des filtres pour éviter de se disperser
+* Apparaître tout le temps connecté sur teams et vite répondre aux messages et aux tickets
+* TPE 7.1 sorti, on doit tester : tests en standalone et HA

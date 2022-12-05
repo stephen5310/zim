@@ -1,0 +1,61 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-01-17T10:27:39+00:00
+
+====== 1. Presentation ======
+Created lundi 17 janvier 2022
+
+===== Aperçu =====
+
+La suite thingpark est constituée de trois composants principaux :
+* TP Wireless (Operations Support System et coeur réseau)
+* TP Market
+* TP X
+TP est une solution modulaire permettant aux opérateurs réseau de déployer TPW avec ou sans les autres composants.
+La plateforme de gestion du système (SMP) est une couche réseau qui sert tous les mmodules de la plateforme TP tels que la facturation et le moteur BPM.
+
+Le fournisseur de service a une coûche OSS uniforme qui s'interface avec tous les différents types de BSGW.
+
+{{./pasted_image.png?width=1000}}
+
+
+===== Les utilisateurs sur le LRR =====
+
+==== root ====
+
+Il s'agit du root sur linux.
+
+==== support ====
+
+Il a des droits limités généralement au ro.
+On peut accéder à ce compte :
+* via la GUI 	en cliquant sur la BS et en allant à **Advanced maintenance > Open reverse SSH**
+* par SSH en étant le même LAN que la BS (faire su support pour accéder à la vue précédente)
+Le mdp par défaut est **support**.
+
+===== Supervision =====
+
+Les fichiers de log suivants sont utilisés pour la supervision :
+* /home/actility/var/log/lrr/**TRACE.log **qui contient les logs des paquets radio LoRa générés par le LRR
+* /home/actility/var/log/lrr/**lrcstatuslink.txt** qui contient le statut de la connexion au LRC
+* /home/actility/var/log/lrr/checkvpn2.log qui contient le statut de la connexion au SLRC (VPN)
+* /var/log/messages qui contient les logs générés par le noyau linux
+On peut vérifier :
+* le statut des interfaces réseau (ip a)
+* le contenu de la table de routage (ip r)
+* l'utilisation du disque (du -sh)
+* l'utilisation du CPU (top)
+
+===== Ligne de commande =====
+
+==== LRR CLI ====
+
+* Obtenir le statut du LRR (started ou stopped) : lrr.x --status
+* Obtenir la configuration : lrr.x --config
+
+
+
+
+
+
+

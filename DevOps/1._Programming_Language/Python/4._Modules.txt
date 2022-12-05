@@ -1,0 +1,68 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-11-07T16:56:41+00:00
+
+====== 4. Modules ======
+Created lundi 07 novembre 2022
+
+* A module is a file containing function definitions
+* It has to be in the execution dir or in python's default module dir for it to be imported
+* The file is of the format <module_name>.py
+* Module import : import <module_name>
+* Module function call : <module_name>.<function_name>
+* Retrieve module name : <module_name>.__name__
+* The module can contain executable statements mean to initialize
+* Executing modules as scripts : python <module_name>.py [args]
+* Executing modules as scripts set __name__ to __main__
+
+===== Module name search path =====
+
+* When a module named spam is imported, the interpreter first searches for a built-in module with that name. 
+* These module names are listed in sys.builtin_module_names. 
+* If not found, it then searches for a file named spam.py in a list of directories given by the variable sys.path. sys.path is initialized from these locations:
+	* The directory containing the input script (or the current directory when no file is specified).
+	* PYTHONPATH (a list of directory names, with the same syntax as the shell variable PATH).
+	* The installation-dependent default (by convention including a site-packages directory, handled by the site module).
+
+* After initialization, Python programs can modify sys.path.
+* **The directory containing the script being run is placed at the beginning of the search path, ahead of the standard library path.**
+* This means that scripts in that directory will be loaded instead of modules of the same name in the library directory.
+* This is an error unless the replacement is intended.
+
+===== Compiled python files =====
+
+* To speed up loading modules, Python caches the compiled version of each module in the __pycache__ directory under the name module.version.pyc, where the version encodes the format of the compiled file.
+* It generally contains the Python version number.
+* For example, in CPython release 3.3 the compiled version of spam.py would be cached as __pycache__/spam.cpython-33.pyc.
+* The module compileall can create .pyc files for all modules in a directory.
+
+===== Standard modules =====
+
+* Python comes with a library of standard modules
+* Some modules are built into the interpreter
+* The set of such modules is a configuration option which also depends on the underlying platform : winreg module only on windows systems
+* The sys module is provided on every platform
+
+===== The dir() function =====
+
+* Used to find out which names (variables, modules, functions, etc) a module defines
+* Returns a sorted list of strings
+* Without args it gives the list of names defined in the current __main__
+* It does not provide the list of built-in functions and variables
+* Use dir on the builtins module to have them
+
+===== Package =====
+
+* Way of structuring Python’s module namespace by using “dotted module names”
+* Litterally a collection of modules, a directory containing modules and an __init__.py file
+* __init__.py can empty, execute initialization code or set the __all__ variable
+* Packages can have subpackages which can be imported like : import package.subpackage
+* When using syntax like import item.subitem.subsubitem, each item except for the last must be a package
+* The last item can be a module or a package but can’t be a class or function or variable defined in the previous item
+
+==== Importing * from a package ====
+
+* If a package’s __init__.py code defines a list named **__all__**, it is taken to be the list of module names that should be imported when from package import * is encountered
+* It is up to the package author to keep this list up-to-date when a new version of the package is released
+* Example : __all__  = ["echo", "surround", "reverse"]
+* If __all__ is not defined it only ensures that the package has been imported (possibly running any initialization code in __init__.py) and then imports whatever names are defined in the package
