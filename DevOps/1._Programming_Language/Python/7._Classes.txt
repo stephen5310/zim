@@ -5,3 +5,301 @@ Creation-Date: 2022-11-07T16:59:44+00:00
 ====== 7. Classes ======
 Created lundi 07 novembre 2022
 
+* A type of object used to bundle data and functionnality together
+* Attributes are attached to a Class instance to maintain its state
+* Methods are attached to a Class instance to modify its state
+* Python's class mechanism is a mix of C++ and Modula-3
+* All class members are public (except private variables)
+* All member functions are virtual
+* Classes themselves are objects
+* Built-in types can be used as base classes for extension
+* Most built-in operators with special syntax can be redefined for class instances
+
+===== Names and Objects =====
+
+* Objects have individuality and can have multiple names (aliasing)
+* Only a pointer is passed as argument to a function
+
+===== Scopes and Namespaces =====
+
+==== Namespaces ====
+* A mapping from names to objects
+* Most are implemented as dictionaries
+* Examples : built-in names; global names in a module; local names in a function invocation; set of attributes of an object
+* There is absolutely no relation between names in different namespaces
+* Attributes may be read-only or writable
+* A writable attribute can be assigned to, and deleted with del
+* Namespaces are created at different moments and have different lifetimes
+* The global namespace for a module is created whent the module definition is read in and lasts util the interpreter quits
+* The statements executed by the top-level invocation of the interpreter are considered part of a module called _ _ main _ _
+* The built-in names live in a module called buitins, which is called when the interpreter starts up and is never deleted
+* The local namespace for a function is created when the function is called and deleted when the function returns or raises an exception that is not handled within the function
+
+==== Scopes ====
+* Textual region of a Python program where a namespace is directely accessible
+* Determined statically but used dynamically
+* Nested scopes with namespaces directly accessible at any time during execution :
+	* Innermost scope : searched first, contains local names
+	* Scopes of any enclosing functions : searched starting with nearest enclosing scope, contain non-local and non-global names
+	* Next-to-last scope : contains current module's global names
+	* Outermost scope : contains built-in names
+* A name declared global makes all references and assignments go directly to the next-to-last scope
+* The nonlocal statement can be used to rebind variables found outside of the innermost scope (an attempt to write to it will create another variable)
+* Class definitions place another namespace in the local scope
+* If no global or nonlocal statement is in effect, assignments to names, assignments to names always go into the innermost scope
+* Assignments do not copy data, they just bind names to objects
+* Deletion do not delete data, it removes the binding between names and objects
+* All operations introducing new names use the local scope : import statements and function definitions bind the module or function name in the local scope
+* The global statement indicate that a variable should be bound to the global scope
+* The nonlocal statement indicate that a variable should be bound to an enclosing scope
+
+===== First Look at Classes =====
+
+* Introduce new syntax, three new object types and new semantics
+
+==== Class Definition Syntax ====
+
+* Simplest form of class definition :
+'''
+class ClassName:
+	<statement-1>
+	.
+	.
+	.
+	<statement-N>
+'''
+
+
+* Definition must be executed before having any effect
+
+==== Class Objects ====
+
+* Support two kind of operations : attribute references and instantiation
+* Attribute references use obj.name syntax
+'''
+class MyClass:
+	"""A simple example class"""
+	i = 12345
+
+	def f(self):
+		return 'hello world'
+'''
+
+
+* MyClass.i and MyClass.f are valid attribute references
+* ''__doc__'' is also a valid attribute, returning the docstring belonging to the class
+* Class instantiation uses function notation
+''x = MyClass()''
+
+* The instantiation operation creates an empty object
+* To create objects with instances customized to a specific initial state a class may define a special method named _ _ init() _ _
+'''
+def __init__(self):
+	self.data = []
+'''
+
+* The ''__init__()'' method can have arguments for greater flexibility
+'''
+class Complex:
+	def __init__(self, realpart, imagpart):
+		self.r = realpart
+		self.i = imagpart
+
+x = Complex(3.0, -4.5)
+x.r, x.i
+(3.0, -4.5)
+'''
+
+==== Instance Objects ====
+
+* Data attributes spring into existence when they are first assigned to
+''x.counter = 1''
+
+* All function attributes of a class define corresponding methods of its instances
+* ''x.f'' is a method object unlike ''MyClass.f'' which is a function object
+
+==== Method Objects ====
+
+* The instance object is passed as the first argument of the function defining the method
+* Calling a method with an args list creates a new args list from the instance object and the function object is called with this new args list 
+
+==== Class and Instance Variables ====
+
+* Instance variables ar for data unique to each instance
+* Class variables are for attributes and methods shared by all instances of the class
+''class Dog:''
+
+''    kind = 'canine'         # class variable shared by all instances''
+
+''    def __init__(self, name):''
+''        self.name = name    # instance variable unique to each instance''
+
+* Mutable objects such as lists and dictionaries should not be used as class variables because they would be shared by all instances
+'''
+class Dog:
+
+	tricks = []             # mistaken use of a class variable
+
+	def init(self, name):
+		self.name = name
+
+	def add_trick(self, trick):
+		self.tricks.append(trick)
+
+>>> d = Dog('Fido')
+>>> e = Dog('Buddy')
+>>> d.add_trick('roll over')
+>>> e.add_trick('play dead')
+>>> d.tricks                # unexpectedly shared by all dogs
+['roll over', 'play dead']
+'''
+
+* They should only be used as instance variables
+''class Dog:''
+
+''    def __init__(self, name):''
+''        self.name = name''
+''        self.tricks = []    # creates a new empty list for each dog''
+
+''    def add_trick(self, trick):''
+''        self.tricks.append(trick)''
+
+''>>> d = Dog('Fido')''
+''>>> e = Dog('Buddy')''
+''>>> d.add_trick('roll over')''
+''>>> e.add_trick('play dead')''
+''>>> d.tricks''
+''['roll over']''
+''>>> e.tricks''
+''['play dead']''
+
+===== Random Remarks =====
+
+* During attribute lookup, instance has priority over class
+* There is no secret attribute in python
+* Methods may call other methods by using method attributes of the self argument
+* The global scope associated with a method is the module containing its definition
+* A class is never used as a global scope
+* Each value is an object and has a class (its type) stored as ''object.__class__''
+
+===== Inheritance =====
+
+* The syntax for a derived class definition :
+''class DerivedClassName(BaseClassName):''
+''    <statement-1>''
+''    .''
+''    .''
+''    .''
+''    <statement-N>''
+
+* The ''BaseClassName'' must be defined in a scope containing the derived class definition
+* Other arbitrary expressions are allowed like a class defined in another module
+''class DerivedClassName(modname.BaseClassName):''
+
+* All methods in Python are virtual : any derived class method overrides the base class one
+* To call a base class method in derived class definition use ''BaseClassName.methodname(self, arguments)''
+* Use ''isinstance()'' to check an instance’s type: ''isinstance(obj, int)'' will be ''True'' only if ''obj.__class__'' is ''int'' or some class derived from ''int''
+* Use ''issubclass()'' to check class inheritance: ''issubclass(bool, int)'' is ''True'' since ''bool'' is a subclass of ''int''. However, ''issubclass(float, int)'' is ''False'' since ''float'' is not a subclass of ''int''.
+
+==== Multiple inheritance ====
+
+* A class can have multiple base classes :
+''class DerivedClassName(Base1, Base2, Base3):''
+''    <statement-1>''
+''    .''
+''    .''
+''    .''
+''    <statement-N>''
+
+* An attribute is first searched recursively in class ''Base1'' and its base classes
+* If not found it is then searched recursively in class ''Base2'' and its base classes and so on
+* The method resolution order changes dynamically to support cooperative calls to ''super()'' and is known as call-next-method approach
+* To keep the base classes from being accessed more than once the dynamic algorithm linearizes the search order in a way that preserves the left-to-right ordering specified in each class, that calls each parent only once, and that is monotonic
+
+===== Private variables =====
+
+* Private instance variables don't exist in Python
+* A name prefixed by an underscore should be treated as a non-public part of the API
+* Any identifier with at least two leading underscores and at most one trailing underscore (''__spam_'') is textually replaced with ''_classname__spam_'' where ''classname'' is the current class name : it is name mangling
+* It is done to avoid name clashes of names with names defined by subclasses
+* It is done without regard to the syntactic position of the identifier as long as it occurs iwthin the definition of a class
+* It is helpful for letting subclasses override methods without breaking intraclass method calls
+''class Mapping:''
+''    def __init__(self, iterable):''
+''        self.items_list = []''
+''        self.__update(iterable)''
+
+''    def update(self, iterable):''
+''        for item in iterable:''
+''            self.items_list.append(item)''
+
+''    __update = update   # private copy of original update() method''
+
+''class MappingSubclass(Mapping):''
+
+''    def update(self, keys, values):''
+''        # provides new signature for update()''
+''        # but does not break __init__()''
+''        for item in zip(keys, values):''
+''            self.items_list.append(item)''
+
+* Those are just used to avoid accidents
+* Notice that code passed to ''exec()'' or ''eval()'' does not consider the classname of the invoking class to be the current class; this is similar to the effect of the ''global'' statement, the effect of which is likewise restricted to code that is byte-compiled together. The same restriction applies to ''getattr()'', ''setattr()'' and ''delattr()'', as well as when referencing ''__dict__'' directly
+
+===== Odds and Ends =====
+
+* A class can be defined with ''pass'' and instantiate before adding attributes
+
+===== Iterators =====
+
+* To loop over a container object, the ''for'' statement calls ''iter()'' on it
+* ''iter()'' returns an iterator object that defines the method ''__next__()'' which accesses elements in the container one at a time and raises ''StopIteration'' exception to terminate the loop
+* To add an iterator to a Class define an ''__iter__()'' method which returs an object with a ''__next()'' method
+* If the class defines ''__next__()'', then ''__iter()'' just returns self
+''class Reverse:''
+''    """Iterator for looping over a sequence backwards."""''
+''    def __init__(self, data):''
+''        self.data = data''
+''        self.index = len(data)''
+
+''    def __iter__(self):''
+''        return self''
+
+''    def __next__(self):''
+''        if self.index == 0:''
+''            raise StopIteration''
+''        self.index = self.index - 1''
+''        return self.data[self.index]''
+
+''rev = Reverse('spam')''
+''iter(rev)''
+''<__main__.Reverse object at 0x00A1DB50>''
+''for char in rev:''
+''    print(char)''
+
+''m''
+''a''
+''p''
+''s''
+
+===== Generators =====
+
+* Functions used for creating iterators but use ''yield'' statement to return data
+* Each time ''next()'' is called on it, it resumes where it left off
+''def reverse(data):''
+''    for index in range(len(data)-1, -1, -1):''
+''        yield data[index]''
+
+''for char in reverse('golf'):''
+''    print(char)''
+
+''f''
+''l''
+''o''
+''g''
+
+===== Generator Expressions =====
+
+* Simple generators can be coded succintly as expressions using a syntax similar to list comprehensions but with parentheses instead of square brackets
+''sum(i*i for i in range(10))                 # sum of squares''
+''285''

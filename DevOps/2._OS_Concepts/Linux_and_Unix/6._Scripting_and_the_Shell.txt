@@ -1,0 +1,7 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-12-27T13:54:42+01:00
+
+====== 6. Scripting and the Shell ======
+Created mardi 27 décembre 2022
+

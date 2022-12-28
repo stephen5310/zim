@@ -5,10 +5,88 @@ Creation-Date: 2022-11-07T16:58:01+00:00
 ====== 5. Input and Output ======
 Created lundi 07 novembre 2022
 
-===== Fancier Output Formatting =====
+====== Fancier Output Formatting ======
 
-* Formatted string litterals : f'Results of the {literal} {event}' or F'Results of the {year} {event}'
-* The str.format to use { and } to mark where a variable will be substituted and provide detailed formatting directives : '{:-9} YES votes  {:2.2%}'.format(yes_votes, percentage)
-* The str() function is meant to return representations of values which are fairly human-readable
-* The repr() is meant to generate representations which can be read by the interpreter but are not interpreted in output (i.e. \n will not go to next line)
-* 
+===== Formatted String Literals =====
+https://docs.python.org/3/library/string.html#formatspec
+* f-strings for short
+* String prefixed with f or F and expression inside string as {expression}
+* A format specifier can follow the expression : {math.pi:.3f} # rounds pi to 3 places after the decimal
+* Pass an integer after the ':' to make the field a minimum number of char wide
+* Modifiers to convert value before formatting :
+	* !a to apply ascii()
+	* !s to apply str()
+	* !r to apply repr()
+* The '=' specifier can be used to expand an expression to the text of the expression
+
+bugs = 'roaches'
+count = 13
+area = 'living room'
+print(f'Debugging {bugs=} {count=} {area=}')
+Debugging bugs='roaches' count=13 area='living room'
+
+===== The String format() Method =====
+
+* Basic usage : print('We are the {} who say "{}!"'.format('knights', 'Ni')) # We are the knights who say "Ni!"
+* Use numbers into format fields to refer to the position of an arg : print('{0} and {1}'.format('spam', 'eggs')) # spam and eggs
+* Can use kwargs : print('This {food} is {adjective}.'.format(food='spam', adjective='absolutely horrible')) # This spam is absolutely horrible.
+* Can combine arg types : print('The story of {0}, {1}, and {other}.'.format('Bill', 'Manfred', other='Georg'))
+* Can take a dict as arg : print('Jack: {0[Jack]:d}; Sjoerd: {0[Sjoerd]:d}; 'Dcab: {0[Dcab]:d}'.format(table))
+* The dict can be use as kwargs : print('Jack: {Jack:d}; Sjoerd: {Sjoerd:d}; Dcab: {Dcab:d}'.format(**table))
+* kwargs unpacking is particularly useful when used with the vars() function which returns all the local vars
+
+===== Manual String Formatting =====
+
+* Use str.rjust(), str.ljust(), str.center(), to justify the output : string.rjust(2)
+* They don't modify the string. If it is too long they show it as it is
+* Can add a slice operation to truncate : x.ljust(n)[:n]
+* Use zfill() method to fill left with zeros when the number of chars does not reach the number specified : '12'.zfill(5) # '00012'
+
+===== Old String Formatting =====
+https://docs.python.org/3/library/stdtypes.html#old-string-formatting
+* Uses % : print('%(language)s has %(number)03d quote types.' % {'language': "Python", "number": 2}) # 'Python has 002 quote types.'
+
+====== Reading and Writing Files ======
+
+* open() returns a file object and is commonly used like open(filename, mode, encoding=None)
+f = open('workfile', 'w', encoding="utf-8")
+
+* mode can be r(read, default), w(write), a(append), r+(read and write)
+* Append b to mode for binary, cannot specify the encoding for binary
+* When reading in text mode platform-specific line endings are converted to \n
+* When writing in text mode platform-specific line endings are converted back to normal
+* Binary mode is recommended for JPEG and EXE files rw to avoid data corruption
+* with keyword usage is recommend to automatically close the file after the operations
+with open('workfile', encoding="utf-8") as f:
+	read_data = f.read()
+
+* When not using with, close() has to be called to close the file
+
+===== Methods of File Objects =====
+
+* read(size) to read some quantity of data. size is the entire file by default : f.read()
+* The cursor moves as we read, and when we reach the end of the file an empty string is returned
+* readline() reads an single line
+* We can loop over the file to read line by line :
+for line in f:
+	print(line, end='')
+
+* list(f) and f.readlines() return all the lines in a list
+* write(string) writes the contents of string to the file, returning the number of characters written : f.write('This is a test\n')
+* Other types of objects neet to be converted either to string or binary before writing them
+* tell() returns the cursor position from the beginning of the file
+* seek(offset, whence) allows to change the cursor position :
+	* The position is computed from adding offset to a reference point
+	* the reference point is selected by the whence argument
+	* A whence value of 0 measures from the beginning of the file (default)
+	* 1 uses the current file position
+	* 2 uses the end of the file as the reference point
+f.seek(-3, 2) # Go to the third character before the end
+
+===== Saving structured data with JSON =====
+https://docs.python.org/3/library/json.html#module-json
+* See JSON serialization : json.dumps(x)
+* Serialize the object to a text file : json.dump(x, f)
+* JSON files must be encoded in UTF-8. Use encoding="utf-8" when opening JSON file as a text file for both of reading and writing
+* This simple serialization technique can handle lists and dictionaries
+* serializing arbitrary class instances in JSON requires a bit of extra effort

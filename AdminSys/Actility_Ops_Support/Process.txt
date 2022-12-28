@@ -219,7 +219,7 @@ lrr shell <lrrid> dngentar -T <fpga_archive>
 
 ==== Connexion au lab d'Actility pour tester l'image ====
 
-* se connecter au wiki https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product%20Group%20Portal/Ecosystem%20Base%20Station/Base%20Station%20Lab/ pour voir les instructions et les liens
+* se connecter au wiki [[https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product Group Portal/Ecosystem Base Station/Base Station Lab/]] pour voir les instructions et les liens
 * accéder à l'inventaire par le lien Ecosystem GW LAB Inventory pour sélectionner et réserver une GW libre sur une période
 * la réservation se fait en ajoutant une entrée comme  (Stephen 3 - 7 Jan) sur la ligne du lab de la GW en question dans la feuille de calcul Booking Timetable
 * accéder à la GW en passant par l'un des serveurs de lab (main lab par exemple) pour bénéficier de sa connexion avec un clable série aux GW

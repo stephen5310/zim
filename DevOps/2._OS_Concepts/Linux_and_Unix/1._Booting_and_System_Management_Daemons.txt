@@ -1,0 +1,7 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2022-12-27T13:52:18+01:00
+
+====== 1. Booting and System Management Daemons ======
+Created mardi 27 décembre 2022
+

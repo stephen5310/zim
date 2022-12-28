@@ -5,3 +5,210 @@ Creation-Date: 2022-11-07T16:59:03+00:00
 ====== 6. Errors and Exceptions ======
 Created lundi 07 novembre 2022
 
+====== Syntax Errors ======
+
+* Parsing errors
+* The error is detected at the token preceding the arrow
+* File name and line number are printed so you know where to look in case the input came from a script
+while True print('Hello world')
+  File "<stdin>", line 1
+	while True print('Hello world')
+				   ^
+SyntaxError: invalid syntax
+
+====== Exceptions ======
+https://docs.python.org/3/library/exceptions.html#bltin-exceptions
+* Errors detected during execution
+* Most are not handled by default
+* The last line of the error message indicates what happened
+10 * (1/0)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ZeroDivisionError: division by zero
+
+====== Handling Exceptions ======
+
+while True:
+	try:
+		x = int(input("Please enter a number: "))
+		break
+	except ValueError:
+		print("Oops!  That was no valid number.  Try again...")
+
+* First, the try clause (the statement(s) between the try and except keywords) is executed.
+* If no exception occurs, the except clause is skipped and execution of the try statement is finished.
+* If an exception occurs during execution of the try clause, the rest of the clause is skipped. Then, if its type matches the exception named after the except keyword, the except clause is executed, and then execution continues after the try/except block.
+* If an exception occurs which does not match the exception named in the except clause, it is passed on to outer try statements; if no handler is found, it is an unhandled exception and execution stops with a message as shown above.
+* A try statement may have more than one except clause, to specify handlers for different exceptions
+* At most one handler will be executed
+* An except clause may name multiple exceptions as a parenthesized tuple : except (RuntimeError, TypeError, NameError)
+* A class in an except clause is compatible with an exception if it is the same class or a base class thereof (but not the other way around — an except clause listing a derived class is not compatible with a base class)
+* When an exception occurs, it may have associated values, also known as the exception’s arguments.
+* The presence and types of the arguments depend on the exception type
+* The except clause may specify a variable after the exception name
+* The variable is bound to the exception instance which typically has an args attribute that stores the arguments
+* For convenience, builtin exception types define __str__() to print all the arguments without explicitly accessing .args
+try:
+	raise Exception('spam', 'eggs')
+except Exception as inst:
+	print(type(inst))    # the exception instance
+	print(inst.args)     # arguments stored in .args
+	print(inst)          # __str__ allows args to be printed directly,
+						 # but may be overridden in exception subclasses
+	x, y = inst.args     # unpack args
+	print('x =', x)
+	print('y =', y)
+
+<class 'Exception'>
+('spam', 'eggs')
+('spam', 'eggs')
+x = spam
+y = eggs
+
+* Exception can be used as a wildcard that catches (almost) everything
+* However, it is good practice to be as specific as possible with the types of exceptions that we intend to handle, and to allow any unexpected exceptions to propagate on
+* The most common pattern for handling Exception is to print or log the exception and then re-raise it (allowing a caller to handle the exception as well)
+import sys
+
+try:
+	f = open('myfile.txt')
+	s = f.readline()
+	i = int(s.strip())
+except OSError as err:
+	print("OS error:", err)
+except ValueError:
+	print("Could not convert data to an integer.")
+except Exception as err:
+	print(f"Unexpected {err=}, {type(err)=}")
+	raise
+
+* The try … except statement has an optional else clause which must follow all except clauses
+* It is useful for code that must be executed if the try clause does not raise an exception
+for arg in sys.argv[1:]:
+	try:
+		f = open(arg, 'r')
+	except OSError:
+		print('cannot open', arg)
+	else:
+		print(arg, 'has', len(f.readlines()), 'lines')
+		f.close()
+
+* Exception handlers handle exceptions that occur inside functions that are called (even indirectly) in the try clause
+
+====== Rasing Exceptions ======
+
+* Use raise statement to force exception raising
+raise NameError('HiThere')
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: HiThere
+
+* The argument must be either an exception instance or an exception class
+* If an exception class is passed, it will be implicitly instantiated by calling its constructor with no arguments
+raise ValueError  # shorthand for 'raise ValueError()'
+
+* If you need to determine whether an exception was raised but don’t intend to handle it, a simpler form of the raise statement allows you to re-raise the exception
+try:
+	raise NameError('HiThere')
+except NameError:
+	print('An exception flew by!')
+	raise
+
+An exception flew by!
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+NameError: HiThere
+
+====== Exception Chaining ======
+
+* An unhandled exception occuring in an except section will have the exception being handled attached to it and included in the error message
+* Use from clause in raise statement to indicate that an exception is a direct consequence of another : raise RuntimeError from exc
+* This can be useful when transforming exceptions
+def func():
+	raise ConnectionError
+
+try:
+	func()
+except ConnectionError as exc:
+	raise RuntimeError('Failed to open database') from exc
+
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+  File "<stdin>", line 2, in func
+ConnectionError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+RuntimeError: Failed to open database
+
+* Disable automatic exception chaining using : from None
+
+====== User-defined Exceptions ======
+
+* Exception classes derived from the Exception class, either directly or indirectly
+* Keep them simple, offering a number of attributes that allow information about the error
+* Most are defined with names that end in Error
+
+====== Defining Clean-up Actions ======
+
+* Use the **finally** optional clause of the try statement
+* It will execute as the last task before the try statement completes
+* It runs whether or not the try statement produces an exception
+* Unhandled exceptions are raised after finally execution unless executing break, continue or return
+* finally executes before a break, continue or return in try
+* The return in finally has priority over the return in try
+* Useful for releasing external resources (files, network, connections) regardless of whether the use of the resource was successful
+
+====== Predefined Clean-up Actions ======
+
+* The with statement allows objects like files to be used in a way that ensures they are always cleaned up promptly and correctly
+* Objects with predefined clean-up actions indicate this in their documentation
+
+====== Raising and Handling Multiple Unrelated Exceptions ======
+
+* The builtin ExceptionGroup is an exception that wraps a list of exception instances so that they can be raised together
+* Useful in concurrency frameworks when several tasks may have failed in parallel
+
+def f():
+	excs = [OSError('error 1'), SystemError('error 2')]
+	raise ExceptionGroup('there were problems', excs)
+
+f()
+  + Exception Group Traceback (most recent call last):
+  |   File "<stdin>", line 1, in <module>
+  |   File "<stdin>", line 3, in f
+  | ExceptionGroup: there were problems
+  +-+---------------- 1 ----------------
+	| OSError: error 1
+	+---------------- 2 ----------------
+	| SystemError: error 2
+	+------------------------------------
+
+try:
+	f()
+except Exception as e:
+	print(f'caught {type(e)}: e')
+
+caught <class 'ExceptionGroup'>: e
+
+* We can use except* to selectively handle only the exceptions in the group that match a certain type
+* We can nest exception groups
+* Exceptions in a nested exception group must be instances, not types
+====== Enriching Exceptions with Notes ======
+
+* We can add information after an exception was caught with the add_note() method :
+* Useful to add context information for individual errors into an exception group
+try:
+	raise TypeError('bad type')
+except Exception as e:
+	e.add_note('Add some information')
+	e.add_note('Add some more information')
+	raise
+
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+TypeError: bad type
+Add some information
+Add some more information
