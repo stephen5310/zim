@@ -1,0 +1,127 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-17T23:40:25+01:00
+
+====== 2. Scheduling ======
+Created mardi 17 janvier 2023
+
+===== Manual Scheduling =====
+
+* Pods without **nodeName** option are candidates for scheduling
+* Scheduler set this option to assign the pod to a node
+* Do it manually by :
+	* Define spec.**nodeName**
+	* Creating a Binding object and with the API call : 
+''curl --header "Content-Type:application/json" --request POST --data '{"apiVersion":"v1", "kind":"Binding", ...}' http://$SERVER/api/v1/namespaces/default/pods/$PODNAME/binding/''
+
+===== Labels, Selectors, Annotations =====
+
+* Use labels to give attributes to objects to allow filtering
+* Use selector to filter objects by labels
+* Specify label by adding key: value under **metadata.labels**
+* To filter use : ''--selector key=value''
+* Annotations are used to record other details for informatory purpose (buildversion)
+* Label a node : ''kubectl label nodes node-name key=value''
+
+===== Taints and Tolerations =====
+
+* Used to set restriction on what pod could be scheduled on a node
+* Add taint on a node to make intolerant pods to be placed on it : ''kubectl taint nodes node-name key=value:taint-effect''
+	* Effect **NoSchedule** : Avoid
+	* **PreferNoSchedule** : Try to avoid
+	* **NoExecute** : Existing will be evicted
+* Remove node taint by adding a dash (**-**) to taint adding : ''kubectl taint nodes node-name key=value:taint-effect''**''-''**
+* Add toleration on a pod to allow him to be scheduled on a tainted node : ''kubectl taint pods pod-name key=value:taint-effect''
+	* All pods are intolerant to any taint by default
+	* Can add to pod manifest under **spec.tolerations** as array item
+	* Values are in double quotes
+* See taint of a node : ''kubectl describe node node-name | grep Taint''
+
+===== Node Selectors =====
+
+* Allow to set limitation on pods to run only on particular nodes
+* Add label to **spec.nodeSelector** in pod manifest
+
+===== Node Affinity =====
+
+* Allow to set more conditions on node assignment in node definition
+* Update of nodeSelector
+* Specify in **spec.affinity.nodeAffinity** in pod manifest
+* Introduces the type of node affinity to define the behavior of the scheduler during the lifecycle of the pods
+
+===== Combination of Taints/Tolerations and Node Affinity =====
+
+* Use this combination to completely dedicate pods to nodes
+
+===== Resource Limits =====
+
+* By default the minimum for one container is 0.5CPU + 256Mi Memory
+* A manifest of kind LimitRange has to be created in the namespace for the pods to take default resource confs
+* Requested values can be changed in pod manifest at **spec.containers[k].resources.requests**
+* Default limit values can be changed in pod manifest at **spec.containers[k].resources.limits**
+* CPU Specs :
+	* 1 stands for 1 vCPU
+	* Minimum is 1m which means
+	* Default max is 1 vCPU
+	* K8s prevents containers to exceed CPU limit
+* Mem Specs :
+	* 1Ki stands for 1024b
+	* 1K stands for 1000b
+	* Minimum is 1 which means 1b
+	* Default max is 512Mi
+	* K8s terminates containers that exceed Mem limit
+
+===== Daemon Sets =====
+
+* Like Replica Sets
+* Runs one copy of pod on each node of the cluster
+* Deploy Monitioring and Logging Agents on nodes
+* Kube-proxy and Weave-net can be deployed as Daemon Sets
+* To create use manifest of kind DaemonSet
+* How does it work :
+	* Before v1.12 : used nodeName to place one pod on each node
+	* Since v1.12 : uses nodeAffinity and Taints/Toleration
+
+===== Static Pods =====
+
+* Put pod manifests in [[/etc/kubernets/manifests]]
+* Configure kubelet to read manifests from this directory and create pods described :
+	* with **--pod-manifest-path** option in kubelet startup options
+	* with **--config** to specify a conf file in kubelet startup options and **staticPodPath** variable in that conf file
+* These pods only managed by kubelet are called Static Pods
+* They can be managed only with docker commands or by modifying the manifests
+* With kubernetes commands we can only view them
+* **Can be used to install control plane components on nodes (used by kube-admin)**
+
+===== Custom Schedulers =====
+
+* A kubernetes cluster can have multiple schedulers
+* The default one is **default-scheduler**
+* To deploy another scheduler without kubeadm :
+	* Download and extract the archive : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-scheduler''
+	* Create a manifest of kind KubeSchedulerConfiguration and use the option **--config** in service definition to point to the manifest
+* To deploy another schedule with kubeadm :
+	* Create a pod manifest with kube-scheduler image and commands specifying **--kubeconfig** file to auth to k8s cluster, listening **--address** and custom **--config** file
+* For cluster of k8s master nodes :
+	* Use **leaderElection** to define which of the scheduler instances should be active
+* Follow instructions at https://kubernetes.io/docs/tasks/extend-kubernetes/configure-multiple-schedulers/ to build a custom scheduler
+* To debug a pod in a pending state after selecting a default scheduler look at pod description
+* To view events (scheduling) : ''kubectl get events -o wide''
+* To view scheduler logs : ''kubectl logs my-custom-scheduler --name-space=kube-system''
+
+===== Scheduler Profiles =====
+
+* Pods waiting to be scheduled are in a scheduling queue
+* They are sorted in the queue by priority by the **PrioritySort** plugin
+* A priority must be defined prior to being set
+* Define a priority with a manifest of type **PriorityClass**
+* Set the priority in the pod manifest with **spec.priorityClassName**
+* After the sorting of the pods comes the filtering of the nodes plugin : nodes corresponding to the specifications are selected
+* Plugins used during this phase are **NodeResourcesFit, NodeName, NodeUnschedulable**
+* After filtering comes scoring : nodes are given a score based on multiple params
+* Plugins used during this phase are **NodeResourcesFit, ImageLocality**
+* Finally the pod is assigned to a node in the binding phase by the **DefaultBinder** plugin
+* One can configure a custom plugin in each of the phases with **Extension Points**
+* Some are **queueSort, preFilter, filter, postFilter, preScore, score, reserve, permit, preBind, bind, postBind**
+* We can configure multiple scheduler profiles in a single Scheduler instead of creating multiple binaries
+* We have to specify the plugins used for each profile

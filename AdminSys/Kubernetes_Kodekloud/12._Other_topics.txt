@@ -1,0 +1,7 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-17T23:45:30+01:00
+
+====== 12. Other topics ======
+Created mardi 17 janvier 2023
+

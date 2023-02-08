@@ -7,6 +7,11 @@ Created jeudi 27 janvier 2022
 
 ===== Opérations sur le SaaS Actility =====
 
+==== Obtenir version ThingPark ====
+
+* TPW :
+	* Check twa packet version on server and ask R&D
+
 ==== Commandes spéciales lrr ====
 
 * Redémarrage en force : killall lrr.x
@@ -98,10 +103,10 @@ revoke-and-delete;004A09XX;1
 create;004A09XX;1
 
 3. Lancer le script de création de cert
-python LRR_manager_swisscom.py test-swisscom1.csv Swisscom
+python /container-workdir/lrr-manager/conf/LRR_manager_swisscom.py test-swisscom1.csv Swisscom
 
 4. Lancer le script de chiffrage des certificats:
-/opt/scripts/swisscom_enc.sh
+/container-workdir/lrr-manager/conf/swisscom_enc.sh
 
 5. Se deconnecter du container et envoyer les certs sur les SLRC Swisscom
 [[/root/vpn_cfg_sync.sh]]
@@ -185,16 +190,28 @@ rm $archive
 
 ==== Reflasher le FPGA ====
 
+=== From lrc ===
 lrr shell <lrrid> dngentar -T <fpga_archive>
+lrr shell <lrrid> dngentar -T fpgaup_61 ?
 
 === Manually for ufispace macro v2 ===
-
 1. copy file fpga to GW /tmp directory
 2. extract the file tar –xvzf documents.tar.gz
-3. cp /tmp/GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic /home/root
-		   GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
-4. chown root:root GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
-5. ./fpga_flash_loader -b 0 -d /dev/spidev2.0 -w -i -f GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
+3. cp /tmp/GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic [[/home/root/GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic]]
+4. cd /home/root
+5. chown root:root GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
+6. ./fpga_flash_loader -b 0 -d /dev/spidev2.0 -w -i -f GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
+
+==== Decryption on GW ====
+'''
+
+VPN_CFG="$ROOTACT/usr/etc/lrr/vpn.cfg"
+KEY=$(grep -e "KEY=" $VPN_CFG | cut -d"=" -f2)
+PASS=$(grep -e "PASS=" $VPN_CFG | sed -e 's/^PASS=//')
+ID=$(grep -e "PRESTAGER=" $VPN_CFG | cut -d"=" -f2)
+echo "$PASS" | openssl enc -aes-256-cbc -base64 -d -pass pass:"${KEY}+${ID}" | awk '{ printf $1 }'
+'''
+
 
 ===== Builder des images de LRR =====
 

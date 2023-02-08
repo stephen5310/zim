@@ -1,0 +1,250 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-17T23:39:16+01:00
+
+====== 1. Core concepts ======
+Created mardi 17 janvier 2023
+
+===== Cluster architecture =====
+
+* Master node : Manage, plan, schedule, monitor
+	* ETCD + kube-scheduler + Controller-Manager + kube-apiserver
+* Worker nodes : Host apps as containers
+	* kubelet (kubernetes agent)
+	* kube-proxy
+	* Container runtime
+
+===== ETCD =====
+
+* Distributed reliable key-value store, simple, secure and fast
+* Install :
+	* Download binaries : https://github.com/etcd-io/etcd/releases
+	* Extract : tar
+	* Run : [[./etcd]]
+* Operate :
+	* Default port 2379
+	* Specify path to certs to authenticate to ETCD API : 
+''--cacert ''[[/etc/kubernetes/pki/etcd/ca.crt|''/etc/kubernetes/pki/etcd/ca.crt'']]'' --cert ''[[/etc/kubernetes/pki/etcd/server.crt|''/etc/kubernetes/pki/etcd/server.crt'']]'' --key /etc/kubernetes/pki/etcd/server.key''
+	* Control client v2 : 
+		* Insert : [[./etcdctl|''./etcdctl'']]'' set key1 value1''
+		* Retrieve : [[./etcdctl|''./etcdctl'']]'' get key1''
+		* Retrieve version v2 : [[./etcdctl|''./etcdctl'']]'' --version''
+		* Change to version 3 : ''export ETCDCTL_API=3''
+	* Control client v3
+		* Retrieve version v3 : [[./etcdctl|''./etcdctl'']]'' version''
+		* Inserrt : [[./etcdctl|''./etcdctl'']]'' put key1 value1''
+		* Retrieve : [[./etcdctl|''./etcdctl'']]'' get key1''
+* Stores info about :
+	* Nodes, PODs, Configs, Secrets, Accounts, Roles, Bindings, Others
+
+==== ETCD in kubernetes ====
+* Set listening address : ''--advertise-client-urls <http_address>:<port>''
+* Retrieve all keys : ''kubectl exec etcd-master -n kube-system ''**''etcdctl get / --prefix -keys-only''**
+* Final form with certs conf : ''kubectl exec etcd-controlplane -n kube-system -- sh -c "ETCDCTL_API=3 etcdctl get / --prefix --keys-only --limit=10 --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt --key /etc/kubernetes/pki/etcd/server.key"''
+* Directory structure : 
+	* Registry :
+		* minions, pods, replicasets, deployments, roles, secrets
+* Advertise nodes in HA multi-master : ''--initial-cluster controller-0=<node1_http_address>:<port>,...,controller-n=<noden_http_address>:<port>''
+
+===== Kube API server =====
+
+* Primary management component
+* When requesting smth :
+	* Authenticates the request and validates it
+	* Retrieves data from ETCD cluster
+	* Responds with data
+* Pod creation example :
+	* Auth user, Validates request, Retrieves data, Updates ETCD
+	* Scheduler notices pod with no node in ETCD, informs kube-api-server
+	* kube-api-server tells kubelet to create pod on concerned node
+* Can be installed by : 
+	* Downloading the runtime : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-apiserver''
+	* Running : ''ExecStart=/usr/local/bin/kube-apiserver [options]''
+* View in an existing cluster :
+	* With kubeadm : 
+		* ''kubectl get pods -n kube-system''
+		* ''cat /etc/kubernetes/manifests/kube-apiserver.yaml''
+	* Non kubeadm :
+		* ''cat /etc/systemd/system/kube-apiserver.service''
+		* ''ps -aux | grep kube-apiserver''
+
+===== Kube Controller Manager =====
+
+* Continuously watch status of a resource
+* Take necessary actions to remediate situation
+* Installing : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-controller-manager''
+* Running : ''ExecStart=/usr/local/bin/kube-controller-manager [options]''
+* Selecting controllers to run : ''--controllers stringSlice''
+* View in an existing cluster :
+	* With kubeadm : 
+		* ''kubectl get pods -n kube-system''
+		* ''cat /etc/kubernetes/manifests/kube-controller-manager.yaml''
+	* Non kubeadm :
+		* ''cat /etc/systemd/system/kube-controller-manager.service''
+		* ''ps -aux | grep kube-controller-manager''
+
+==== Node-Controller ====
+* Monitor status of the nodes (default every 5s)
+* Take necessary actions to keep apps running
+* If a node does not reponds after 40s it is marked **unreachable**
+* If a node is still unreachable after 5m :
+	* Removes the pods assigned to the node
+	* Assign them to healthy ones it they are still part of the replicaset
+
+==== Replication-Controller ====
+* Monitor status of replicasets
+* Take necessary action to keep the desired number of pods up and running within the sets
+
+==== Other controllers ====
+* Run via kube-controller-manager
+
+===== Kube Scheduler =====
+
+* Decides which pod goes on which node
+* Looks at requirements to choose the appropriate node (calculates the best one)
+* Can write our own scheduler
+* Installing : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-scheduler''
+* Running : ''ExecStart=/usr/local/bin/kube-scheduler [options]''
+* View in an existing cluster :
+	* With kubeadm : 
+		* ''kubectl get pods -n kube-system''
+		* ''cat /etc/kubernetes/manifests/kube-scheduler.yaml''
+	* Non kubeadm :
+		* ''cat /etc/systemd/system/kube-scheduler.service''
+		* ''ps -aux | grep kube-scheduler''
+
+===== Kubelet =====
+
+* Kubernetes agent on a node
+* Lead all activities on node : sole point of contact between master and worker nodes
+* Load or unload containers based on scheduler instructions
+* Send back regular reports on status of the nodes, pods and containers to kube-api-server
+* Register the node to the cluster
+* Tell container runtime to create or delete container
+* Installing : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubelet''
+* Running : ''ExecStart=/usr/local/bin/kubelet [options]''
+* View in an existing cluster :
+	* ''cat /etc/systemd/system/kubelet.service''
+	* ''ps -aux | grep kubelet''
+
+===== Kube Proxy =====
+
+* Pods communicate via the POD Network with IP addresses
+* A services is a virtual component within Kubernetes memory which has an IP address
+* kube-proxy is a process working on each node to :
+	* look for new services
+	* create appropriate rules for new services on each pod to allow access to services
+	* create forward iptables rules to forward traffic with service IP as destination to actual service POD IP
+* Installing : ''wget https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-proxy''
+* Running : ''ExecStart=/usr/local/bin/kube-proxy [options]''
+* View in an existing cluster :
+	* With kubeadm : 
+		* ''kubectl get pods -n kube-system''
+		* ''kubectl get daemonset -n kube-system''
+		* ''cat /etc/kubernetes/manifests/kube-proxy.yaml''
+	* Non kubeadm :
+		* ''cat /etc/systemd/system/kube-proxy.service''
+		* ''ps -aux | grep kube-proxy''
+
+===== PODs =====
+
+* Single instance of an app
+* Smallest unit for kubernetes
+* Number increases when scaling horizontally (not containers)
+* One can have multiple containers not of the same type (helper containers)
+* Containers in the pod have access to the same storage(volume), network namespace, fate
+* Creation : ''kubectl run nginx --image nginx''
+* Create and expose : ''kubectl run httpd --image=httpd:alpine --port=80 --expose''
+* Images are downloaded from a repository
+* Get pods list : ''kubectl get pods''
+
+===== Replica Sets =====
+
+* Controllers are processes that monitor K8s objects and respond accordingly
+* Replication Controller helps achieve HA and autoscaling in a pod
+* Replica Set is the update of Replication Controller
+* Create Replication Controller :
+	* Define manifest file of ReplicationController kind and apiVersion v1
+	* Pod is defined in spec.template section
+	* Replicas number is defined by spec.replicas variable
+	* Execute command : ''kubectl create -f rc-def.yaml''
+* List Replication Controllers : ''kubectl get replicationcontroller''
+* Create Replica Set :
+	* Define manifest file of kind ReplicaSet and apiVersion apps/v1
+	* Pod is defined in spec.template section
+	* Replicas number is defined by spec.replicas variable
+	* **Selector** option (optional) is defined by spec.selector and helps adding already created pods to ReplicaSet using labels provided in matchLabels
+	* Execute command : ''kubectl create -f rs-def.yaml''
+* List Replica Sets : ''kubectl get replicaset''
+* Scale :
+	* Update number of replicas in manifest
+	* Run : ''kubectl replace -f rs-def.yaml''
+	* Or (does not update file) : ''kubectl scale --replicas=<replica-number> -f rs-def.yaml''
+	* Or : ''kubectl scale --replicas=<replica-number> replicaset <replicaset-name>''
+
+===== Deployments =====
+
+* Allow to upgrade underline instances seamlessly using rolling updates
+* Allow to undo, pause and resume changes when required
+* Takes Replica Sets as underline instance by default
+* Same manifest as Replica Set with a kind Deployment as difference
+* Create deployment : ''kubectl create deployment <deployment_name> --image=<image_name> --replicas=<replicas_number>''
+
+===== Services =====
+
+* Enable communication between various components within and outside apps
+* Helps connect apps together, with other apps or users
+* Types of services :
+	* NodePort : 
+		* Port translation between pod and service, then service and node
+		* Node ports range from 30000 to 32767
+		* Create with manifest of kind Service specifying type NodePort in specs
+		* Can define multiple ports in spec.ports
+		* Use spec.selector to select the pod(s) with label
+	* Cluster IP :
+		* Group Pods providing a single interface to access them
+		* Manifest of kind ClusterIP (default one)
+	* Loadbalancer :
+		* Service of type LoadBalancer
+		* Works only for supported Cloud Platforms to use a managed load balancer
+* Create Service to expose pod : ''kubectl expose pod <pod_name> --port=<listen_port> --name <service_name>''
+* Cre
+* List Services : ''kubectl get services''
+
+===== Namespaces =====
+
+* Used to group resources and isolate them from each other
+* Defaults are **kube-system**, **kube-public** and **Default**
+* Can define policies, resource limits
+* Can use only names to access resources in the same namespace
+* Must use fqdn to access resources in another namespace, a service **db-service** in **dev** for example : ''db-service.dev.svc.cluster.local''
+	* Default k8s domain : ''cluster.local''
+	* Default services sub-domain : ''svc''
+	* Namespace : ''dev''
+* List pods in specific namespace : ''kubectl get pods --namespace=dev''
+* Create a resource in namespace :
+	* Use ''--namespace'' kubectl option
+	* Add **namespace** variable to manifest metadata
+* Create a namespace :
+	* Use a manifest of kind Namespace
+	* API version is v1
+	* Use ''kubectl create namespace <namespace>''
+* Change default namespace to dev : ''kubectl config set-context $(kubectl config current-context) --namespace=dev''
+* Limit resources by creating Resource Quota :
+	* Use manifest of kind ResourceQuota with API version v1
+
+===== Imperative vs Declarative =====
+
+* Imperative : step by step instructions to achieve the goal are given and the system executes them
+* Declarative : specify the goal and the steps to achieve will be defined by the sytem
+* Imperative k8s management : 
+	* Create Objects : ''kubectl run, create, expose''
+	* Update Objects : ''kubectl edit, scale, set image deployment''
+	* Create with manifest files and : ''kubectl create -f file.yaml''
+	* Update modify manifest in memory : ''kubectl edit deployment <deployment_name>''
+	* Update the local manifest and then : ''kubectl replace -f file.yaml'' or ''kubectl replace --force -f nginx.yaml''
+* Declarative k8s management :
+	* Use manifests files, can use directory
+	* Create and Update Objects : ''kubectl apply -f file.yaml'' or ''kubectl apply -f /path/to/config-files''
+	* Apply will keep live object conf file in memory to compare the last applied conf with new confs proposed
+	* The last applied conf is a json version of LO conf on kubernetes cluster as annotation **kubectl.kubernets.io/last-applied-configuration**

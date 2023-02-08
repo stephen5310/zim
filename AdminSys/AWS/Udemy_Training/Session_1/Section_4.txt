@@ -96,6 +96,12 @@ Three ways to access to AWS :
 * To test execute the following command : aws --version
 * A similar output is expected : aws-cli/2.4.5 Python/3.8.8 Windows/10 exe/AMD64 prompt/off
 
+==== Linux CLI setup ====
+
+''curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"''
+''unzip awscliv2.zip''
+''sudo ./aws/install''
+
 ==== Create an access key ====
 
 * **Never use the root account** (use an IAM one instead)
