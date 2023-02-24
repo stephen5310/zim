@@ -1,0 +1,110 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-06T15:39:58+00:00
+
+====== 1.2. GRUB vs FreeBSD ======
+Created Friday 06 January 2023
+
+====== GRUB ======
+
+* Grand Unified Boot Loader
+* Developed by GNU, default on most Linux distros
+* Two main branches : Legacy and extra-crispy (GRUB2)
+* Link to official doc : https://www.gnu.org/software/grub/manual/grub/
+
+===== Configuration =====
+
+* Lets specify the kernel to boot and the OS mode to boot into
+* Reads conf from a regular text file : **grub.cfg**
+* Conf file is in **[[/boot/grub]] (Others)** of **[[/boot/grub2]] (RHEL)**
+* Use **grub-mkconfig** (**grub2-mkconfig** in RHEL, **update-grub** in Deb) utility to generate conf using conf file **[[/etc/default/grub]]** and tempaltes in **[[/etc/grub.d]]**
+* Common GRUB conf options from [[/etc/default/grub]] :
+	* GRUB_BACKGROUND : Background image (.png, .tga, .jpg or .jpeg)
+	* GRUB_CMDLINE_LINUX : Kernel params to add to menu entries for linux
+	* GRUB_DEFAULT : Number or title of the default menu entry
+	* GRUB_DISABLE_RECOVERY : Prevents the generation of recovery mode entries
+	* GRUB_PRELOAD_MODULES : List of GRUB modules to be loaded as early as possible
+	* GRUB_TIMEOUT : Seconds to display the boot menu before autoboot
+* Run the utility to generate the conf after updating [[/etc/default/grub]] file
+* The utility also makes an inventory of system's bootable kernel so it should be run after making kernel changes
+* Edit **[[/etc/grub.d/40_custom]]** to change the order in wich kernels are listed in the boot menu, set a boot pwd or change the names of boot menu items
+* Kernels are usually stored in the [[/boot]] partition for BIOS, or an unmounted ESP for UEFI
+
+===== Command line =====
+
+* Supports a cli for editing conf file entries on the fly at boot time
+* Type c at the GRUB boot screen to enter cli mode
+* Allows to :
+	* Boot an OS not listed in the conf file
+	* Display sytem info
+	* Perform rudimentary FS testing
+	* Do anything that can be done through the conf file
+
+===== Kernel Options =====
+
+* Modify the values of kernel params
+* Instruct the kernel to probe for particular devices
+* Specify the path to the init or systemd process
+* Designate a particular root device
+* Example for kernel boot time options :
+	* debug : Turns on kernel debugging
+	* init=/bin/bash : Starts only the bash shell; useful for emergency recovery
+	* root=/dev/foo : Tells the kernel to use [[/dev/foo]] as the root device
+	* single : Boots to single-user mode
+* Not persistant when specified at boot time
+* Edit the appropriate kernel line in [[/etc/grub.d/40_custom]] (GRUB_CMDLINE_LINUX) to make the change permanent across reboots
+
+==== Reset the root password (or other users) on RHEL 7 ====
+
+* Get a root shell by entering single user mode or booting with bash in rw mode :
+	* Edit the kernel conf option at boot time by pressing **e** key on the kernel
+	* Add to the end of the line starting by **linux** :
+		* Delete **rhgb quiet LANG** params
+		* Add **rw init=/bin/bash** at the end of the line
+		* Press ctrl+x to save and boot
+* Use **passwd** command to change the password of the user
+* Set SELinux relabeling on next boot with : **touch /.autorelabel**
+* Resume reboot with : **exec [[/sbin/init]]**
+
+====== FreeBSD boot process ======
+
+* Final stage boot loader called **loader**
+* Has filesystem-based conf file, supports menus and offers an interactive command-line-like mode
+* Loader is the common pathway for both BIOS and UEFI boot paths
+
+===== BIOS path : boot0 =====
+
+* The full loader env is too large to fit an MBR boot block
+* A chain of progressively more sophisticated preliminary boot loaders get **loader** up and running
+* The early boot loader are part of a seperate system called **boot0**
+* Has options of its own
+* Stores later stages of the boot chain in a volume boot record rather than in front of the disk partition
+* Makes MBR need a pointer to the partition it should use to continue the boot process
+* Can adjust the conf with the ''boot0cfg'' command
+
+===== UEFI path =====
+
+* FreeBSD creates an EFI system partition and installs boot code there under [[/boot/bootx64.efi]]
+* This is the default path the systems check at boot time
+* No firmware-level conf other than ensuring device boot priorities are properly set
+* One could confuse **''/boot''** directory in EFI system partition with the **''/boot''** directory in the root FS
+* Both are bootstrapping related by serve different purposes
+* The EFI system partition is by default unmounted after booting
+* The whole filesystem is a copy of an image found in **''/boot/boot1.efifat''** on the root disk
+* The EFI system partition can be re-created by setting up the partion with **''gpart''** and copying in the FS image with **''dd''** :
+''sudo dd if=/boot/boot1.efifat of=/dev/ada0p1''
+
+* The first-stage UEFI boot loader loads an UEFI version of the **loader** soft from **''/boot/loader.efi''** on a partition of **freebsd-ufs** type
+* From there booting proceeds as under BIOS, with **loader** determining the kernel to load, kernel params to set and so on
+
+===== Loader configuration =====
+
+* **loader** is a scripting env using **Forth** as scripting language
+* The Forth scripts execute **''/boot/loader.conf''** to obtain values of conf vars (can edit this file)
+* Do not confuse with **''/boot/defaults/loader.conf''** which contains the conf defaults
+* Use the man pages for **loader** and **loader.conf** 
+
+===== Loader commands =====
+
+* Press **ESCape** when at boot prompt to enter into loader prompt
+* See man loader for the complete documentation

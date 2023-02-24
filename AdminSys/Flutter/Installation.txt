@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-02-13T17:02:35+00:00
+
+====== Installation ======
+Créée le Monday 13 February 2023
+
+==== Snap installation ====
+sudo ''snap install flutter --classic''
+flutter doctor
+
+==== Install android studio ====
+Follow https://developer.android.com/studio/install
+
+==== Test ====
+''flutter devices''
+(Enable developer options and usb debugging on phone for it to be detected)

@@ -208,7 +208,6 @@ Created mardi 17 janvier 2023
 		* Service of type LoadBalancer
 		* Works only for supported Cloud Platforms to use a managed load balancer
 * Create Service to expose pod : ''kubectl expose pod <pod_name> --port=<listen_port> --name <service_name>''
-* Cre
 * List Services : ''kubectl get services''
 
 ===== Namespaces =====

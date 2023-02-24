@@ -5,3 +5,62 @@ Creation-Date: 2023-01-17T23:43:03+01:00
 ====== 9. Cluster Design and Install ======
 Created mardi 17 janvier 2023
 
+===== Cluster Design =====
+
+* Purpose
+	* Education
+		* Minikube
+		* Single node cluster with kubeadm/GCP/AWS
+	* Development & Testing
+		* Multi-node cluster with Single Master and Multiple Workers
+		* Setup using kubeadm or quick provision on GCP/AWS/AKS
+	* Hosting Production Apps
+		* HA Multi-node cluster with multiple Masters
+		* Kubeadm/GCP/Kops/AWS or other supported
+		* Up to 5k nodes, 150k pods, 300k containers, 100 pods/node
+* Cloud or OnPrem
+	* OnPrem : use kubeadm
+	* Could : GKE for GCP, Kops for AWS, AKS for Azure
+* Storage
+	* High Perf : SSD
+	* Multiple concurrent connections : Network based storage
+	* Persistent shared volumes for shared access across multiple pods
+	* Label nodes with specific disk types for classification
+	* Use Node Selectors to assign apps to nodes with specific disk types
+* Nodes
+	* Virtual or Physical
+	* Minimum of 4 Node Cluster
+	* Master vs Worker Nodes
+	* Linux x86_64 Architecture for nodes
+	* Seperate etcd servers in production
+
+===== Choosing K8s Infrastructure =====
+
+* K8s is only supported on linux
+* Use virtualization tools on other systems
+* Minikube to deploy a single node for learning
+* Kubeadm to deploy a single or multi-nodes cluster
+* Turnkey solutions install on VMs provisioned manually, maintenance is done by admin himself : Kops on AWS, OpenShift, Cloud Foundry Container Runtime, Vagrant, VMware Cloud PKS
+* Hosted/Managed solutions are k8s already installed on infra, everything is managed by admin : GKE on GCE, OpenShift online, AKS, EKS
+
+===== High-Availability =====
+
+* kube-api-servers are in active-active, split traffic with lb
+* kube-scheduler and kube-controller-manager are in active-standby
+	* leader is the first to unlock endpoint
+	* leader default lease is of 15s, renew is of 10s, retry is of 2s
+* etcd support :
+	* stacked : on same node as control plane components so more risky
+	* external : require more nodes but is less risky
+
+===== ETCD in HA =====
+
+* Ensure write consistency with leader only writes and send copies to other instances
+* The write is completed only when the leader receives write confirmations from the quorum : 1 + NodesNumber/2
+* Uses RAFT algorithm for leader election : 
+	* Uses random timer for each node to send leader request to the others
+	* The first to send is accepted by the others
+	* Leader sends notifs regularly to the others to inform he is still alive
+	* If notif is not received the nodes restart leader election
+* Fault tolerance is the amount of nodes the cluster can afford to lose : NodesNumber - Quorum
+* NodesNumber is recommend to be odd to increase chances of maintaining the quorum in case of network segmentation

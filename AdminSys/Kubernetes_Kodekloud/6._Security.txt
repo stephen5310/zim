@@ -5,3 +5,285 @@ Creation-Date: 2023-01-17T23:41:41+01:00
 ====== 6. Security ======
 Created mardi 17 janvier 2023
 
+===== Security Primitives =====
+
+* Secure hosts :
+	* Use key based ssh instead of password
+	* root access disabled
+	* Any other measure to secure OS and hardware
+* Secure k8s :
+	* 1st controlling access to the apiserver :
+		* Control who can access : Username and passwords, Username and tokens, Certificates, External auth providers, Service accounts
+		* Control what they can do : RBAC, ABAC (Attribute)
+	* 2nd controlling communication between apiserver and other components :
+		* TLS certs
+	* 3rd controlling communication between apps within the cluster :
+		* Restrict pods access to other pods with Network Policies
+
+===== Authentication =====
+
+* k8s does not support user accounts
+* Only service accounts are available
+* All requests go through the apiserver
+* The apiserver authenticates requests before treating them
+* kubeapiserver supports 4 auth mecanisms :
+	* Static user/pwd csv file
+		* Data like : pwd,username,u0001[,group1]
+		* Add option to kube-apiserver : ''--basic-auth-file=<file_name>.csv''
+		* Restart kube-apiserver
+		* Authenticate user : ''curl -v -k https://master-node-ip:6443/api/v1/pods -u "<user>:<pwd>"''
+	* Static user/token csv file
+		* Data like : toke,,username,u0001[,group1]
+		* Add option to kube-apiserver : ''--token-auth-file=<file_name>.csv''
+		* Restart kube-apiserver
+		* Authenticate user : ''curl -v -k https://master-node-ip:6443/api/v1/pods -H "Authorization: Bearer <token>"''
+	* Certificates
+	* IDP
+
+===== TLS basics =====
+
+* Uses asymetric encryption to exchange symmetric keys and begin communication
+* Keys are sent into certificates which hold info about sender :
+	* Subject : name of the issuer
+	* Subject Alternative Name : other names that the issuer would like his users to use to reach him
+* Certificates have to be signed by CAs to be trusted : Digicert, Symantec, Comodo, GlobalSign, ...
+	* 1st generate a csr with the key and domain name, then send it to CA
+	* 2nd the CA will check the info sent and sign the cert if they are valid and send it to you
+	* 3rd Public keys of CAs are built in browsers so they can be able to check certs
+* Certificates with public key have usually the .pem or .crt extension
+* Certificates with private key have usually the *-key.pem or .key
+
+===== TLS in K8s =====
+
+* Key pairs are for : 
+	* kube-apiserver 
+	* etcdserver 
+	* kubelets on nodes 
+	* admin client
+	* kube-scheduler
+	* kube-controller-manager
+	* kube-proxy
+* Cluster certs must have at least one CA
+* We can use one CA for server certs and another for client certs
+
+===== Certs management =====
+
+* Tools like easyrsa, openssl and cfssl can be used generate
+
+==== Openssl cert generation ====
+* CA key pair :
+	* Generate key : ''openssl genrsa -out ca.key 2048''
+	* Create csr : ''openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr''
+	* Sign with CA key to create public cert because it is CA : ''openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt''
+* Admin client key pair :
+	* Gen key : ''openssl genrsa -out admin.key 2048''
+	* Create csr by adding group for admin privileges : ''openssl req -new -key admin.key -subj "/CN=kube-admin/O=system:masters" -out admin.csr''
+	* Sign with CA key pair : ''openssl x509 -req -in admin.csr -CA ca.crt -CAkey ca.key -out admin.crt''
+* kube-scheduler :
+	* Same as admin but without admin group and name is prefixed with SYSTEM : ''-subj "/CN=SYSTEM:KUBE-SCHEDULER"''
+* kube-controller-manager :
+	* Same as kube-scheduler
+* kube-proxy :
+	* Same as kube-proxy
+
+* etcd server :
+	* If in a cluster, generate client key pairs for the additional nodes
+	* Generate only one server key pair
+	* Specify the same server key pair on each node and one peer key pair
+
+* kube-api-server :
+	* Generate key : ''openssl genrsa -out apiserver.key 2048''
+	* **Mandatory :** Create a conf file with all the alternative names : ''openssl.cnf''
+**''[req]''**
+**''req_extensions = v3_req''**
+**distinguished_name = req_distiguished_name**
+**''[ v3_req ]''**
+**basicConstraints = CA:FALSE**
+**keyUsage = nonRepudiation,**
+**subjectAltName = @alt_names**
+**[alt_names]**
+**DNS.1 = kubernetes**
+**DNS.1 = kubernetes.default**
+**DNS.1 = kubernetes.default.svc**
+**DNS.1 = kubernetes.default.svc.cluster.local**
+**IP.1 = 10.96.0.1**
+**IP.2 = 172.17.0.87**
+	* Create csr with the config file in option : **openssl req -new -key ca.key -subj "/CN=kube-apiserver" -out apiserver.csr -config openssl.cnf**
+	* Certificate signing is different : **openssl x509 -req -in apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out apiserver.crt -extensions v3_req -extfile openssl.cnf -days 1000**
+
+* kubelet :
+	* One server key pair per node named after their node name
+	* One client key pair per node with name and group like : ''-subj "/CN=system:node:<node_name>/O=SYSTEM:NODES"''
+
+==== Certs usage ====
+* In API calls : ''curl https://kube-apiserver:6443/api/v1/pods --key admin.key --cert admin.crt --cacert ca.crt''
+* By passing cert options to service files
+* In manifest kube-config.yaml .**users[*] : name, user.client-certificate , user.client-key**
+* In manifest kubelet-config.yaml : **.authentication.x509.clientCAFile , tlsCertFile, tlsPrivateKeyFile**
+
+==== Viewing certs details ====
+
+* Create a table with columns : Component, Cert Type, Cert Cath, CN Name, ALT Names, Organization, Issuer, Expiration
+* Look in manifest files in [[/etc/kubernetes/manifests/*]] or service definition files to see certs used
+* Get infos from certs with : ''openssl x509 -in <path_to_cert> -text -noout''
+* Fill the table with all infos and check their validity using 
+* Can also look at the logs to find the certs used :
+	* System services : ''journactl -u etcd-master''
+	* Kubeadm services : '' kubectl logs etcd-master''
+	* Using docker : docker logs <container_id>
+
+==== Certs API ====
+
+* Used to send csr to k8s API
+* The operations are done by kube-controller-manager (csr-approving, csr-signing)
+* Specify ca key and cert to controller manager : ''--cluster-signing-cert-file=<path_to_ca_cert> --cluster-signing-key-file=<path_to_ca_key>''
+* Sending a csr creates a CertificateSigningRequest Object
+* Use API to :
+	* Submit requests :
+		* Use csr received to create manifest of type CertificateSigningRequest 
+		* Specify groups in .spec.groups : ''system:authenticated''
+		* Specify usages in spec.usages i.e. : ''client auth''
+		* Specify signer in spec.signerName : kubernetes.io/kube-apiserver-client
+		* Put csr encoded in base64 in spec.request : ''cat <req>.csr | base64 | tr -d "\n"''
+		* Create object with : ''kubectl apply -f <csr_manifest>.yaml''
+	* Review requests : ''kubectl get csr''
+	* Approve requests : ''kubectl certificate approve <csr_name>''
+	* Reject requests : ''kubectl certificate deny <csr_name>''
+	* Retrieve cert : 
+		* Read csr approval : ''kubectl get csr <csr_name> -o yaml''
+		* Copy .status.certificate and decode base64 to have cert : ''echo <cert> | base64 --decode''
+
+==== KubeConfig ====
+
+* Used to avoid passing authentication options to each API call or kubectl command
+* Create the file $HOME/.kube/config and add the necessary content :
+	* .clusters : the clusters to have access to 
+	* .users : the users used to access the clusters
+	* .contexts : Used to link users to clusters for authentication with format <user_name>@<cluster_name>
+		* Can take additional .context.namespace field to specify namespace
+* Show config : ''kubectl config view''
+* Pass config as cli option : ''--kubeconfig=<config_path>''
+
+==== API groups ====
+
+* API groups are : [[/metrics]] [[/healthz]] [[/version]] [[/api]] [[/apis]] [[/logs]]
+* Core group : [[/api]]
+	* Group of all functionnalities : namespaces, pods, rc, events, endpoints, nodes, bindings, PV(persisting volumes), PVC(PV claims), configmaps, secrets, services
+	* Access via : [[/api/v1]]
+* Named group : [[/apis]]
+	* Will host all apis in upcoming releases
+	* Subgroups are : apps, extensions, networking.k8s.io, storage.k8s.io, authentication.k8s.io, certificates.k8s.io, ...
+		* get the list with : ''curl	http://localhost:6443/apis -k | grep name''
+	* Groups are made of resources accessed via : [[/apis/<group]]>/v1/<resource>
+		* apps : deployments, replicasets, statefulsets
+		* networking.k8s.io : networkpolicies
+		* certificates.k8s.io : certificatesigningrequests
+	* Each resource has a set of actions associated called verbs :
+		* deployments : list, get, create, delete, update, watch
+* Create a **kubectl-proxy** to allow API calls using kubectl credentials : 
+	* Execute the command : ''kubectl proxy''
+	* Make calls (default 8001/tcp) : ''curl http://localhost:8001 -k''
+
+==== Authorization ====
+
+* Used to restrict users to their namespaces alone
+* Authorization mechanisms :
+	* Node :
+		* Managed by Node Authorizer
+		* Are granted the privileges of kubelets every user in group **SYSTEM:NODES** and with name prefixed by **system:node**
+	* ABAC :
+		* Associate a user of a group with a set of permissions
+		* Done by defining a policy file in JSON format and passing it to the apiserver
+		* One file per user or group
+		* Modifications are done manually in file, passed to apiserver and apiserver is restarted to apply them
+	* RBAC :
+		* Define a role with a set of permissions by creating a Role object with a manifest file
+		* Add rules for auth in manifest file
+		* Create with : ''kubectl create -f role.yaml''
+		* Associate subjects to a role by creating a RoleBinding object
+		* Specify roleRef and subjects (users, ...), and create with : ''kubectl create -f role-binding.yaml''
+		* View roles : ''kubectl get roles''
+		* View role bindings : ''kubectl get rolebindings''
+		* See the details about roles : ''kubectl describe role <role_name>''
+		* See details about role bindings : ''kubectl describe rolebinding <rolebinding_name>''
+	* Webhook :
+		* Allow to use 3rd party authorization server
+		* k8s make API call to auth server to ask for auths
+	* AlwaysAllow and AlwaysDeny
+* Set mode in apiserver options with : ''--authorization-mode=<mode1>,...,<modeN>''
+* AlwaysAllow is default
+* Evaluations are made in the order of the modes in option
+* Whenever a module denies auth, the evaluation is passed to the next module in the chain
+* User can check access to action : ''kubectl auth can-i <action> <resource>''
+* Admin can check access for another user in specific namespace : ''kubectl auth can-i <action> <resource> --as <username> --namespace <namespace_name>''
+
+==== Scopes ====
+
+* Only two scopes
+* Namespace scope : **kubectl api-resources --namespaced=true** : pods, replicasets, jobs, deployments, services, secrets, roles, rolebindings, configmaps, PVC
+* Cluster scope : **kubectl api-resources --namespaced=false** : nodes, PV, clusterroles, clusterrolebindings, certificatesigningrequests, namespaces
+* Use clusterroles and clusterrolebindings to give resources cluster wide authorizations
+* Create using manifests of kind ClusterRole and ClusterRoleBinding with : **kubectl create -f cluster_role.yaml**
+
+==== Service Accounts ====
+
+* Two types of accounts : user and service
+* Used by apps to perform ops on k8s cluster
+* Create : **kubectl create serviceaccount <name>**
+* View : **kubectl get serviceaccount**
+* View details : **kubectl describe serviceaccount dashboard-sa**
+* During SA creation k8s :
+	* Creates SA object
+	* Generates token for SA
+	* Creates secret object to store the token
+	* Secret object is linked to SA
+	* Token can be used as bearer to query k8s API
+* If the app is part of the cluster we can mount the SA token secret as a volume inside the POD for it to be easily read by the app
+* There is a default SA for each namespace that is mounted to every pod created by default
+* To specify a SA for a pod use **.spec.serviceAccountName** field to give the SA name
+* SA are mounted automatically, deactivate with **.spec.automountServiceAccountToken: false** in manifest
+* Before k8s 1.22 SA tokens had no expiry date
+* k8s 1.22 introduced the **TokenRequestAPI** which is audience, time and object bound and hence more secure
+* Tokens have a defined lifetime and are generated through the API for pods upon their creation by SA admin controller and mounted inside the pod
+* k8s 1.24 introduced tokens are not created automatically upon SA creation, we must trigger the creation with : **kubectl create token <sa_name>**
+* Default lifetime for token is 1H
+* We can still create secret token with unlimited lifetime by creating a Secret object and specify SA name with **.metadata.annotations.kubernetes.io/service-account.name**
+
+==== Images Security ====
+
+* Images nomenclature : <registry_name>/<user_name>/<image_name>:<version>
+* Default user is **library** which is default to official dockerhub images
+* Default registry is **docker.io** which is docker hub
+* It is a good practice to setup a **Private Repository** so that it can only be accessed by providing a set of credentials
+	* For docker one must first login and enter the credentials before being able to pull images : **docker login <registry_name>**
+	* For k8s : 
+		* Create a Secret object with credentials : **kubectl create secret  docker-registry <secret_name> --docker-server=<server> --docker-username=<user> --docker-password=<pwd> \ --docker-email=<mail>**
+		* Specify the secret in the pod manifest with **.spec.imagePullSecrets[*].name: <secret_name>**
+
+==== Security in Docker ====
+
+* **Process Isolation :** docker isolates containers by giving processes different process IDs for each namespace
+* **User management :** 
+	* Has a set of users including root and run process using root by default
+	* Run container with another user with : **docker run --user=<user_id> <image> <command>**
+	* Use USER directive in Dockerfile to choose the default user : **USER <user_id>**
+	* root user within containers is limited
+	* Grant privilege to user running container with : **docker run --cap-add <RIGHT> ...**
+	* Remove privilege to user running container with : **docker run --cap-drop <RIGHT> ...**
+	* Give all privileges : **docker run --privileged ...**
+
+==== Security contexts ====
+
+* Security settings can be defined at a container level or a pod level
+* Settings on containers override settings on pod
+* Settings are put in pod manifest :
+	* For pod use : **.spec.securityContext.runAsUser: <user_id>**
+	* For container use : **.spec.containers[*].securityContext : .runAsUser: <user_id> .capabilities.add: [<capabilities>]**
+
+==== Network policies ====
+
+* Objects defined to allow or deny traffic
+* Can be linked to pods using **labels** field in NetworkPolicy manifest and **podSelector.matchLabels** field in Pod manifest
+* Definition examples at https://kubernetes.io/docs/concepts/services-networking/network-policies/
+* Not supported by all network solutions on k8s : **Flannel**
+* Supported by : **Kube-router, Calico, Romana, Weave-net**

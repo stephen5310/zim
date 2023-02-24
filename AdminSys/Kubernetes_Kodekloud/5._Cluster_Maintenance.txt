@@ -2,6 +2,78 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.6
 Creation-Date: 2023-01-17T23:41:22+01:00
 
-====== 5. Cluster Maintenance ======
+====== 5.     Cluster Maintenance ======
 Created mardi 17 janvier 2023
 
+===== Planning node maintenance =====
+
+* If a node has been unavailable for more than the pod eviction timeout (5min default), pods on him are terminated
+* Evicted pods are recreated only if they are part of a ReplicaSet
+* If a node has to be unavailable for some time, it is safer to drain it from all the workload : ''kubectl drain <node_name>''
+* Add --force and --ignore-daemonsets flags to force
+* Pods on it are terminated gracefully and assigned to other nodes
+* The drained node is marked as unschedulable
+* When the node is back it must be uncordoned to become schedulable : ''kubectl uncordon <node_name>''
+* To make sure a node will not be scheduled we can cordon it : ''kubectl cordon <node_name>''
+
+===== K8s release versioning =====
+
+* The release version is composed of three parts
+* For example : v1.11.3
+	* Major : v1
+	* Minor : 11
+	* Patch : 3
+* Before releasing a stable version it goes through :
+	* Alpha : new features not enabled by default and go through tests
+	* Beta : new features enabled and tests continue
+	* Main stable
+
+===== Cluster upgrade =====
+
+==== Core control plane ====
+* No component should be at a version higher than kube-apiserver
+* Controller-manager and kube-scheduler can be only 1 minor version lower than kube-apiserver
+* kubelet and kube-proxy can be only two minor versions lower than kube-apiserver, and only 1 minor version lower than controller-manager and kube-scheduler
+* kubectl can be 1 version higher or lower than kube-apiserver
+* A minor version of k8s only support two minor versions lower
+* Upgrade the cluster one minor version at a time (1.11 to 1.12, ...)
+
+==== Upgrade process ====
+* Master node first, Worker nodes after
+* During Master upgrade :
+	* Control plane components go down briefly (cannot access apiserver)
+	* Workloads on Workers still continue
+* Worker nodes upgrade :
+	* All at once : causes downtime
+	* One node at a time : workloads are shared between other nodes
+	* Provision new nodes already upgraded : workloads are transferred to new nodes
+* Upgrade using kubeadm is easy : https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/
+	* Upgrade kubeadm tool : ''apt-get upgrade -y kubeadm=<version>''
+	* Upgrade cluster : ''kubeadm upgrade apply v<version>''
+	* Upgrade kubelet on the master node : ''apt-get upgrade -y kubelet=<version> && systemctl restart kubelet''
+	* Upgrade nodes one at a time :
+		* Drain the node : ''kubectl draine node''
+		* Upgrade kubeadm and kubelet like on master node
+		* Upgrade the node config : ''kubeadm upgrade node config --kubelet-version v<version>''
+		* Restart kubelet and uncordon the node : ''kubectl uncordon node''
+
+===== Backup and Restore Methods =====
+
+==== Backup candidates ====
+* Resource Configurations : 
+	* Prefer declarative over imperative
+	* Query kube-apiserver to get configs of all services : ''kubectl get all -A -o yaml > all_services.yaml'' 
+	* Save file to an SCM
+	* Velero (previously Ark) can do backups automatically with the API
+* etcd cluster :
+	* Backup the server itself of only the data directory : ''--data-dir''
+	* Get snapshots with etcdctl : ''ETCDCTL_API=3 etcdctl snapshot save <file_path>''
+	* View backup status : ''ETCDCTL_API=3 etcdctl snapshot status <file_path>''
+* Persistant volumes
+
+==== Restoration ====
+* etcd cluster :
+	* Stop the apiserver : ''service kube-apiserver stop''
+	* Restore the snapshot to a new data dir : ''ETCDCTL_API=3 etcdctl snapshot restore <file_path> --data-dir <new_data_dir_path>''
+	* Configure the etcd service to use the new data dir in etcd.yaml : ''--data-dir=<new_data_dir_path>''
+	* Reload systemd daemon, restart etcd then start apiserver : systemctl daemon-reload && service etcd restart && service kube-apiserver start

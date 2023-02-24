@@ -5,3 +5,111 @@ Creation-Date: 2023-01-17T23:41:08+01:00
 ====== 4. App Lifecycle Mgt ======
 Created mardi 17 janvier 2023
 
+===== Rolling Updates and Rollbacks =====
+
+==== Rollout and Versioning ====
+* Creating a deployment triggers a rollout
+* A new rollout creates a new deployment revision
+* When the containers are upgraded, a new rollout is triggered, hence a new revision
+* See rollout status : '' kubectl rollout status deployment/myapp-deployment''
+* See rollout revisions and history :'' kubectl rollout history deployment/myapp-deployment''
+==== Deployment Strategy ====
+* Recreate : destroy all before creating all
+* Rolling Update (default) : destroy few and create few before another few
+* Change deployment strategy : ''kubectl edit deployment <deployment_name>''
+==== Update deployment ====
+* Modify the deployment conf file
+* Run : ''kubectl apply deployment.yaml''
+* Use a command to change container image : kubectl set image deployment/<deployment_name> <container_name>=<image_name>
+* See update strategy and logs : ''kubectl describe deployment myapp-deployment''
+==== Upgrades and rollback ====
+* A new deployment creates a new replicaset with the number of pods
+* An update creates a new replicaset with the new pods and destroys the old replicaset by rolling updates
+* See replicasets list during update : ''kubectl get replicasets''
+* Undo changes : ''kubectl rollout undo deployment/myapp-deployment''
+* Upgrades and rollbacks can be seen by listing replicasets
+
+===== Configure Apps =====
+
+==== Commands and arguments ====
+
+* To specify a command to be run by the container in **docker** :
+	* At run : ''docker run <container_name> <command_and_args>''
+	* BUILD a new image FROM the base image and specify the CMD to be executed : 
+		* Create the Dockerfile and build from it : ''docker build -t <image_name> <path_to_dockerfile>''
+		* Run the container from the image : ''docker run <image_name>''
+	* ENTRYPOINT must take parameters from run command
+	* ENTRYPOINT can be combined with CMD to specify default parameters only in JSON format
+
+* To specify a command to be run in a **pod** manifest :
+	* Use **.spec.containers[*].command** for ENTRYPOINT
+	* Use **.spec.containers[*].args** for CMD
+
+* To specify an env variable in **pod** manifest :
+	* Use **.spec.containers[*].env**
+	* Using plain key value : name and value
+	* Using ConfigMaps : name and valueFrom.configMapKeyRef
+	* Using Secrets : name and valueFrom.secretKeyRef
+
+==== ConfigMaps ====
+
+* **ConfigMaps** are used to pass conf data in the form of key/value pairs as env variables in pods :
+	* Create the ConfigMap :
+		* Imperative :
+			* Inline : '' kubectl create configmap <config-name> --from-literal=<key1>=<value1> --from-literal=<key2>=<value2>''
+			* From file : ''kubectl create configmap <config-name> --from-file=<path_to_file>''
+		* Declarative : ''kubectl create -f configmap.yml''
+	* List configmaps : ''kubectl get configmaps''
+	* List configmaps and contents : ''kubectl describe configmaps''
+	* Inject into the pod :
+		* Environment **.spec.containers[*].envFrom** : - configMapRef.name
+		* Single variable **.env[]. : name, valueFrom.configMapRef : name, key**
+		* Volume **.volumes[]. : name, configMap.configMapName**
+
+==== Secrets ====
+
+* **Secrets** are used to store sensitive infos as data is encoded :
+	* One can use base64 encoding for data : echo -n '<data>' | base64
+	* Create the Secret :
+		* Imperative :
+			* Inline : '' kubectl create secret generic <secret-name> --from-literal=<key1>=<value1> --from-literal=<key2>=<value2>''
+			* From file : ''kubectl create secret generic <secret-name> --from-file=<path_to_file>''
+		* Declarative : ''kubectl create -f secret.yml''
+	* List configmaps : ''kubectl get secrets''
+	* List configmaps and contents with hidden values : ''kubectl describe secrets''
+	* List configmaps and contents with values : ''kubectl get secret <secret_name> -o yaml''
+	* Decode data : echo -n '<data_encoded>' | base64 --decode
+	* Inject into the pod :
+		* Use **.spec.containers[*].envFrom** : - secretRef.name
+		* Single variable **.env[]. : name, valueFrom.secretKeyRef : name, key**
+		* Volume **.volumes[]. : name, secret.secretName**
+			* In this case each secret is stored as a file in the volume with the secret name as file name and secret value as content
+	* Secrets are not encrypted so :
+		* Do not push them to SCM
+		* Activate encryption at rest
+		* Anyone who has access to the namespace of the secret have access to the secrets
+		* Configure least-privilege access to secrets with RBAC
+		* Consider using third-party secrets store providers : AWS, Azure, GCP, Vault
+	* Encrypting data at rest :
+		* Used to encrypt data in etcd
+		* Verify that data is encrypted : https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#verifying-that-data-is-encrypted
+==== Multi Container PODs ====
+
+* Used if we want containers to be tightly coupled in a pod
+* Add other containers definitions to the **.spec.containers** array
+
+==== Init Containers ====
+
+* Configured like all other containers but inside **spec.initContainers** section
+* They are used for any task that will be run only once when the pod is first created
+* The containers in **.spec.containers** section are started only when the init containers succeed 
+* Examples of usage are :
+	* Pulling code or binary from repo to be used by the main web app
+	* Wait fro an external service or db to be up before starting the app
+
+==== Self Healing Apps ====
+
+* Feature provided by ReplicaSets and Replication Controllers
+* A Replication Controller help ensuring a pod is re-created automatically when the app within the pod crashes
+* It helps ensuring enough replicas of the  app are running all the time
+* K8s supports health checks and actions through Liveness and Readiness Probes

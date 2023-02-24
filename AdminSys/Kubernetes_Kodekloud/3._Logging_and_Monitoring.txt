@@ -5,3 +5,39 @@ Creation-Date: 2023-01-17T23:40:39+01:00
 ====== 3. Logging and Monitoring ======
 Created mardi 17 janvier 2023
 
+===== Monitor Cluster Components =====
+
+* Node level metrics : Number of nodes, Number of healthy nodes
+* Performance metrics : CPU, memory, disk utilization
+* Pods metrics : Number of pods, performance metrics of each pod
+* Can use Metrics server, Prometheus, ELK, Datadog
+* Heapster is deprecated
+
+==== Metrics server ====
+* In-memory monitoring solution for k8s : collects metrics and store them in-memory
+* Cannot see historical perf data
+* k8s support only one per cluster
+* Enable :
+	* On minikube : ''minikube addons enable metrics-server''
+	* Others : 
+''git clone https://github.com/kubernetes-sigs/metrics-server.git''
+''kubectl create -f deploy/1.8+/''
+
+* View metrics :
+	* nodes :'' kubectl top node''
+	* pods : ''kubectl top pod''
+
+==== Pods metrics generation ====
+* kubelet agent cAdvisor retrieves performance metrics from pods and expose them through the kubelet API
+
+===== Managing App Logs =====
+
+* View pod logs : 
+	* For pod with on container : ''kubectl logs -f <pod_name>''
+	* For pod with multiple containers : ''kubectl logs -f <pod_name> <container_name>''
+
+==== crictl command ====
+* CLI for CRI-compatible container runtimes
+* Can be used to inspect and debug container runtimes and apps on k8s node
+* Repo : https://github.com/kubernetes-sigs/cri-tools/releases
+* Follow https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/ to setup

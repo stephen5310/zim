@@ -5,3 +5,11 @@ Creation-Date: 2023-01-17T23:44:53+01:00
 ====== 10. Install the Kubeadm Way ======
 Created mardi 17 janvier 2023
 
+===== Steps =====
+
+* Prepare the linux nodes : open necessary ports
+* Install container runtime on them
+* Install kubeadm on them : https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+* Initialize the master server and install the networking solution : https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+* Join the worker nodes from the master
+

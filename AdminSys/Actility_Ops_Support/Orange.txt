@@ -56,6 +56,6 @@ La synchronisation échoue parfois ce qui cause des incohérances.
 
 ===== Tickets =====
 
-==== [[#87972]] ====
+==== #87972 ====
 
 * Redémarrage du lrc1 ne marchait pas : binaire lrcinit modifié

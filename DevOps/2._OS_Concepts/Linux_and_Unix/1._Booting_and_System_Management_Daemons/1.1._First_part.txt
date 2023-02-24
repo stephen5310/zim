@@ -1,0 +1,81 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-03T22:12:35+00:00
+
+====== 1.1. First part ======
+Created Tuesday 03 January 2023
+
+===== Boot process overview =====
+
+The boot process consists of a few broadly defined tasks:
+* Finding, loading, and running bootstrapping code
+* Finding, loading, and running the OS kernel
+* Running startup scripts and system daemons
+* Maintaining process hygiene and managing system state transitions
+The activities included in that last bullet point continue as long as the system remains up.
+
+Admins have little direct control over most of the above steps.
+They can instead modify bootstrap configurations by :
+* Editing conf files for the system startup scripts
+* Changing the arguments the boot loader passes to the kernel
+
+Before the system is fully booted, filesystems must be checked and mounted and system daemons started.
+
+===== System firmware =====
+
+* Knows about all the devices that live on the motherboard
+* Allows hardware level configuration of these devices
+* Allows to disable them, hide or expose them to the OS
+
+==== BIOS ====
+* Traditional system firmware
+* Basic Input/Output System
+* Supported by almost all systems
+* Adopted by virtualized environments
+* Boot device starts with MBR (Master Boot Record)
+* MBR includes first-stage boot loader (boot block) and a primitive disk partitioning table
+* The boot block reads the second-stage boot loader :
+	* From beginning of the partition marked as "active" in the MBR (Volume Boot Record)
+	* From the dead zone between the MBR and the beginning of the first disk partition
+		* This partition does not start until the 64th block for historical reasons
+		* This dead zone contains at least 32kb of storage
+		* This scheme is used by GRUB
+* All components of the boot chain must be installed and compatible with one another
+* The boot block looks in particular locations so multiple versions of the 2nd-stage BL can be installed
+* The 2nd stage BL is generally knowledgeable about OSes and FSes and usually has configuration options of its own
+
+==== UEFI ====
+* Unified Extended Firmware Interface
+* Current revision of EFI
+* Includes modern disk partitioning scheme known as GUID (Globally Unique Identifier) Partition Table (GPT)
+* Understands FAT (File Allocation Table) FSes, simple but functional layout originated in MS-DOS
+* Uses a FAT partition called EFI System Partition (ESP)
+* The ESP is identified at boot time by the firmware by reading the GPT
+* It then reads the configured target application directly from a file in the ESP and executes it
+* The ESP can be mounted, read, written and maintained by any OS
+* UEFI maintains an MBR compatible record at the beginning of each disk to facilitate the interoperability with BIOS systems
+* No boot loader is technically required, the target can be an UNIX or Linux kernel
+* The pathname to load from the ESP is saved as a conf param. For Ubuntu it could be /efi/ubuntu/grubx64.efi
+* With no path, it looks for a standard one (/efi/boot/bootx64.efi) on modern Intel systems
+* Defines standard API for accessing system's hardware like an OS does
+* Provides UEFI-level add-on device driver, written in a processor independant language and stored in the ESP
+* OS can use the UEFI interface or take direct control of the hardware
+* One can use the API to examine and modify UEFI variables on a running system
+* To show the boot configuration : efibootmgr -v
+
+{{./pasted_image.png?width=1650}}
+
+* efibootmgr allows to :
+	* Change the boot order
+	* Select the next configured boot option
+	* Create and destroy boot entries
+* The firmware's configuration information is mounted rw, which is dangerous
+* On systems that allow write access by default (i.e. those with systemd) rm -rf / can be enough to permanently destroy the system at the firmware level
+* It will also remove variables and other EFI information accessible through /sys
+
+===== Boot Loaders =====
+
+* Software that identifies and load an appropriate OS kernel
+* Most present present a boot-time UI to select which kernel or OS to invoke
+* May marshall conf args for the kernel, giving a cli to configure startup options
+* Startup options can be hard-wired into boot loader's conf to use on every boot, or provided on the fly

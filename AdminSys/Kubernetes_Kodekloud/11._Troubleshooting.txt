@@ -5,3 +5,13 @@ Creation-Date: 2023-01-17T23:45:19+01:00
 ====== 11. Troubleshooting ======
 Created mardi 17 janvier 2023
 
+===== Application failure =====
+
+* Draw a chart of how app works on every microservice tier
+* Draw communication flow between microservices
+* Check accessibility for a web server : **curl http://<web-service-ip>:<node-port>**
+* Check the service : **kubectl describe service <web-service>**
+	* Check the **Endpoints**
+	* Check if the **Selector** of the service is part of the **labels** of the pod
+* Check if Pod is running : get, describe, logs **--previous**
+

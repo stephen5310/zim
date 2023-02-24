@@ -5,3 +5,63 @@ Creation-Date: 2023-01-17T23:41:49+01:00
 ====== 7. Storage ======
 Created mardi 17 janvier 2023
 
+===== Docker Storage and Volume Drivers =====
+
+* Default docker filesystem is created at [[/var/lib/docker]] with subfolders :
+	* aufs
+	* containers
+	* image
+	* volumes
+* Use layered architecture for images to avoid rebuilding layers
+* Layers are ro after build
+* The container creation creates a writable layer on top of the others and destroy it upon container destruction
+* Modifying files in the ro layer creates copy-on-write version of file
+* Volumes are used to persist data and are handled by volume drivers : Local, Azure File Storage, Convoy, Flocker, NetApp, GlusterFS
+* Can precise a volume driver when creating a container : **--volume-driver rexray/ebs**
+* Creating a volume creates a subfolder of volumes with the volume name
+* Use bind mounting to bind a directory from any location on the container
+* Docker uses storage drivers to handle bind mounting and storage : AUFS, ZFS, BTRFS, Device Mapper, Overlay, Overlay2
+* The selection of the storage driver is based on the OS
+
+===== Container Storage Interface =====
+
+* Allow k8s to support multiple storage solutions : EBS, DELL EMC, GlusterFS
+* Allows to use a set of RPCs to manage storage via container runtime : CreateVolume, DeleteVolume, ControllerPublishVolume
+
+===== K8s Volumes =====
+
+* Define volumes in pod manifest with : **.spec.volumes[*] : .name , .hostPath : .path, .type**
+* Mount volumes inside containers with : **.spec.containers[*].volumeMounts[*] : .mountPath , .name**
+* Storage types recommended are shared for multi-nodes clusters, i.e. EBS : **.spec.volumes[*] : .name , .awsElasticBlockStore : .volumeID, .fsType**
+
+==== Persistent volumes ====
+* Cluster wide pool of storage volumes created by admins
+* Users request storage from pool using Persistent Volume Claims
+* Create PV with manifest of kind PersistentVolume
+* Specify access modes (rw types) with **.spec.accessModes[*]** : options are ReadOnlyMany, ReadWriteOnce, ReadWriteMany
+* Specify the amount of storage with **.spec.capacity.storage** : 1Gi
+* Specify the volume type like previously
+* List persistent volumes with : **kubectl get persistentvolume**
+
+==== Persistent volume claims ====
+* PVC to PV is a 1 to 1 relationship : When bound, no other PVC can access PV
+* PV selection is made based on claim specs
+* Can still use labels to bind PV to PVC with **.selector.matchLabels.name**
+* Create with a manifest of kind PersistentVolumeClaim
+* List persistent volumes with : **kubectl get persistentvolumeclaim**
+* Delete persistent volume : **kubectl delete persitentvolumeclaim <name>**
+	* Define the action upon delete with **persistentVolumeReclaimPolicy**
+	* The options are : Retain(default), Delete and Recycle
+* Use in pod with **.spec.volumes[*] : .name, .persistentVolumeClaim.claimName**
+
+===== Storage classes =====
+
+* Storage is provisioned statically by default : everything is created manually step by step
+* Storage classes allow to define a provisioner that can automatically provision storage on a platform and attach it to pods when PVC is created
+* That's called dynamic provisioning
+* Create with manifest of kind StorageClass and define 
+	* **.provisioner** : The provisioner
+	* **.parameters **: The additional parameters depending on the provisioner
+* Remove the need of PV definition
+* Bind to PVC using **.spec.storageClassName**
+* Provisioners can be : GCE, AWS EBS, AzureFile, AzureDisk, CephFS ...

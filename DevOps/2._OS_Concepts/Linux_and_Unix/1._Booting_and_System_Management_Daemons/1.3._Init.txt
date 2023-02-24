@@ -1,0 +1,66 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-12T19:25:31+01:00
+
+====== 1.3. Init ======
+Created Thursday 12 January 2023
+
+* Once the kernel has been loaded and has completed its initialization process, it creates a complement of spontaneous processes in user space
+* Spontaneous because started autonomously
+* Most of them are really part of the kernel implementation (not configurable, do not require administrative attention)
+* They are reconized by their low PIDs and the brackets around their names ([pagedaemon] on FreeBSD or [kdump] on Linux)
+* The system management daemon is the exception
+* With PID 1, it usually runs under the name **''init''**
+* **''init''** has a couple of special privileges althoug it is just a user-level program like any other daemon
+
+===== Responsibilities of init =====
+
+* Makes sure the system runs the right complement of services and daemons at any given time
+* To serve this goal, **''init''** maintains a notion of the mode in which the system should be operating
+* Some commonly defined modes :
+	* Single-user : only a minimal set of FS is mounted, no services and a root shell is started on the console
+	* Multiuser : all customary FS are mounted and all configured network services have been started, along with a window system and a GUI login manager for the console
+	* Server : similar to multiuser but with no GUI
+* Modes can have associated milepost tasks that run whenever the mode begins of ends
+* For example, from bootstrapping to multiuser mode **''init''** may :
+	* Set the name of the computer
+	* Set the time zone
+	* Check disks with **''fsck''**
+	* Mount FS
+	* Remove old files from **''/tmp''** dir
+	* Configure network if
+	* Configure packet filters
+	* Sartup other daemons and network services
+* **''init''** just runs a set of commands or scripts designated for that
+
+===== Implementations of init =====
+
+* There are three main very different flavors of system management processes :
+	* The traditional **''init''** : from AT&T's System V UNIX, was predominant on linux until the debut of **''systemd''**
+	* The BSD **''init''** : from BSD UNIX and used on most BSD-based systems, quite simple in comparison with SysV-style
+	* **''systemd''** : most recent, aiming to fix all daemon and state related issues, by far most adopted, making it most controversed
+* Other less popular ones exist :
+	* **''launchd''** : used by Apple's MacOS
+	* **''Upstart''** : used by Ubuntu before adopting **''systemd''**
+
+===== Traditional init =====
+
+* System modes are known as run levels and most of them are denoted by a single letter or digit
+* Its standard and fixed conf never changes
+* That conf points to a second tier of shell scripts that change run levels and let admins make conf changes
+* The second layer of scripts maintains a third layer of daemon and system specific scripts
+* Those are cross-linked to run-level-specific directories that indicate what services are supposed to be running at what run level
+* No general model of dependencies among services
+* Requires that all startups and takedowns be run in a numeric order maintained by the admin
+* Later actions cannot run until everything ahead of them has finished
+* Impossible to execute actions in parallel
+* Takes long time to change states
+* Not really powerful enough to handle the needs of modern sytems
+
+===== Transition to systemd =====
+
+* **''systemd''** takes all the **''init''** features and formalizes them into a unified field theory of how services should be configured, accessed and managed.
+* Like a package management sytem, it defines a robust dependency model among services but also among targets (**''systemd''** term for run levels)
+* **''systemd''** in addition to managing processes in paralle, manages network connections (**''networkd''**), kernel log entries (**''journald''**) and logins (**''logind''**)
+* **''systemd''** delivers some value by eliminating a few of the unnecessary differences among Linux distros
+* Some systems targeting small installation footprint would prefer to use **''init''**
