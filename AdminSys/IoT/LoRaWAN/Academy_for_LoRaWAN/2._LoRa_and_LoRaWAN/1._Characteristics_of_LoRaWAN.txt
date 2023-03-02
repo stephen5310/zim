@@ -1,0 +1,83 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-01T15:31:58+01:00
+
+====== 1. Characteristics of LoRaWAN ======
+Created mercredi 01 mars 2023
+
+===== Characteristics =====
+
+* LoRa is at the physical layer while LoRaWAN is at Data Link, Network and Session layers
+	* Long range (2-3 km (1-2miles) urban, >5 km (3 miles) suburban, >50 km (30 miles) with visual line-of-sight)
+	* Long battery life (>1 years)
+	* Low data rate (0.3 – 50 kbps) :
+		* LoRa Modulation : 0.3 - 11 kbps
+		* FSK Modulation : 50 kbps
+		* High DR cause small SF and high probability of packet loss
+		* Low DR cause high SF, longer Time on Air, Higher power consumption, longer range, reduces GW capacity
+	* Operates in the unlicensed spectrum
+	* Geolocation support
+* It is a software standard that specifies the data packet format and the way they are processed by the network and the end devices
+* LoRaWAN network high level components are :
+{{.\pasted_image001.png}}
+* LoRaWAN specifies the mechanisms that are carried out by these components :
+	* Configuring the radio parameters such as data rates, enable channels, timing, settings, device activation, message integrity checking, session management, app payload encryption
+* Frequencies are below 1GHz of the ISM band :
+	* Europe :
+		* EU 868 (863 - 870)
+		* 8 channels up to 5.5 kbps
+		* 1 channel up to 11 kbps
+		* 1 channel up to 50 kbps with FSK modulation
+		* 3 fixed channels that must be supported by all devices and networks to allow any device to join any network
+		* Duty Cycle Limitations :
+			* Can only send data for a limited amount of time per hour
+			* Channel duty cycles : 0.1%, 1% or 10%
+			* The latter is often used by GWs to serve a large number of devices
+	* United States :
+		* US 915 (902 - 928)
+		* 64 channels
+		* Dedicated uplink and downlink channels
+		* Dwell Time / Transmission Time / Time on Air < 400ms
+	* During the join procedure, the network can instruct the devices to use additional channels
+	* Fixed limits on transmission power per channel band :
+		* Japan : Listen-Before-Talk
+* No pairing between devices and GWs :
+	* No handover from cell to cell needed
+* Roaming refers to communication between NS that allows devices to operate on net they are not registered with
+* Two kinds of roaming are supported :
+	* Active roaming : a device's home network actively hands-over communications to the NS local to where the device has moved
+	* Passive roaming : the local NS simply forwards packets to a device's home NS
+
+===== Network Architecture and Data Flow =====
+
+==== Physical Infrastructure ====
+* Made of devices that send and receive data to and from GWs that are connected to the internet
+* Devices are small pieces of hardware that can send and receive data via a LoRa Radio
+	* Have a kind of sensing capability and computing power, and can last on a small battery for months to years
+	* Can communicate bidirectionnaly
+	* Operate in 3 types of classes depending on when they can receive downlink messages
+	* We choose the device class based on power consumption and acceptable latency for downlink messages
+	* Can change operational modes at any time
+	* All devices are compliant with class A :
+		* Can send messages at any time (uplinks)
+		* Can receive messages only after sending (RX window)
+		* Always initiates communication to go into deep sleep mode between transmitions
+		* Most battery-efficient operational mode
+	* Class B devices :
+		* Can receive messages at specific time intervals
+		* Consume more energy than class A (must wake-up from deep sleep on a set schedule)
+		* Uses beacons to sync time intervals with network
+	* Class C devices :
+		* Can receive messages at any time
+		* Most energy consuming class (no deep sleep)
+* Gateways / Hotspots / Access Points :
+	* Forward messages from device to network server & vice versa
+	* Demodulate received signals to a binary buffer, then send it through it backhaul (normal internet connection i.e. Ethernet / wifi / cellular)
+	* Includes metadata (RSSI, SNR, ToA, Channel, DR) when forwarding messages
+	* Are transparent as all the network mechanisms are performed by NS, AS and JS
+	* Receive data packets from all end devices in range and send them to NS, including the ones not associated with the network
+	* In case of roaming, the NS will receive data from the device from another NS and then decide to transfer to home NS or drop if there is no roaming agreement
+	* Handle thousands of devices
+	* Listen on multiple channels simultaneously
+	* Typically support 8, 16 or 64 channels
+	* Align with the regional parameters of the LoRa Alliance

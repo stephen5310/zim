@@ -1,0 +1,70 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-01T08:14:32+01:00
+
+====== 1. Intro to IoT ======
+Created mercredi 01 mars 2023
+
+===== Definition of IoT =====
+
+* Networked objects that collect data from the world and share via internet for processing and various usages
+* It combines computer, sensors and networks to monitor and control devices
+
+===== Challenges of IoT Connectivity =====
+
+* Short-range wirless :
+	* Bluetooth : Connecting smartphone to car
+	* Wi-Fi : Smart home devices (thermostat, alarm, entertainment systems)
+* Long-range wireless :
+	* LPWAN : asset tracking, utility usage monitoring
+==== Challenges ====
+* Devices need to be able to exchange data via a cloud :
+	* Dead zones not covered by cellular or wifi : some buildings, remote areas, transiting
+* Devices need low power consumption :
+	* Cellular and wifi require a considerable amount of power
+* Network installation and maintenance costs :
+	* Wifi and cellular operational expenses for industries are high
+* A LoRaWAN solution allows to contract with a LoRaWAN net provider or build a scalable network that includes data and security features
+
+==== Wireless Connectivity Options ====
+
+* Key Factors in Wireless Communication :
+	* Range
+	* Bandwidth / Data Rate
+	* Power Consumption
+
+{{.\pasted_image.png?width=500}}
+* LPWAN :
+	* Low power : single battery for years
+	* Long-range communication : urban ( 2-5 km ) and rural ( 10+ km )
+* Popular LPWAN technos :
+	* Sigfox : 2009
+		* Cover several countries in the world
+		* Unlicensed sub-gigahertz spectrum
+		* Chirp Spread Spectrum radio modulation
+		* Robust to interference
+	* Narrowband-IoT (NBIoT) : 3GPP standard
+		* Licensed spectrum
+		* Requires SIM card
+		* Complex protocol
+		* Operated by telecom companies
+	* LoRa : 
+		* First general purpose and low-cost modulation
+		* Intended for global and commercial use
+		* Unlicensed sub-gigahertz spectrum
+		* Chirp Spread Spectrum radio modulation
+		* Robust to interference
+
+===== Data and Business Opportunities =====
+
+* Data collected can have wide variety of use cases
+* Agriculture
+* Buildings
+* Cities
+* Metering of electricity, Gas, Water
+* Environment
+* Healthcare
+* Homes and Buildings
+* Industrial Control
+* Retail
+* Supply Chain and Logistics

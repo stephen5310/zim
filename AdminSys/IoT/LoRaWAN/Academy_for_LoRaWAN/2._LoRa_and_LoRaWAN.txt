@@ -1,0 +1,54 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-01T08:14:50+01:00
+
+====== 2. LoRa and LoRaWAN ======
+Created mercredi 01 mars 2023
+
+===== LoRa and its usefulness =====
+
+* Allows low cost battery-powered devices to send small packets of data over a long distance
+* Chirp Spread Spectrum modulation for long range and robustness
+* Data rate is low and varies from 300bps to 11kbps :
+	* Maximum packet size depends on Region
+	* In Europe it is 222bytes at a high data rate and 51bytes at a low data rate
+	* Useful to send behavior data to devices and receive data from sensors
+* End devices can send data at any time because GWs are always listening :
+	* Network serve can send data to end devices during Receive (RX) windows
+	* End devices can be put into deep sleep mode to conserve battery power
+	* Can configure end device to listen continuously
+	* Can configure time slots when a given number of devices listen to data from the network
+* Geolocation with triangulation :
+	* Devices send the same signal to every GW in range
+	* GWs sync with GPS timestamp the packet with the Time Of Arrival (TOA)
+	* GWs transmit packets to NS along with metadata, TOA, RSSI, SNR
+	* NS calculates location with data received when at least 3 GWs received the same packet
+	* Less accurate than GPS but less power consuming and more efficient in asset tracking
+
+===== LoRa Alliance =====
+
+* Open, non-profit organization of members from IoT ecosystem across the entire LPWAN value chain
+* Membership types are Sponsors, Contributors, Adopters and Institutional
+* Founded in 2015
+* Develops and maintains the LoRaWAN standard, a carrier-grade IoT LPWAN connectivity
+* LoRaWAN is formally recognized as an ITU (International Telecommunication Union) International Standard for LPWANetworking
+{{.\pasted_image.png?width=800}}
+* LoRaWAN Certification program helps ensure devices adhere to standard
+* Look for LoRaWAN Certified mark
+
+===== Use and Constraints of the ISM Band =====
+
+* Use of the band reserved internationally for industrial, scientific and medical devices
+* Radio frequency spectrum usage is regulated by organisations or governments :
+	* America : 915MHz
+	* Europe : 433MHz and 868MHz
+	* Asia : 923 MHz
+	* Pacific : 433MHz and 915MHz
+* Many countries have no authorities to regulate radio spectrum usage
+* For a proper deployment of LoRaWAN worldwide, some regulations must be made in those countries
+* Regulatory requirements define :
+	* Frequencies
+	* Transmit power and power configurations
+	* Frequency hoping requirements
+	* Duty or dwell time restrictions
+	* Wether Listen Before Talk (LBT) is required

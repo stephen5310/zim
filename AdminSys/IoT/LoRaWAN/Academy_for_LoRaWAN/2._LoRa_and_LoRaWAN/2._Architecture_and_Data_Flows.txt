@@ -1,0 +1,66 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-01T15:33:15+01:00
+
+====== 2. Architecture and Data Flows ======
+Created mercredi 01 mars 2023
+
+===== Key components =====
+
+There are four key components to the architecture of any LoRaWAN network:
+* End Devices (also referred to as nodes)
+* Gateways (also called base stations)
+* Network Server
+* Application Server
+* End to end diagram of the LoRaWAN architecture and data flow
+{{.\pasted_image.png}}
+LoRaWAN End-to-End Data Flow
+
+===== Communication =====
+
+==== Uplinks ====
+* End device transmits a message that is received by all gateways within radio range
+* Gateways forward the message to the network server
+* Network server consolidates all messages and creates a single message that includes the received signal quality from each gateway
+* Network server then forwards the message to the appropriate application server, based on the end-device address
+* Application server decrypts payload data
+ 
+
+==== Downlinks ====
+* Application server encrypts payload and forwards it to the network server
+* Network server selects the best gateway and then sends a response to it for transmission down to end device
+
+==== Multiple access method ====
+* LoRaWAN networks, primarily, use the **Aloha** method for communication between end devices and their associated network servers. The Aloha method is a random-access protocol that allows simultaneous transmission of data by End Devices using the LoRaWAN protocol and is a simple communication technique where each individual End Devices have equal priority and operate independently.
+
+* Using this Aloha method, end devices send data through a gateway to the network server only when one or more of their sensors notice a particular change in their environment or when some other event is triggered, such as a timer expiring. After the end device sends the uplink, it “listens” for a response message from the network for a short time after the uplink before going back to sleep.
+
+* End devices spend most of their time asleep. During this time, they generally consume less than one microampere of energy. This power-saving approach ensures that applications can achieve a lifespan of 10 to 15 years on a very small battery. In contrast, a Time Division Multiple Access (TDMA) approach, used on non LoRaWAN devices, requires synchronization, which has an associated energy cost for end devices because they need to be awake and broadcasting to ensure they remain synchronized.
+
+For example, as shown in the first diagram below, in a LoRaWAN network, end devices (illustrated by the colored icons) broadcast packets to a network asynchronously.
+ {{.\pasted_image001.png}}
+LoRaWAN Architecture Components: End Devices
+
+Next, packets broadcast by end devices are picked-up by one or more gateways within the network, as illustrated here:
+{{.\pasted_image002.png}}
+LoRaWAN Architecture Components: Gateways pick up packets sent by end devices
+
+==== Network Server ====
+* As we move through this diagram, you’ll see the backhaul connection between the gateways and the network server. This is usually an Ethernet backhaul, but many deployments use a 3G, 4G, or 5G Cellular backhaul. Furthermore, some companies in the LoRaWAN ecosystem use a satellite backhaul for remote locations, such as those without Cellular coverage. The beauty of LoRaWAN is that it makes few demands on what technology is used for a backhaul.
+
+* Continuing to build on this diagram, we see that the Network Server is the central component of any LoRaWAN network. It carries all the intelligence required for managing the network and dispatching data to other servers.
+{{.\pasted_image003.png}}
+Central Compoent of a LoraWAN Network: the Network Server
+
+The network server is responsible for:
+
+* Message Consolidation: Multiple copies of the same data packet may reach the network server via multiple gateways. The network server must keep track of these, analyze the quality of the packets received, and inform the network controller.
+* Routing: For messages sent from the server to an end device (downlinks), the network server decides the best route for sending messages to a given end device. Typically, this decision is based on a link quality indication that is calculated based on the Received Signal Strength Indication (RSSI) and the Signal-to-Noise Ratio (SNR) of the previously-delivered packets. However for regions that have a duty cycle restriction the decision to use a specific gateway could be changed if the gateway has exhausted its transmit (TX) duty cycle, resulting in the next best gateway being used.
+* Network Control: The link quality can also help the network server decide the best spreading factor (i.e.,  communication speed) for a given end device by implementing the Adaptive Data Rate (ADR) functionality, which is managed by the network controller. (For more information on ADR, see Understanding the LoRaWAN Adaptive Data Rate.)
+* Network and Gateway Supervision: Gateways typically connect to the network server via an encrypted Internet Protocol (IP) link. Similarly, the network usually has a gateway commission and supervision interface allowing network providers to manage their gateways, handle breakdown situations, monitor alarms, etc.
+In addition, the network server communicates with other servers to organize roaming among networks, links to application servers, and more.
+
+==== Application Server ====
+The LoRaWAN protocol is designed to support different types of network deployments. The network server(s) and application server(s) are logical entities that may be collocated or not depending on the deployment. For example, in cases when the network provider and the application provider are the same entity the network server and application server might be collocated/integrated.
+{{.\pasted_image004.png}}
+Complete Data Flow: Sensor data reaches the Application Server
