@@ -59,3 +59,9 @@ La synchronisation échoue parfois ce qui cause des incohérances.
 ==== #87972 ====
 
 * Redémarrage du lrc1 ne marchait pas : binaire lrcinit modifié
+
+===== SPOC =====
+
+* Conseiller dédié qui répond à toutes leurs questions
+* Demander les informations si on ne les a pas
+* Utiliser un JIRA pour mesurer le temps
