@@ -51,6 +51,9 @@ La synchronisation échoue parfois ce qui cause des incohérances.
 
 ===== SPOC =====
 
+* Conseiller dédié qui répond à toutes leurs questions
+* Demander les informations si on ne les a pas
+* Utiliser un JIRA pour mesurer le temps
 * Single point of contact
 * Répondre aux how-tos et aux why
 * Accompagner dans des projets
