@@ -41,11 +41,6 @@ Préprod :
 Labs :
 
 
-
-
-Régis Emmanuel : Exploitation et contact clients
-Follet Romain : Développement
-
 ===== Live Objects =====
 
 Interface d'Orange pour les clients finaux à laquelle Actility n'a pas accès.
@@ -54,8 +49,14 @@ Utilise les APIs de ThingPark.
 Des scripts sont exécutés chaque nuit pour synchroniser les contenus Live Objects et TPE.
 La synchronisation échoue parfois ce qui cause des incohérances.
 
-===== Tickets =====
+===== SPOC =====
 
-==== #87972 ====
-
-* Redémarrage du lrc1 ne marchait pas : binaire lrcinit modifié
+* Single point of contact
+* Répondre aux how-tos et aux why
+* Accompagner dans des projets
+* Réponses en moyenne sous 10 jours P1, moins que ça P0, plus que ça P2 et plus
+* SPOC 56 : dire quel script est exécuté à quelle heure et ce que le script fait
+* SPOC 57 : donner les réponses aux questions sur les UDRs
+* SPOC 58 : la procédure est propre à Orange, voir Julien responsable du provisioning chez Orange
+* Présentation de l'outil Zoho la semaine prochaine (Jeudi 15H)
+* Faire une base de connaissances pour Orange avec de documents propres à eux

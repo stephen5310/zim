@@ -5,7 +5,21 @@ Creation-Date: 2021-10-29T15:17:22+00:00
 ====== 1. Tricks ======
 Créée le vendredi 29 octobre 2021
 
-===== Ajouter des modifications à un commit sans faire un nouveau commit si on n'a pas encore fais de push =====
+* Git is a key/value store
+* Files are added with SHA1 as key and filename as value
+* Two types of command
+* Porcelain commands are easy to remember : **add, status, commit, stash, ...**
+* Plumbing commands give access to the internals : **hash-object, ls-files, rev-parse, ls-remote ...**
 
-git commit --amend --no-edit
+===== Git file adding mechanism =====
 
+==== Hash a file ====
+* Hashes file like this command does : **git hash-object <file_path>**
+* Creates subdir of [[~./git/object]] with the first two letters of hash as the name
+* Created dir contains the hash of the file
+* Cat file content with : **git cat-file -p <hash_1st_six_letters>**
+* Cat commit content with : **git cat-file -p <commit_hash>**
+==== Objects in object folder ====
+* Object types are : **commit, tree, blob**
+* Tree : folder on FS associated with repository
+* Pieces of data

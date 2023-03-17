@@ -5,6 +5,8 @@ Creation-Date: 2023-01-17T23:45:19+01:00
 ====== 11. Troubleshooting ======
 Created mardi 17 janvier 2023
 
+https://kubernetes.io/docs/tasks/debug/debug-cluster/
+
 ===== Application failure =====
 
 * Draw a chart of how app works on every microservice tier
@@ -15,3 +17,58 @@ Created mardi 17 janvier 2023
 	* Check if the **Selector** of the service is part of the **labels** of the pod
 * Check if Pod is running : get, describe, logs **--previous**
 
+===== Control plane failure =====
+
+* Check Node Status
+* Check Pods Status
+* Check Controlplane Pods
+* Check Controlplane Services
+* Check Controlplane components logs
+
+===== Worker Node failure =====
+
+* Check Node Status
+* Describe Nodes for Flag infos : Unkown for unavailability due to crash
+* Check resources usage on Node
+* Check kubelet logs and certificates
+
+===== Network Troubleshooting =====
+
+==== DNS ====
+* Use of CoreDNS
+* CoreDNS memory usage is affected by :
+	* Number of Pods and Services
+	* Size of the filled DNS answer cache
+	* Rate of queries received (QPS) per CoreDNS instance
+* Resources for CoreDNS are :
+	* ServiceAccount coredns
+	* ClusterRoles coredns and kube-dns
+	* ClusterRoleBindings coredns and kube-dns
+	* Deployment coredns : the Corefile plugin configuration is defined as a configmap
+	* Configmap coredns
+	* Service kube-dns
+* Port 53 is used for DNS resolution
+* Domain cluster.local and reverse domains are served
+* Pods in pending state if network plugin not installed
+* Pods in CrachLoopBackOff or Error if :
+	* SELinux is activated and an old version of docker is installed :
+		* Upgrade docker / Disable SELinux / Modify coredns deployment so set allowPrivilegeEscalation to true
+	* CoreDNS detects a loop in DNS resolution :
+		* Change kubelet config yaml option resolvConf to pass an alternate or the real resolv.conf to pods
+		* Disable the local DnS cache on host nodes and restore [[/etc/resolv.conf]] to the original
+		* Edit the Corefile to replace **. [[/etc/resolv.conf]]** with the IP address of the upstream DNS : **. 8.8.8.8**
+* If CoreDNS pods and kube-dns service is working fine, check the kube-dns service has valid endpoints
+* If there are no endpoints for the service, inspect it and make sure it uses the correct selectors and ports
+
+==== Kube-proxy ====
+* Maintains network rules on nodes
+* Watches services and endpoint associated with each
+* Responsible of sending traffic from service to actual pods
+* Deployed as daemonset : **kubectl describe ds kube-proxy -n kube-system**
+* Command run in container : **[[/usr/local/bin/kube-proxy]] --config=/var/lib/kube-proxy/config.conf --hostname-override=$(NODE_NAME)**
+* Can define in the config file the **clusterCIDR**, **kubeproxy mode, ipvs, iptables, bindaddress, kube-config**, etc.
+* Check if kube-proxy pod in the kube-system ns is running
+* Check kube-proxy logs
+* Check configmap is correctly defined and the config file for running kube-proxy binary is correct
+* Check kube-config is defined in the config map
+* Check kube-proxy is running inside the container

@@ -1,0 +1,150 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-09T11:34:08+00:00
+
+====== 0. Basics ======
+Créée le Thursday 09 March 2023
+
+===== Basic commands =====
+
+==== Initialize a repo ====
+* Command : git init <dir>
+* Creates a .git dir inside repo dir
+
+==== See status ====
+* Command : **git status**
+* Shows :
+	* The name of the branch we are working on
+	* The commits
+	* The tracked and untracked files
+	* The files added to commit
+
+==== Put file in staging area ====
+* Command : **git add <file>**
+* Adds file to staging for the branch we are working on
+
+==== Configure user infos for commits ====
+* Configure user name : **git config user.name <name>**
+* Configure user email : **git config user.email <email>**
+
+==== Commit changes in staging area ====
+* Command : **git commit -m <message>**
+* Compares the state of the repo branch to its previous state to record changes
+* Allows to go back to a specific commit where the branch was in a specific sate
+
+==== Modify a commit message ====
+* Command : **git commit --amend <commit-hash>**
+* Allows to change commit message
+
+==== Cancel a commit ====
+* Command : **git revert <commit-hash>**
+* Creates a new commit that undoes the specified commit (cancels all modifications)
+* Reverted commit is still present, can still go back to it
+
+==== Cancel all commits after a specific one ====
+* Command : **git reset --hard <commit-hash>**
+* Really deletes all commits after the specified one, no way to retrieve them
+
+==== Ignore files in tracking ====
+* Create an .gitignore file anywhere in the repository, specifying paths to files to ignore
+
+==== See all commits and details about them ====
+* Command : **git log**
+* Hide details with : **git log --oneline**
+* List the names of changed files : **git log --name-only**
+* Limit number of commits to show : **git log -n <number>**
+* See commit history of the branch we're on in a graph : **git log --graph --decorate**
+
+==== Manage branches ====
+* Create branch : **git branch <branch>**
+* Create branch and switch to it : **git checkout -b <branch>**
+* A branch is basically a pointer to the last commit
+* List branches : **git branch**
+* List branches with remote ones : **git branch -a**
+* Switch to branch : **git checkout <branch>**
+* Delete branch : **git branch -d <branch>**
+* **HEAD is a specific commit we are working on : by default the latest commit of the branch we are on**
+* Merge branches :
+	* Checkout to branch on which the merge will have effects : **git checkout <destination_branch>**
+	* Execute command to merge with the intended branch : **git merge <to_merge_branch>**
+	* Merge is **fast-forward** if the destination branch has no extra commits compared to the to_merge_branch (just rewrite the commits to destination branch)
+	* Merge is **no-fast-forward** if the destination branch has extra commits compared to the to_merge_branch :
+		* Git creates a new merging commit on destination branch which points after all the commits of the two branches
+
+==== Remote repositories ====
+* Connection string shows to git where to find the repository : **https://<server_name>/<user_name>/<repo_name>.git**
+* Add remote to a local project with : **git remote add <alias> <connection_string>**
+* A alias commonly used is **origin**
+* A project can have multiple remotes
+* List remotes with : **git remote -v**
+* Push data from local to remote (creates branch on remote if not created) : ** git push <remote_alias> <current_branch>**
+* Clone remote : **git clone <ssh-link>**
+* Update the local repo branch with changes on remote branch :
+	* Boresome way : **git fetch <remote_alias> <branch> && git merge <remote_alias>/<branch>**
+	* Cool way : **git pull <remote_alias> <branch>**
+
+==== Pull Requests ====
+* It is not recommanded to push directly to the desired branch on remote
+* We usually work on a separate branch and push work to remote on that branch
+* When our branch is ahead of remote desired branch from at least one commit, we can submit a pull request to merge it into desired branch
+* We can add infos, reviewers, assignees, labels, etc
+
+==== Merge conflicts ====
+* Some lines are different between the HEAD and the branch that we want to merge
+* By default git indicates the differences in files with :
+	* The HEAD lines : between **<<<<<<< HEAD** and **========**
+	* The incoming branch : between **========** and **>>>>>>>> branch**
+* To resolve we have to : 
+	* Delete the lines we don't want to keep and save the concerned files
+	* Add the concerned files to staging again, commit and merge with : **git merge**
+
+==== Fork ====
+* Contribute to project by 
+	* Forking (copying project)
+	* Creating a branch to work on
+	* Submit a pull request to the original project to merge changes
+
+==== Rebasing ====
+* Putting one branch on top of another :
+	* Switch to the branch to put on top
+	* Execute the command : **git rebase <branch_to_add>**
+	* It adds the missing commits before the latest commit of the branch
+* Difference with merge is :
+	* Merge does not modify the commits history, nor hashes
+	* Rebasing modifies git history by creating a new hash for the commit added on top
+	* There is also no merge commit or no trace of a rebase operation
+* Allows to modify commit history interactively
+	* Rebase the last 4 commits : **git rebase -i HEAD~4**
+	* Squash them into one : select destination commit with **pick** and commits to squash with **squash**
+	* Save the file
+* Rebase to avoid merge conflict :
+	* Checkout to the branch to update
+	* Check status of the branch
+
+==== Cherry pick ====
+* Allows to pick a commit on a branch to add it on another
+* Checkout to the branch and execute the command to add the commit : **git cherry-pick <commit-hash>**
+
+==== Revert ====
+* Creates a commit to revert the changes of another by undoing all the changes (deleting files if necessary)
+* Useful to undo changes and keep changes in git history
+* Execute command : **git revert <commit-hash>**
+
+==== Reset ====
+* Soft reset keeps the changes
+	* Reset the latest commit but keep the changes : **git reset --soft HEAD~1**
+	* See the changes, they can be commited again : **git status**
+* Hard reset definitely loses the changes : **git reset --hard HEAD~1**
+
+==== Stash ====
+* Allow to save changes in staging without commiting them in order to switch branches
+* Add changes from staging to the stash stack : **git stash**
+* Changes can pile-up in the stash stack for each stash command executed
+* List the stash stack with : **git stash list**
+* See content of a stash : **git stash show stash@{<stash_number>}**
+* Unstack the changes back to staging with : **git stash pop**
+* Pop a specific stash : **git stash pop stash@{<stash_number>}**
+
+==== Reflog ====
+* Shows all the actions taken on a repo
+* Allows to undo action by using action hashes : **git reset --hard <commit-hash>**

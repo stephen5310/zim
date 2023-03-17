@@ -5,3 +5,39 @@ Creation-Date: 2023-01-17T23:45:30+01:00
 ====== 12. Other topics ======
 Created mardi 17 janvier 2023
 
+===== JSON PATH =====
+
+==== Basics ====
+* Used to query yaml or json outputs
+* The top level dictionnary is represented by $
+* Output of JSONPATH is always an array
+* To filter an array of literals based on a criteria :
+	* Get all numbers greater than 40 : **$[ ?( @ > 40 ) ]**
+	* Operators are equal (==), different (!=), in (in [array]), not in (nin [array])
+* To filter an array of dictionnaries based on a criteria :
+	* Get the model of the rear-right (location) wheel : **$.car.wheels[ ?( @.location == 'rear-right' ) ].model**
+	* **Utiliser des simples quotes oh !!! : @.location == 'rear-right'**
+	* **Doubles quotes "" marche pas oh !!!**
+
+==== Advanced ====
+* Get all subproperties of elements in a dict : **$.*.property**
+* Get all subproperties of dicts in list/array : **$.[*].property**
+* Get list/array slices :
+	* 1st and 4th elements : **$[0,3]**
+	* All 1st to 3rd elements : **$[0:3]**
+	* 1st to 7th e=customlements with even indexes : **$[0:8:2]**
+	* Last element : **$[-1] or $[-1:0] or $[-1:]**
+	* All elements from 6th element till the end : **$[6:]**
+
+==== K8s use case ====
+* Change kubectl output to jsonpath : 
+	* Identify the kubectl command giving the info wanted : **kubectl get pods**
+	* Change output to JSON to view info : **kubectl get pods -o json**
+	* Form jsonpath query  to retrieve info : **kubeclt get pods -o=jsonpath='{ .items[0].spec.containers[0].image }'**
+	* Query data multiple times : **kubectl get nodes -o=jsonpath='{.items[*].metadata.name}{.items[*].status.capacity.cpu}'**
+	* Add newline (\n) : **kubectl get nodes -o=jsonpath='{.items[*].metadata.name} {"\n"} {.items[*].status.capacity.cpu}'**
+	* Loop nodes and print name tab cpu count : **kubectl get nodes -o=jsonpath='{range .items[*]} {.metadata.name} {"\t"} {.status.capacity.cpu} {"\n"} {end}'**
+	* Use custom-columns for a column with node name and one with cpu count : **kubeclt get nodes -o=custom-columns=NODE:.metadata.name ,CPU:.status.capacity.cpu**
+	* Sort nodes by name : **kubectl get nodes --sort-by= .metadata.name**
+	* **Utiliser des simples quotes oh !!! : @.location == 'rear-right'**
+	* **Doubles quotes "" marche pas oh !!!**
