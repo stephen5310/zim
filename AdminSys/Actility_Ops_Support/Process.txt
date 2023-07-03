@@ -80,6 +80,16 @@ Created jeudi 27 janvier 2022
 
 ==== Génération, révocation, renouvellement de certificats ====
 
+=== Extraction de la liste des GWs avec certificats sur le point d'expirer ===
+* Se connecter à SQL2 prod eu
+ssh 10.112.25.10
+* Liste des GWs provisionnées sur EU
+mysql -u root -pactility twa -e "select lrrID from BaseStation INTO OUTFILE '/tmp/lrrID-BS-EU-log.txt'"
+* Liste des GWs Swisscom en LRR ID avec certificat actif 
+mysql -u root -pactility ejbca -e "select subjectDN, FROM_UNIXTIME(expireDate/1000),status from CertificateData where subjectDN like '%Swisscom%'and status=20 order by expireDate asc INTO OUTFILE '/tmp/lrrID-BS-Cert_active_swisscom.txt'"
+* Filtre des GWs Swisscom uniquement dans la liste
+grep -f /tmp/lrrID-BS-EU-log.txt /tmp/lrrID-BS-Cert_active_swisscom.txt > swiss_cert_all_last.csv
+
 === Ancienne façon ===
 * créer le fichier csv avec le format approprié en utilisant les LRRID
 * copier le fichier sur le RCA (10.112.13.112) s'y connecter par SSH
@@ -203,7 +213,9 @@ lrr shell <lrrid> dngentar -T fpgaup_61 ?
 6. ./fpga_flash_loader -b 0 -d /dev/spidev2.0 -w -i -f GW2_CYCLONEV_v61_DSP_v37_SX1388-F11-FOXCONN.jic
 
 === For Multitech ===
-* Reinstall image
+
+cd /usr/lib/mts-flash-binaries/
+mts-fpga-loader -i mtcap-fpga-v31.hex
 
 ==== Decryption on GW ====
 '''
@@ -240,6 +252,7 @@ echo "$PASS" | openssl enc -aes-256-cbc -base64 -d -pass pass:"${KEY}+${ID}" | a
 ==== Connexion au lab d'Actility pour tester l'image ====
 
 * se connecter au wiki [[https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product Group Portal/Ecosystem Base Station/BS LAB/]] pour voir les instructions et les liens
+
 * accéder à l'inventaire par le lien Ecosystem GW LAB Inventory pour sélectionner et réserver une GW libre sur une période
 * la réservation se fait en ajoutant une entrée comme  (Stephen 3 - 7 Jan) sur la ligne du lab de la GW en question dans la feuille de calcul Booking Timetable
 * accéder à la GW en passant par l'un des serveurs de lab (main lab par exemple) pour bénéficier de sa connexion avec un clable série aux GW
