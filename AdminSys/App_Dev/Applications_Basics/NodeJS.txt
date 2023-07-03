@@ -1,0 +1,39 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-23T10:37:12+00:00
+
+====== NodeJS ======
+Créée le Thursday 23 March 2023
+
+===== Generalities =====
+
+* Javascript is the programming language for  web interfaces
+* It is client side only
+* It allows to build interactive websites with animation and even games
+* Variants of JS are jQuery, Angular, React, VueJS, emberJS
+* NodeJS brought JS to server side
+* Distinguishes from the others by the ability to handle a large number of concurrent connections by implementing a non-blocking i/o model
+* Install by following https://nodejs.dev/en/learn/how-to-install-nodejs/
+* See version : **node -v**
+* Run code : **node app.js**
+
+===== NPM =====
+
+* Allows to develop reusable packages and share them
+* Check version : **npm -v**
+* Search package : **npm search package_name**
+* Install package : **npm install package_name**
+	* Packages are stored under **node_modules/package_name** subdir of execution dir
+	* The code of the package is under the **node_modules/package_name/lib** dir
+	* Metadata is in **node_modules/package_name/package.json** file
+* Packages can be installed for only one app, or for all apps on system with : ** npm isntall package -g**
+* Package can be imported in code with : **var package_variable = require("package");**
+* Package can be used in code with : **package_variable.function(params)**
+* List the paths where node look for package : **node -e "console.log(module.paths)"**
+* Two types of modules :
+	* Built-in 
+		* Installed alongside with node [[/usr/lib/node_modules/]][[/usr/lib/node_modules/npm/node_modules|npm/node_modules]]
+		* Examples are fs, http, os, events, tls, url
+	* External
+		* Installed with npm in [[/usr/lib/node_modules/]]
+		* Dependencies are listed in **package.json**

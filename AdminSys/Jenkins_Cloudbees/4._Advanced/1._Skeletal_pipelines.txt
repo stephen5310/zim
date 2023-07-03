@@ -1,0 +1,86 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-16T14:05:12+00:00
+
+====== 1. Skeletal pipelines ======
+Créée le Friday 16 June 2023
+
+* Do not code arbitrary networking and computational tasks into the pipeline itself
+* Use tools like Maven, Gradle, NPM, Ant and Make to do the majority of the build work
+* Use scripts written in Shell, Batch or Python for other related taks
+* Call these executables as steps in the pipeline
+* Declarative pipeline keeps the complex logic of individual steps separate from the pipeline itself
+* It make the pipeline code clean to read
+* The scope is in most cases to build, test and deploy app
+* Use two pipelines when you want them to be able to operate independantly, for example :
+	* One to build, test and stage app; another to run the release flow
+	* One to build, test, stage and deploy; another to do infrequent maintenance tasks such as re-indexing a db
+===== Creation using Blue Ocean =====
+
+* One stage corresponds to one part of the CD process
+* A stage includes steps to define tasks
+* Any non-setup work should occur within a stage block
+* The pipeline code executes on the Master node
+* Most of the code inside stage blocks executes on agent nodes
+* Pipeline logs are part of the artifacts : pipeline.log
+* Commit to a branch other than master is a best practice
+* Set env vars in pipeline settings
+
+==== Artifacts and fingerprints ====
+* Artifacts are deleted after pipeline completion unless you archive them :
+* Patterns for archiving : 
+	* my-app.zip : a zip file at the workspace's root
+	* images/*.png : all png files inside images dir
+	* target/**/*.jar : all jar files recursively under target dir
+* In code you can add inside a step section :
+	* archiveArtifacts(artifacts: 'target/*.jar', fingerprint: true)
+* Artifacts can be archived in the **post** section or at the end of the stage that generated them
+* The are stored at : http://${JENKINS_URL}/job/${YOUR_JOB}/${BUILD_NUMBER}/artifact
+* They can be published to an artifact repository such as Artifactory, Nexus, etc
+* Use the **Copy Artifact Plugin** to copy artifacts from one project to another
+* Configure Artifact retention policy in Project/Pipeline definition with the **Discard Old Builds** option
+
+==== Parralel stages ====
+* Parallel stages can reduce the execution time for the pipeline :
+	* Builds for different target arch, OS, software versions, ...
+	* Builds and tests of independant modules
+* A stage can use **steps** or **parallel** at the top level, it cannot use both
+* A stage within a parallel stage can contain agent and steps sections
+* A parallel stage cannot contain agent or tools because they are not relevant without steps
+* By default if one stage fails, the others continue to execute : Add **failfast true** to force all to abort if one fails
+* Usually Jenkins launches parallel stages to the last node on which it or a similar stage executed :
+	* Multiple parallel steps may run on the same node while others are idle
+	* Use the **Least Load Plugin** to replace the default load balancer with one that schedules new stages to nodes with least load
+* A very large number of parallel stages may degrade performance :
+	* Medium-sized pipelines may fail during compilation with "**Method code too large**" or "**Class too large**" errors
+==== Trigger builds after commit ====
+* Tick the **GitHub hook trigger for GITScm polling** option in Build Triggers in project configuration
+* Configure a **webhook** on github for the specific repository, pointing to the jenkins server : http://${JENKINS_URL}:8080/github-webhook/
+
+==== Build tools ====
+* Most commonly used are make, ant, maven, gradle and npm
+* Plugin must be installed, and a name must be given to the install
+* Call tools in pipeline :
+	* On linux : **sh '<tool_name> [options and args]'**
+	* On windows : **bat '<tool_name> [options and args]'**
+* Use the **tool** section to define tools to auto-install and put them on $PATH
+* It can be specified in the pipeline block or in a stage block
+* It is ignored when **agent none** is specified
+* Tools supported without installing additional plugins are : maven, jdk, gradle, nodejs
+pipeline {
+	agent any
+	tools {
+		maven 'Maven 3.3.9'
+		jdk 'jdk8'
+	}
+...
+}
+
+* Maven and Gradle support categories to split builds and tests into separate stages
+* They are assigned inside the test source code so the tests do not need to be split into multiple files
+* They can then run different categories of tests at different times in the project build, test and deliver cycle according to the options specified for the mvn test steps
+* Having a single test stage is not a recommended practice :
+	* Run the unit tests for every build
+	* Only run more elaborate tests when unit tests run successfully
+	* Run a different suite of tests on the staging server than on dev servers
+	* Run some tests in parallel and use conditionals like **when** to avoid unnecessary runs

@@ -1,0 +1,69 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-05T16:59:32+00:00
+
+====== 2. Pipelines ======
+Créée le Monday 05 June 2023
+
+===== Jenkinsfile =====
+
+* Text file with definitions (Instructions, templates, plugins, services, servers)
+* Tells a pipeline what to do with what service
+* All required plugins must be installed before executing some commands
+* The structure is :
+	1. Task to accomplish
+		a. Build agent
+		b. Tools (have them all installed)
+		c. Environment
+		d. Stages of task
+			1. Substages of task
+				a. Steps of substage
+* Example : 
+pipeline {
+	agent any
+	tools {
+		go 'go-1.17'
+	}
+	
+	environment {
+		GO111MODULE='on'
+	}
+	
+	stages {
+		stage('Dev and Test') {
+			steps {
+				echo 'Dev..'
+				git 'https://github.com/AdminTurnedDevOps/go-webapp-sample.git'
+				sh 'go test ./...'
+			}
+		}
+		stage('Build') {
+			steps {
+				echo 'Building..'
+				script {
+					app = docker.build("**adminturneddevops/go-webapp-sample**")
+				}
+			}
+		}
+		stage('Deploy') {
+			steps {
+				echo 'Deploying..'
+			}
+		}
+	}
+}
+
+* Multi-Stage pipelines are used for deploying to multiple environments in the order specified
+* They allow to deploy to dev, staging and prod by preventing deployment in prod and staging if dev fails
+
+===== Blue Ocean =====
+
+* Plugin for pipelines
+	* Easier to use
+	* Sophisticated visualizations
+	* Fast and intuitive pipeline status
+	* Pipeline editor
+	* Personalization
+	* Pinpoint precision
+	* Native integration for branch and pull requests
+* Just need to install the aggregator plugin

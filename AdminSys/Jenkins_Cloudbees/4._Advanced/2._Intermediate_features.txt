@@ -1,0 +1,296 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-16T18:15:21+00:00
+
+====== 2.   Intermediate features ======
+Créée le Friday 16 June 2023
+
+* Use Snippet generator to generate pipeline code for some use cases
+
+===== Agents =====
+
+To run all Pipeline stages on any available agent:
+pipeline {
+  agent any
+  ....
+}
+
+To run all Pipeline stages on an agent tagged as bzzzmaven:
+pipeline {
+  agent { label 'bzzzmaven' }
+  ....
+}
+
+To run all Pipeline stages on a container that is based on the bzzzcentos:7 image:
+pipeline {
+  agent { docker 'bzzzcentos:7' }
+  ....
+}
+
+Per stage agent section:
+pipeline {
+  agent none
+  stages {
+	stage ('Build') {
+	  agent { label 'bzzzmaven' }
+	  steps { ... }
+	}
+	stage ('Deploy') {
+	  agent { label 'bzzzproduction' }
+	  steps { ... }
+	}
+  }
+}
+
+===== Stash / unstash steps =====
+
+* The stash step archives a set of files in a compressed tar file for use later in the same build
+* In another stage, that executes on a different node/workspace
+* The unstash step restores the stashed files into the current workspace
+* Stashed files are cleared by default, set **preserveStashes** job property to preserve more stashes for restarted pipelines
+* Stashing works well for small (<5Mb) files, for large ones use :
+	* **External Workspace manager plugin**
+	* An external repository manager like **Nexus** or **Artifactory**
+	* The **Artifact Manager on S3** plugin
+* **stash/unstash** are implemented as **steps** within a **stage**
+* Syntax :
+	* stash : **stash includes: 'dist/***', name: 'builtSources'
+	* unstash : **unstash 'builtSources'**
+* It is recommended to create a dir to unstash files into : 
+stage('Move the Build'){
+  node('datahouse'){
+	dir('/opt/jenkins_artifacts'){
+	  unstash 'builtSources'
+	  unstash 'appConfig'
+	}
+  }
+}
+
+===== Wait for interactive input =====
+
+* Uses the **input** directive
+stage('Confirm Deploy to Staging') {
+  agent none
+  steps {
+	input(message: 'Deploy to Stage', ok: 'Yes')
+  }
+}
+
+===== Deploying from pipeline =====
+
+* Push artifacts to an execution server
+* Can use a bash script, an ansible playbook for that
+
+===== Post section =====
+
+* https://www.jenkins.io/doc/book/pipeline/syntax/#post for more details
+* Steps executed at the end of a pipelin or stage
+* Divided into conditions such as **always, success, failure**
+* Two post conditions compare the results of the current run to the results of the previous run :
+	* **fixed** : executes if current run is successful and previous was failed or unstable
+	* **regression** : executes if current run's status is worse than previous
+pipeline {
+  stages {
+	stage('Buzz Build') {
+	  parallel {
+		stage('Build Java 7') {
+		  steps {
+			sh """
+			  echo I am a $BUZZ_NAME!
+			  ./jenkins/build.sh
+			"""
+		  }
+		  post {
+			always {
+				junit '**/target/*.xml'
+				archiveArtifacts(artifacts: 'target/*.jar', fingerprint: true)
+			}
+			success {
+				stash(name: 'Buzz Java 7', includes: 'target/**')
+			}
+			failure {
+				mail to: team@example.com, subject: 'The Pipeline failed :('
+		}
+		  }
+		}
+  ...
+}
+
+===== Environment directive =====
+
+* Two directives supported :
+	* environment : preferred for Declarative Pipelines
+	* withEnv : used to set env vars within a block for Scripted Pipelines. DP can use them but environment is cleaner
+* Env vars can be defined :
+	* Predefined jenkins env vars such as : BUILD_NUMBER, JENKINS_URL, EXECUTOR_NUMBER, for more https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
+	* Many plugins such as git define env vars that are used only by them
+	* In the Jenkinsfile. The scope of the var is determined by whether it is defined globally for the pipeline, or for a particular stage
+* View system env vars on : 
+	* The **Global Variable Reference** page that is part of the **Pipeline Syntax** in the context of a pipeline
+	* The **Manage Jenkins > System information** page on the Jenkins dashboard
+* String interpolation :
+	* Single quotes treats everything inside as string. It can be used to pass variable names to be interpreted by **sh** or **bat**
+	* Double quotes will show variable values directly
+* Example of definition :
+pipeline {
+	agent any
+	environment {
+		CC = 'clang'
+	}
+	stages {
+		stage('Example') {
+			environment {
+				AN_ACCESS_KEY = credentials('my-predefined-secret-text')
+			}
+			steps {
+				sh 'printenv'
+
+==== Git env vars ====
+* Most used are GIT_COMMIT, GIT_BRANCH, GIT_PREVIOUS_SUCCESSFUL_COMMIT, GIT_PREVIOUS_COMMIT and GIT_URL : for more https://plugins.jenkins.io/git/#plugin-content-environment-variables
+* Example to give a unique name to artifacts :
+stage('Generate Reports') {
+  steps {
+	sh './jenkins/generate-reports.sh'
+	sh 'tar -czf target/reports-${GIT_COMMIT:0:6}.tar.gz target/reports'
+	archiveArtifacts 'target/{asterisk}.tar.gz'
+	echo "Finished run for commit ${ env.GIT_COMMIT.substring(0,6) }"
+  }
+ }
+
+* Example in a non-shell step
+post {
+  always {
+	mail(
+	  to: 'bitwiseman@bitwiseman.io',
+	  subject: "Finished run for build ${ env.BUILD_ID }, commit ${ env.GIT_BRANCH } (${ env.GIT_COMMIT.substring(0,6) })",
+	  body: 'Placeholder' )
+  }
+}
+
+===== Notifications =====
+
+* Notifications for pipeline execution through email, slack and so forth are supported by adding plugins
+* Updating JIRA tickets after a build is supported
+* Notifications must be configured correctly in Jenkins  and plugins installed for them to be sent
+* Coding notifications in pipelines is cumbersome
+* It is better to define them in shared library functions that can be called by each pipeline
+* Notification examples :
+stages {
+  stage ('Start') {
+	steps {
+	  // send build started notifications
+	  slackSend (color: '#FFFF00', message: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+	}
+  }
+}
+post {
+  success {
+	slackSend (color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+  }
+  failure {
+   slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+  }
+}
+
+===== When directive =====
+
+* Specifies conditions that must be met for the pipeline to execute the stage
+* Must contain at least one condition, nested conditions are supported : for more https://www.jenkins.io/doc/book/pipeline/syntax/#when
+* Examples :
+when {
+  branch 'master'
+}
+when { not { branch 'master' } }
+when {
+  environment name: 'DEPLOY_TO', value: 'production'
+}
+when { buildingTag() } //Check if there is a building tag
+when { tag "release-*" } //Check if tag matches pattern
+when {
+	beforeAgent true //Don't enter the agent before check, avoid uncessary scm checkout and waiting for valid agent to be available
+	branch 'production' //Enter agent if branch is production
+}
+when {
+  allOf { //Only if all of the nested conditions are true
+	branch 'master'
+	environment name: 'DEPLOY_TO', value: 'production' // AND
+  }
+}
+when {
+  anyOf {//If at least one of the nested conditions is true
+	branch 'master'
+	branch 'staging' // OR
+  }
+}
+
+===== Credentials =====
+
+* For more info about credentials see https://github.com/jenkinsci/credentials-plugin/blob/master/docs/user.adoc
+* Create at **Manage Jenkins > Security > Credentials > System > Global credentials (unrestricted)**
+* Supported are : 
+	* Username with password
+	* Secret file and secret text
+	* SSH username and private key
+	* Certificate and x509 certificate
+	* More with plugins
+* Two scopes are supported. Global is the one for pipelines credentials
+* Pipelines use the **environment** directive or **withCredentials** method to reference a credential
+* Use **sshagent** step for SSH credentials because **withCredentials** does not support them
+* Example of usage in pipeline :
+...
+stage('Deploy Reports')
+	steps {
+	...
+		withCredentials(bindings: [string(credentialsId: 'my-elastic-key', variable: 'ELASTIC_ACCESS_KEY')]) {
+			// Environment Variable available in the remote shell
+			sh "env | grep ELASTIC_ACCESS_KEY"
+			sh "echo $\{ELASTIC_ACCESS_KEY} > secret-file.txt"
+		}
+...
+}
+
+===== Options and configurations =====
+
+* Methods for controlling the characteristics and behaviors of the pipeline
+* Options are set inside the Jenkinsfile for declarative pipeline
+* Scripted pipelines and Freestyle jobs support the **wrap** step that builds wrappers or environment configs
+* Configurations are set from the Web UI on the Jenkins master by clicking on the wheel
+* If something can be an option that is managed inside a Jenkinsfile, it should not be a configuration
+* Configuration is used only whent something cannot be managed inside the Jenkinsfile
+* Example of options :
+options { // The entire pipeline must execute in 3 days max or it is terminated
+  timeout(time: 3, unit: "DAYS")
+}
+steps {
+  timeout(time:3, unit:"DAYS") { // Terminates if there is no answer after 3 days
+	  input(message: "Deploy to Stage", ok: "Yes, let's do it!")
+  }
+}
+options { // Keep only 1 item from build (artifacts and console output)
+	buildDiscarder(logRotator(numToKeepStr: '1'))
+}
+options { // SCM checkout to $WORKSPACE/foo instead
+	checkoutToSubdirectory("foo")
+}
+options { // Ensures each stage runs in a fresh container of the same image when using container agent
+	newContainerPerStage()
+}
+
+===== Parameters =====
+
+* Provides a list of params a user should provide when triggering a pipeline : more at https://www.jenkins.io/doc/book/pipeline/syntax/#parameters-example
+* The values are made available to the pipeline through the **params** object
+* Example : 
+pipeline {
+	agent any
+	parameters {
+		string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
+	}
+	stages {
+		stage('Example') {
+			steps {
+				echo "Hello ${params.PERSON}"
+			}
+		}
+	}
+}

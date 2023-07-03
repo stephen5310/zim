@@ -1,0 +1,103 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-05T14:35:55+00:00
+
+====== 1. Systems Administration ======
+Créée le Monday 05 June 2023
+
+===== Backup =====
+
+* Three types :
+	* Full
+	* Snapshots
+	* Differential
+* What to backup :
+	* $JENKINS_HOME :
+		* Configuration files : ./config.xml and ./*.xml 
+		* Jobs : [[./jobs]]
+		* Files checked out from the SCM : [[./workspace]]
+		* Specific plugin packages : [[./plugins/*.hpi]] and ./plugins/*.jpi
+* What does not need to be backed up : war cache tools and plugins folders
+* Filesystem snapshots
+* Plugins for backup : ThinBackup
+	* Create a backup dir [[/home/jenkins/backup]] and chown it to jenkins user : mkdir -p [[/home/jenkins/backup]] && chown -R jenkins: /home/jenkins
+	* Install and go to **Manage Jenkins > Tools and Actions > ThinBackup > Configuration** to set a backup dir and tweak configs
+	* Click on backup to backup
+* Shell script : https://github.com/sue445/jenkins-backup-script/blob/master/jenkins-backup.sh
+
+==== Backup validation ====
+* Create a directory for test : mkdir [[/mnt/restore-jenkins]]
+* Extract/copy the backup to the dir
+* Set JENKINS_HOME to point to that dir : export JENKINS_HOME=/mnt/restore-jenkins
+* Execute the restored instance on another port : java -jar /usr/share/java/jenkins.war --httpPort=9999
+
+===== Restore =====
+
+* Using the restoration script https://github.com/sue445/jenkins-backup-script
+* Use a ThinBackup backup to restore
+* Restore the fs snapshot
+
+===== Monitor =====
+
+* Install a plugin : Datadog, Prometheus...
+* Install Prometheus plugin and use a prometheus server to consume the metrics at JENKINS_URL/prometheus by creating a new job
+* Basic monitoring with native monitoring options :
+	* Logs at **Manage Jenkins > Status Information > System Log**, possibility to write custom log recorders
+	* Nodes at **Manage Jenkins > Manage Nodes and Clouds**
+	* Executors and Node usage at **Manage Jenkins > Status Information > Load Statistics**
+
+===== Scale =====
+
+==== Node ====
+* Server where Jenkins runs build jobs
+* An **agent** is a tool that manages the build execution on a node
+* They provide tools and packages to be used by desired builds
+* Available nodes are listed in : 
+	* The **Build Executor Status** frame at the bottom of the left frame of the dashboard
+	* The **Manage Nodes and Cloud** page
+* Use **Manage Nodes and Cloud** to view, add, remove, control and monitor nodes
+* Use the flywheel to the right to define the number of executors, labels, usage, env vars
+* Install Jenkins on the worker node
+* Create a user for jenkins jobs with sudo rights
+* Create a credential with jenkins user to use for worker connection
+* Add a node with ssh connection option, using the jenkins user credentials for connection and Manually trusted key Verification Strategy
+* To use the node for a build you will have to restrict where the build runs to the node
+* To use containers for builds you have to install the container plugins and tools and use the corresponding command to create a container agent and add jenkins user to docker group :
+pipeline {
+	agent {
+		docker { image 'golang:latest' }
+	}
+	...
+}
+
+==== Agent ====
+* Fetchable from jenkins by pointing at the controller JENKINS_URL/jnlpJars/slave.jar
+* Provide tools, packages and envs for builds
+* More suitable as container
+* Define specific agent for specific pipeline operation
+* Three patterns of agents
+* Secure agent-to-controller connection at **Manage Jenkins > Configure Global Security** with **Agent -> Controller Security**
+	* You should enable access control
+	* Rules can be tweaked with allow/deny to specify the commands and the type of access allowed for the agent
+	* If builds are failing ensure plugins are all up-to-date before checking this
+
+=== Dedicated ===
+* Restricted access
+* For personalized hardware, OS, teams and groups
+* For personalized software
+* Jobs are tied with labels using **Restrict where this project can run** option
+
+=== Fungible ===
+* Can be substituted by any other one
+* Empty env
+* Tools are installed using Pre-build Step scripts, other jobs or Pipeline libs
+
+=== Cloud-based ===
+* Destroyed after build
+* EC2, Azure, CloudStack, jclouds, Openstack, VMWare, containers...
+
+===== Folders =====
+
+* Can be used to provide separate namespaces for different projets or teams on the same controller
+* It simplifies branch and pipeline management
+* Jobs can then be moved to folders

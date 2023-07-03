@@ -25,7 +25,7 @@ Created mardi 17 janvier 2023
 * Get list/array slices :
 	* 1st and 4th elements : **$[0,3]**
 	* All 1st to 3rd elements : **$[0:3]**
-	* 1st to 7th e=customlements with even indexes : **$[0:8:2]**
+	* 1st to 7th e@=customlements with even indexes : **$[0:8:2]**
 	* Last element : **$[-1] or $[-1:0] or $[-1:]**
 	* All elements from 6th element till the end : **$[6:]**
 

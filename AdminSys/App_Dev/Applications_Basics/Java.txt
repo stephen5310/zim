@@ -1,0 +1,48 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-21T17:21:34+00:00
+
+====== Java ======
+Créée le Tuesday 21 March 2023
+
+* Free, open-source, huge community
+
+===== Installation =====
+* Download binaries archive from java website
+* Extract and execute command to test : **java -version**
+
+===== Java Development Kit =====
+* Write code with a text editor
+* Download the binary archive for jdk and extract
+* Provides tools like :
+	* For development : jdb to debug, javadoc to document source code
+	* For build : javac to build and compile, jar to archive in a single file
+	* For run : Java Runtime Environment (JRE) to run a compiled java app on any system, the java cli utility as loader
+	* Tools are in the bin directory of the archive
+
+===== Java Build and Packaging =====
+
+==== With jdk tools ====
+* Code is compiled with **javac** to byte code which is executed in JVM
+* Compilation produces many files that are packaged with **jar** to produce jar or war files
+	* Packaging creates automatically manifest file in META-INF/MANIFEST.MF that provides manifest version, creator and main class
+* Can be run on any system with JRE, launched by **java** command : 
+	* For MyClass.class file : **java MyClass**
+	* For jar : **java -jar app.jar**
+* Documentation is generated with : **javadoc -d doc MyClass.java**
+* We can add to the process **tests**, **vulnerability scan**, **code signing**
+
+==== With build tools ====
+* Popular ones are Maven, Gradle and ANT
+* Use configuration files to specify the steps of the build process and automate it
+* Makes it easy for others to build and run the app
+* Example with ant on CentOS :
+	* Install : **yum install -y ant**
+	* Create build.xml file : https://ant.apache.org/manual/using.html
+	* cd into build.xml dir and run (make sure to have the rights) : **ant**
+* Example with maven on CentOS :
+	* Install : **yum install -y maven**
+	* Create pom.xml file : https://maven.apache.org/guides/introduction/introduction-to-the-pom.html
+	* cd into pom.xml dir and run (make sure to have the rights) : **mvn package**
+	* Follow https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html for more details
+	* Run jar with (groupID can be found in pom.xml) : **java -cp app.jar <groupID>.App**

@@ -1,0 +1,62 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-21T17:36:09+00:00
+
+====== 3. Advanced features ======
+Créée le Wednesday 21 June 2023
+
+===== Best practices =====
+
+* Keep it simple! Pipeline code is glue; use the minimum amount of code to connect the Pipeline steps and integrate tools. Delegate most activity to agents and reduce the load on masters.
+* Use external scripts and tools for most tasks, especially those involving complex or CPU-expensive processing.
+* Use command-line tools for operations such as:
+	* Processing data
+	* Communicating interactively with REST APIs
+	* Parsing/templating larger XML or JSON files
+	* Nontrivial integration with external APIs
+	* Simulations and complex calculations
+	* Business logic
+* Use command-line clients for APIs such as Java and Python. Use sh or bat steps to integrate these tools.
+* Use steps from Jenkins plugins, especially for source control, artifact management, deployment systems and system automation.
+* Reduce the number of steps in the Pipeline. Most well-formed Pipelines contain less than 300 steps. The most effective way to reduce the number of steps in a Pipeline is to consolidate several sequential sh or bat steps into a single, external helper script that the Pipeline calls as a single step.
+* Manage log data. Consider writing log data to an external file on the agent, then compress it and archive it as a build artifact. This can improve Pipeline performance although, it means that you must unload and uncompress artifacts to understand a failure.
+
+===== Shared libraries introduction =====
+
+* Separate SCM repo that contains reusable functions which can be called from Pipelines
+* Configured once per Jenkins instance, cloned at build time, then loaded and used as a code library for Pipelines
+* Benefits are :
+	* Allow to share and reuse Pipeline code
+	* Scale Jenkins Pipeline usage
+	* Support collaboration
+	* Help manage code sprawl; write once, propagate everywhere
+	* Smaller Jenkinsfiles, easier to read and maintain
+* More at https://www.jenkins.io/doc/book/pipeline/shared-libraries/
+
+===== Triggers =====
+
+* Defines special conditions when the pipeline should be re-triggered
+* Used for specialized runs
+* Do not use as a polling mechanism to detect source code changes
+* Use cases :
+	* Perform periodic tasks such as periodically regenerating metadata files
+	* Trigger builds remotely using curl and an auth token
+	* Set a build to launch after another pipeline completes : the child pipeline sets this rather than having the parent call other pipelines
+* Following types are supported :
+	* cron : Schedule run at a specified time
+	* pollSCM : Poll SCM at regular intervals for source code changes, run the pipeline if any
+	* upstream : Define conditions when a pipeline should run because of the results of another pipeline run
+* Triggers are specified at the top level
+pipeline {
+	agent any
+	triggers {
+		cron('H */4 * * 1-5')
+	}
+	stages {
+		stage('Example') {
+			steps {
+				echo 'Hello World'
+			}
+		}
+	}
+}

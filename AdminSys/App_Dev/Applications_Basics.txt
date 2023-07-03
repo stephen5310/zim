@@ -1,0 +1,46 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-21T16:55:59+00:00
+
+====== Applications Basics ======
+Créée le Tuesday 21 March 2023
+
+Two types of apps :
+* Compiled : Java, C, C++
+* Interpreted : Python, NodeJS, Ruby, PHP
+
+===== Compiled apps =====
+
+* First developed, compiled then executed
+* For java :
+	* Write source code : MyClass.java
+	* Compile : javac MyClass.java
+	* Run : java MyClass
+
+===== Interpreted =====
+
+* Developed then run
+* For python :
+	* Write source code : main.py
+	* Run : python main.py
+* Implicitly compiled into a byte code at run
+* Compilation to machine code depends on hardware
+* Byte code is :
+	* Intermediary between source code and machine code
+	* Pre-compilation that will execute faster and is not dependant on hardware
+	* Generally found in .pyc files
+	* Run in an environment called python VM, where it is converted to machine code
+	* Can be executed on any machine which have python VM
+
+===== Packages, Modules, Libraries =====
+
+* Ways to share code with other developers
+* Used in apps as dependencies
+* Managed by package managers for each programming language
+
+===== Build =====
+
+* Compile
+* Run Tests
+* Package
+* Delivery

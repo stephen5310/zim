@@ -1,0 +1,354 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-22T10:04:25+00:00
+
+====== 3. Django ======
+Créée le Thursday 22 June 2023
+
+===== Web Applications and HTTP =====
+
+* Types of web apps :
+	* Static : web pages look exactly the same every single time they are opened. Changes are made directly in the code.
+	* Dynamic : web pages change using programming languages
+* HTTP or HyperText Transfer Protocol is used to transfer messages across the internet
+* Clients send requests like GET, POST, UPDATE, DELETE to the server. The GET for the / means we are looking for the website's home page :
+GET / HTTP/1.1
+Host: www.example.com
+...
+* The server send back a response :
+HTTP/1.1 200 OK
+Content-type: text/html
+...
+* Some status codes :
+	* 200 : OK
+	* 301 : Moved Permanently
+	* 403 : Forbidden
+	* 404 : Not Found
+	* 500 : Internal Server Error
+
+===== Django framework =====
+
+* Python-based web framework used to write Python code that dynamically generates HTML and CSS
+* Take advantage of code already written
+* Create a venv : **python -m venv <venv_name>**
+* Activate venv : **source <venv_dir>/bin/activate**
+* Install django by installing pip then : **pip3 install Django**
+* Create a new Django project : **django-admin startproject <project_name>**
+* Enter project dir to see the files created :
+	* manage.py : used to execute commands on terminal
+	* settings.py : contains important configuration settings
+	* urls.py : contains directions for where users should be routed after navigating to a certain url
+* Run website : **python <project_dir>/manage.py runserver**
+	* This will open a development server which can be access to the url specified
+* Django projects are split into one or more apps :
+	* Most projects require one, but larger sites could need manay
+	* Create with : **python manage.py startapp <app_name>**
+	* It will create a subdir with useful files such as views.py
+	* App must be installed by adding it settings.py in the list of **INSTALLED_APPS**
+
+===== Routes =====
+
+* We get started with our app by editing the <app_name>/views.py file :
+	* It contains a number of different views, one page the user might like to see
+	* We create a simple view which will be a function called index
+	* It will take a request and return a simple HttpResponse
+ **from django.shortcuts import render**
+** from django.http import HttpResponse**
+
+** # Create your views here.**
+
+** def index(request):**
+**	 return HttpResponse("Hello, world!")**
+**...**
+
+* The view must be associated with an url :
+	* It can be in <project_name>/urls.py but it is better to use a <app_name>/urls.py file
+	* We create a list of url patterns that a user might visit while using our website
+	* The path function in the urlpatterns list takes as args a url path, a view function that the url will call and eventually a name for the pattern
+ **from django.urls import path**
+** from . import views**
+
+** urlpatterns = [**
+	** path("", views.index, name="index")**
+** ]**
+...
+
+* We must the edit the <project_name>/urls.py and add all the paths from our <app_name> in the urlpatterns :
+**from django.contrib import admin**
+**from django.urls import path, include**
+
+**urlpatterns = [**
+	**path('admin/', admin.site.urls),**
+	**path('<app_name>/', include("<app_name>.urls"))**
+**]**
+...
+
+* We can add a function to views.py that takes the user's name as additional argument and return a response based on that :
+**def greet(request, name):**
+**	return HttpResponse(f"Hello, {name}!")**
+...
+
+* Then add a path in urls.py that will take the user's name from the string provided in the path :
+**path("<str:name>", views.greet, name="greet")**
+...
+
+===== Templates =====
+
+* Views can return HTML code, or render HTML files :
+**def index(request):**
+	**return HttpResponse("<h1 style=\"color:blue\">Hello, world!</h1>")**
+**def index(request):**
+	**return render(request, "hello/index.html")**
+**def greet(request, name):**
+	**return render(request, "hello/greet.html", {**
+		**"name": name.capitalize()**
+**	})**
+...
+
+* Template file must be in **<app_name>/templates/<app_name>/** dir
+
+==== Conditionals ====
+* In views :
+def index(request):
+	now = datetime.datetime.now()
+	return render(request, "newyear/index.html", {
+		"newyear": now.month == 1 and now.day == 1
+	})
+...
+
+* In template file :
+**<body>**
+		**{% if newyear %}**
+			**<h1>YES</h1>**
+		**{% else %}**
+			**<h1>NO</h1>**
+		**{% endif %}**
+**</body>**
+
+==== Styling ====
+* We can add css to templates
+* Add css files under **<app_name>/static/<app_name>/** dir
+* Add the line **{% load static %}** to the top of the template
+* Add the link to the static file with a django specific syntax : 
+**<link rel="stylesheet" href="{% static 'newyear/styles.css' %}">**
+...
+
+* Add these to <app_name>/urls.py :
+**from django.conf import settings**
+**from django.conf.urls.static import static**
+
+**urlpatterns = [**
+	**# ... the rest of your URLconf goes here ...**
+**] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)**
+...
+
+===== Tasks =====
+
+* Create an app called tasks to generate a TODO list
+* In urls.py :
+ **from django.urls import path**
+** from . import views**
+
+** urlpatterns = [**
+	** path("", views.index, name="index"),**
+** ]**
+...
+
+* In views.py :
+**from django.shortcuts import render**
+
+**tasks = ["foo", "bar", "baz"]**
+
+**# Create your views here.**
+**def index(request):**
+	**return render(request, "tasks/index.html", {**
+		**"tasks": tasks**
+**	})**
+...
+
+* In template :
+**<ul>**
+	**{% for task in tasks %}**
+		**<li>{{ task }}</li>**
+	**{% endfor %}**
+**</ul>**
+...
+
+===== Forms and template inheritance =====
+
+* We can use a form to add tasks
+* Define a view to add a task :
+**# Add a new task:**
+**def add(request):**
+**	return render(request, "tasks/add.html")**
+...
+
+* Add it to urls :
+**path("add", views.add, name="add")**
+...
+
+* Add the app name to urls to ease url management :
+**app_name = "tasks"**
+**urlpatterns = [...**
+...
+
+* Create a layout.html file that will contain the general structure of the page  :
+**<!DOCTYPE html>**
+**<html lang="en">**
+	**<head>**
+		**<title>Tasks</title>**
+	**</head>**
+	**<body>**
+		**{% block body %}**
+		**{% endblock %}**
+	**</body>**
+**</html>**
+...
+
+* Replace the index.html file by this one. It will inherit from the layout file because of the **extends** directive :
+**{% extends "tasks/layout.html" %}**
+
+**{% block body %}**
+	**<h1>Tasks:</h1>**
+	<h2><a href="{% url 'tasks:add' %}">Add a New Task</a></h2>
+	**<ul>**
+		**{% for task in tasks %}**
+			**<li>{{ task }}</li>**
+		**{% endfor %}**
+	**</ul>**
+**{% endblock %}**
+...
+
+* Create the add.html like that. It will call the add url. The csrf_token directive is used to prevent csrf attacks :
+**{% extends "tasks/layout.html" %}**
+
+**{% block body %}**
+	**<h1>Add Task:</h1>**
+	<h2><a href="{% url 'tasks:index' %}">View Tasks</a></h2>
+	**<form action="{% url 'tasks:add' %}" method="post">**
+		**{% csrf_token %}**
+		**<input type="text" name="task">**
+		**<input type="submit">**
+	**</form>**
+**{% endblock %}**
+...
+
+==== Django Forms ====
+* Django has form classes that can be used
+* In views.py :
+**from django import forms**
+**class NewTaskForm(forms.Form):**
+**	task = forms.CharField(label="New Task")**
+
+**# Add a new task:**
+**def add(request):**
+	**return render(request, "tasks/add.html", {**
+		**"form": NewTaskForm()**
+	**})**
+...
+
+* In add.html replace the input field with the form :
+**{% extends "tasks/layout.html" %}**
+
+**{% block body %}**
+	**<h1>Add Task:</h1>**
+	**<form action="{% url 'tasks:add' %}" method="post">**
+		**{% csrf_token %}**
+		**{{ form }}**
+		**<input type="submit">**
+	**</form>**
+	**<a href="{% url 'tasks:index' %}">View Tasks</a>**
+**{% endblock %}**
+...
+
+* Django forms have the following advantages :
+	* We add new fields in the view instead of adding HTML code
+	* Client and server side verifications are handled
+	* Models which are used to store infos can be used to create forms
+* Modifiy the add view to handle POST data :
+**from django.urls import reverse**
+**from django.http import HttpResponseRedirect**
+
+**# Add a new task:**
+**def add(request):**
+
+	**# Check if method is POST**
+	**if request.method == "POST":**
+
+		**# Take in the data the user submitted and save it as form**
+		**form = NewTaskForm(request.POST)**
+
+		**# Check if form data is valid (server-side)**
+		**if form.is_valid():**
+
+			**# Isolate the task from the 'cleaned' version of form data**
+			**task = form.cleaned_data["task"]**
+
+			**# Add the new task to our list of tasks**
+			**tasks.append(task)**
+
+			**# Redirect user to list of tasks**
+			**return HttpResponseRedirect(reverse("tasks:index"))**
+
+		**else:**
+
+			**# If the form is invalid, re-render the page with existing information.**
+			**return render(request, "tasks/add.html", {**
+				**"form": form**
+			**})**
+
+	**return render(request, "tasks/add.html", {**
+		**"form": NewTaskForm()**
+**	})**
+
+
+===== Sessions =====
+
+* Way to store unique data on the server side for each new visit to a website
+* To use sessions we will have to :
+	* Delete the tasks variable from views
+	* alter the index function
+	* Replace the variable tasks by **request.session["tasks"]** anywhere else
+	* Run the **python manage.py migrate** command befor Django will be able to store session data
+* Index function :
+def index(request):
+
+	# Check if there already exists a "tasks" key in our session
+
+	if "tasks" not in request.session:
+
+		# If not, create a new list
+		request.session["tasks"] = []
+
+	return render(request, "tasks/index.html", {
+		"tasks": request.session["tasks"]
+	})
+
+# Add a new task:
+def add(request):
+	if request.method == "POST":
+
+		# Take in the data the user submitted and save it as form
+		form = NewTaskForm(request.POST)
+
+		# Check if form data is valid (server-side)
+		if form.is_valid():
+
+			# Isolate the task from the 'cleaned' version of form data
+			task = form.cleaned_data["task"]
+
+			# Add the new task to our list of tasks
+			request.session["tasks"] += [task]
+
+			# Redirect user to list of tasks
+			return HttpResponseRedirect(reverse("tasks:index"))
+		else:
+
+			# If the form is invalid, re-render the page with existing information.
+			return render(request, "tasks/add.html", {
+				"form": form
+			})
+
+	return render(request, "tasks/add.html", {
+		"form": NewTaskForm()
+	})

@@ -1,0 +1,36 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-23T15:37:48+00:00
+
+====== Python ======
+Créée le Thursday 23 March 2023
+
+===== Generalities =====
+
+* Python2 development stopped in 2010
+* Python3 does not guarantee backward compatibility
+* Apps will need the interpreter version it has been developped with to run
+* Run with : **python code.py**
+
+===== pip Python Package Manager =====
+
+* pip2 and pip3
+* Check version with : **pip -V**
+* Install package :
+	* Command : **pip install package**
+	* Package data is stored in [[/usr/lib/python/site-packages/package]] for 32 bits packages and [[/usr/lib64]] for 64 bits ones
+* Search for infos on package : **pip show package**
+* List paths where python look for packages : **python -c "import sys; print(sys.path)"**
+* Dependencies can be listed in **requirements.txt** file which is used to install them : **pip install -r requirements.txt**
+* Upgrade package : **pip install package --upgrade**
+* Uninstall package : **pip uninstall package**
+
+==== Eggs ====
+* **setuptools** to package pyton code and all dependencies into zip format **.egg** archives
+* **easy_install** to install eggs : **easy_install install app**
+* Don't have to be extracted to be run
+
+==== Wheels ====
+* **setuptools** to package pyton code and all dependencies into zip format **.whl** archives
+* **pip** to install wheels : **pip install app.whl**
+* Extracts archive

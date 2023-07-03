@@ -1,0 +1,117 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-12T20:49:50+00:00
+
+====== 3. Security ======
+Créée le Monday 12 June 2023
+
+https://www.jenkins.io/security/ for more
+
+===== Concepts =====
+
+==== Least privilege (AAA concepts) ====
+* Authentication : control who can access the system
+* Authorization : Control what each user can do on the system
+* Accounting : Monitor system to ensure only valid processes are executing
+
+==== Know the system (how jenkins executes a pipeline) ====
+* By default jenkins uses the full privileges of the Jenkins admin (jenkins user on the node)
+* When a pipeline runs :
+	* For each build, a workspace is created where files for the build are stored
+	* The pipeline calls a series of steps, each a script or command that does the work and executes using an executor
+* The agent :
+	* Writes some files to the local node
+	* Sends data back to the controller
+	* Can also request information from the controller
+
+==== Where can the danger come from ====
+* Jenkins and the pipelines must be able to do almost anything when running :
+	* Reconfigure the Jenkins instance
+	* Delete files
+	* Launch malware attacks
+	* Visit an infected web site and introduce malicious code into the instance
+
+===== Agents and security =====
+
+* Can access Jenkins conf files and workspaces of other builds
+* Can request info that belongs to other teams or organizations that share the controller
+* Can write malicious code to the local disk so that the node is tainted
+* Use ephemeral agents in the cloud to prevent that
+* Label the executor of the controller to be sure to control its usage by jobs
+
+===== Use credentials to secure access to external resources =====
+
+* Require trusted access for pipelines to external resources such as Nexus, Artifactory or Elasticsearch
+* Set up credentials that are defined by the admin and called from the pipeline code
+* The password can be changed frequently with no impact on the pipeline
+
+===== Authentication =====
+
+* Three realms out of the box :
+	* Jenkins User db
+	* Unix user/group db
+	* Servlet container
+	* External LDAP
+* AD and SAML 2.0 SSO can be added with plugins
+* Search for **Authentication and User Management** in the plugins
+* Change the security realm at **Manage Jenkins > Global Security**
+* Manage users in Jenkins User db at **Manage Jenkins > Manage Users**
+
+===== Authorization =====
+
+* Defined using a security matrix :
+	* Permissions are grouped by resource and accross among the top
+	* Identifiers of people are arranged down the left side
+* Authorization schemes provided : 
+	* Matrix-based security assigns global privileges to users and groups
+	* Project-based Matrix Authorization Strategy assigns permissions to users and groups based on the projects they access
+	* Role-based Strategy assigns permissions to specific roles such as admin, developer and tester
+* By default logged-in users can do anything
+* Go to **Manage Jenkins > Global Security > Authorization** to change the scheme
+* The Jenkins User db does not support groups, connect LDAP or AD for that
+
+===== Accounting =====
+
+* Log file at [[/var/log/jenkins/jenkins.log]] , config at [[/etc/sysconfig/jenkins]] or [[/etc/default/jenkins]]
+* See Systems Administration for monitoring
+* Audit plugins : 
+	* Audit Trail
+	* Job Configuration History
+
+===== Global Security =====
+
+* Close off intrusion path for the Jenkins instance
+* Set the **Access Control for Builds** to limit the permissions used for builds
+* Do not disable **CSRF**, **Enable proxy compatibility** instead
+* Fix the **Port for inbound agent** for firewall restrictions
+* **Markup formatter** is set to Plain text to avoid attacks like XSS ones
+* If HTML formatting is still bad after changing **Markup formatter**, check **Content Security Policy (CSP)**
+
+===== Credentials =====
+
+* Configured at **Manage Jenkins  Global Security  Configure Credentials**
+* Used to get trusted access to resources
+* Treated as Resources by Jenkins
+* Provides an API consumable by plugins and other Jenkins resources
+* Additional types may be added by plugins for a type of external resource
+* Called in pipelines with directives like **environment** or **withCredentials**
+* Limit a number of projects that can access a credential to enhance its security
+* Stored as **type secret**, encrypted using a key derived from the master key
+* Keys are tied and encrypted by the instance ID, they cannot be migrated or copied to a new instance
+
+==== Protecting secrets ====
+* Keys to decrypt secrets are stored in $JENKINS_HOME/secrets/ directory :
+	* It should be excluded from backups
+	* It has restrictive linux fs permissions
+* Keys should never be stored in the SCM where their contents could be breached :
+	* A disk crash or data corruption could cause the loss of all encrypted information
+* Secrets should be stored in some other location with restricted access, away from copies of the app :
+	* Backup + secrets = access to Jenkins instance and everything it accesses
+
+===== Hack Jenkins : Bypass authentication =====
+
+* Useful when you get locked out of jenkins because of a misconfiguration
+* Edit $JENKINS_HOME/config.xml
+* Set "useSecurity" to false
+* Remove all "authorizationStrategy"
+* Save and restart Jenkins

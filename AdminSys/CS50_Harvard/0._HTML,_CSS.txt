@@ -1,0 +1,203 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-12T16:41:20+00:00
+
+====== 0. HTML, CSS ======
+Créée le Monday 12 June 2023
+
+===== HTML =====
+
+* HTML is a markup language that defines the structure of a web page. It is interpreted by your web browser (Safari, Google Chrome, Firefox, etc.) in order to display content on your screen.
+* Example of HTML file :
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Hello!</title>
+	</head>
+	<body>
+		Hello, world!
+	</body>
+<html>
+
+* Now, let’s take some time to talk about the file we just wrote, which seems to be pretty complicated for such a simple page.
+	* In the first line, we are declaring (to the web browser) that we are writing the document in the latest version of HTML: HTML5.
+	* After that, the page consists of nested HTML elements (such as html and body), each with an opening and closing tag marked with either <element> for an opening and </element> for a closing.
+	* Notice how each of the inner elements is indented just a bit further than the last. While this is not necessarily required by the browser, it will be very helpful to keep this up in your own code.
+	* HTML elements can include attributes, which give the browser extra information about the element. For example, when we include lang="en" in our initial tag, we are telling the browser that we are using English as our primary language.
+	* Inside the HTML element, we typically want to include both a head and a body tag. The head element will include information about your page that is not necessarily displayed, and the body element will contain what is actually visible to users who visit the site.
+	* Within the head, we have included a title for our webpage, which you’ll notice is displayed in the tab at the top of our web browser.
+	* Finally, we’ve included the text “Hello, world!” in the body, which is the visible part of our page.
+
+* The DOM is a convenient way of visualizing the way HTML elements relate to each other using a tree-like structure. Below is an example of the DOM layout for the page we just wrote.
+
+{{./pasted_image.png?height=700}}
+
+* For more elements go to https://www.w3schools.com/html/html_elements.asp
+* Forms are also important
+
+===== CSS =====
+
+* CSS is used to customize the appearance of a website.
+* While we’re just getting, started, we can add a style attribute to any HTML element in order to apply some CSS to it.
+* We change style by altering the CSS properties of an element, writing something like color: blue or text-align: center
+* In this example below, we make a slight change to our very first file to give it a colorful heading:
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Hello!</title>
+	</head>
+	<body>
+		<h1 style="color: blue; text-align: center;">A Colorful Heading!</h1>
+		Hello, world!
+	</body>
+<html>
+
+* If we style an outer element, all of the inner elements automatically take on that style. We can see this if we move the styling we just applied from the header tag to the body tag:
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Hello!</title>
+	</head>
+	<body style="color: blue; text-align: center;">
+		<h1 >A Colorful Heading!</h1>
+		Hello, world!
+	</body>
+<html>
+
+* Move styling away from the individual lines by :
+	* Adding styling between <style> tags in the head
+	* Including a <link> element in your head with a link to a styles.css file that contains some styling
+* Common css properties :
+	* color: the color of text
+	* text-align: where elements are placed on the page
+	* background-color: can be set to any color
+	* width: in pixels or percent of a page
+	* height: in pixels or percent of a page
+	* padding: how much space should be left inside an element
+	* margin: how much space should be left outside an element
+	* font-family: type of font for text on page
+	* font-size: in pixels
+	* border: size type (solid, dashed, etc) color
+
+==== Selectors and conflicts ====
+* There are many ways to determine which HTML elements you are styling, some of which we’ll mention here:
+	* element type: this is what we’ve been doing so far: styling all elements of the same type.
+	* id: Another option is to give our HTML elements an id like so: <h1 id="first-header">Hello!</h1> and then applying styling using #first-header{...} using the hashtag to show that we’re searching by id. Importantly, no two elements can have the same id, and no element can have more than one id.
+	* class: This is similar to id, but a class can be shared by more than one element, and a single element can have more than one class. We add classes to an HTML element like this: <h1 class="page-text muted">Hello!</h1> (note that we just added two classes to the element: page-text and muted). We then style based on class using a period instead of a hashtag: .muted {...}
+* CSS has a specificity order to resolve conflicts that goes :
+	1. In-line styling
+	2. id
+	3. class
+	4. element type
+* In addition to the comma for multiple selectors, there are several other ways to specify which elements you would like to style :
+{{./pasted_image001.png?width=1000}}
+
+==== Responsive Design ====
+* The **viewport** is the part of the screen that is actually visible to the user at any given time.
+* One simple way to improve the appearance of a site on a mobile device is to add the following line in the head of our HTML files. This line tells the mobile device to use a viewport that is the same width as that of the device you’re using rather than a much larger one :
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+* We can also use **Media** queries to change the style of a page based on how the page is being viewed.
+* The example below changes the color of the screen when it shrinks down to a certain size.
+<style>
+			@media (min-width: 600px) {
+				body {
+					background-color: red;
+				}
+			}
+
+			@media (max-width: 599px) {
+				body {
+					background-color: blue;
+				}
+			}
+</style>
+
+* We use **flexbox** to have elements wrap around to the next line if they don’t fit horizontally. We do this by putting all of our elements in a div that we’ll call our container. We then add some styling to that div specifying that we want to use a flexbox display for the elements inside of it.
+<style>
+			#container {
+				display: flex;
+				flex-wrap: wrap;
+			}
+
+			#container > div {
+				background-color: green;
+				font-size: 20px;
+				margin: 20px;
+				padding: 20px;
+				width: 200px;
+			}
+</style>
+
+* We use grid to specify column widths and gaps between columns and rows.
+<style>
+			.grid {
+				background-color: green;
+				display: grid;
+				padding: 20px;
+				grid-column-gap: 20px;
+				grid-row-gap: 10px;
+				grid-template-columns: 200px 200px auto;
+			}
+
+			.grid-item {
+				background-color: white;
+				font-size: 20px;
+				padding: 20px;
+				text-align: center;
+			}
+</style>
+
+==== Bootstrap ====
+* Open popular CSS library
+* Get started : https://getbootstrap.com/docs/5.3/getting-started/introduction/
+* One popular bootstrap feature is their grid system.
+* Bootstrap automatically splits a page into 12 columns, and we can decide how many columns an element takes up by adding the class col-x where x is a number between 1 and 12.
+* To improve mobile-responsiveness, bootstrap also allows us to specify column sizes that differ depending on the screen size. In the following example, we use col-lg-3 to show that an element should take up 3 columns on a large screen, and col-sm-6 to show an element should take up 6 columns when the screen is small : <div class="col-lg-3 col-sm-6">
+
+==== Sass (Syntactically Awesome Style Sheets) ====
+* CSS more efficient because of some additions like variables
+* Use .scss files
+* Variables are added with $ : $color: red;
+* Convert .scss file to .css before linking to web page using sass utility : https://github.com/sass/dart-sass/releases
+* Automate conversion with : sass --watch variables.scss:variables.css
+* Sass nesting :
+div {
+	font-size: 18px;
+
+	p {
+		color: blue;
+	}
+
+	ul {
+		color: green;
+	}
+}
+
+* Sass inheritance :
+%message {
+	font-family: sans-serif;
+	font-size: 18px;
+	font-weight: bold;
+	border: 1px solid black;
+	padding: 20px;
+	margin: 20px;
+}
+
+.success {
+	@extend %message;
+	background-color: green;
+}
+
+.warning {
+	@extend %message;
+	background-color: orange;
+}
+
+.error {
+	@extend %message;
+	background-color: red;
+}

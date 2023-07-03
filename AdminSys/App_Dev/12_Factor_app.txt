@@ -1,0 +1,73 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-21T14:08:58+00:00
+
+====== 12 Factor app ======
+Créée le Tuesday 21 March 2023
+
+Visit https://12factor.net/
+
+===== I. Codebase =====
+
+One codebase tracked in revision control, many deploys : **git + github**
+
+===== II. Dependencies =====
+
+Explicitly declare and isolate dependencies.
+Don't forget to specify the versions
+
+===== III. Config =====
+
+Store config in the environment not in the code
+Store configs in environment variables
+
+===== IV. Backing services =====
+
+Treat backing services as attached resources
+Db, cache, fs should work without changing anything to the app code
+
+===== V. Build, release, run =====
+
+Strictly separate build, release and run stages
+Build : make executable from code
+Release : executable + env + id, all stored in an artefact store, allowing to rollback easily
+Run : run release objects in resp envs
+
+===== VI. Processes =====
+
+Execute the app as one or more stateless processes
+They do not share anything
+Sticky sessions are a violation and should never be used or relied upon
+Anything that is shared should be stored in an external db or fs that every process can access
+
+===== VII. Port binding =====
+
+Export services via port binding
+As app is self-contained, we can use a specific port instead of traditional ones
+
+===== VIII. Concurrency =====
+
+Scale out via the process model
+
+===== IX. Disposability =====
+
+Maximize robustness with fast startup and graceful shutdown
+App can be started or stopped at a moment's notice
+Processes can be gracefully shutdown when they receive a SIGTERM signal to avoid any data loss if it is forced with SIGKILL
+
+===== X. Dev/prod parity =====
+
+Keep development, staging, and production as similar as possible
+
+===== XI. Logs =====
+
+Treat logs as event streams
+Each user access and error in code should be logged in a single line
+App never concerns itself with routing or storage of its output stream
+Logs are stored in a centralized location in a structured format for them to be easily queried
+STDOUT and local file with a known format such as JSON can be used
+
+===== XII. Admin processes =====
+
+Run admin/management tasks as one-off processes
+They can be run in another container, identical to the process setup, terminated after execution, automated, scalable and reproduceable

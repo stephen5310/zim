@@ -63,3 +63,9 @@ La synchronisation échoue parfois ce qui cause des incohérances.
 * SPOC 58 : la procédure est propre à Orange, voir Julien responsable du provisioning chez Orange
 * Présentation de l'outil Zoho la semaine prochaine (Jeudi 15H)
 * Faire une base de connaissances pour Orange avec de documents propres à eux
+* Kerlink fournit des images de prod
+
+===== SPOC 58 =====
+
+1. Installation de l'image (prod ou préprod) en se connectant en debug (ssh ne marchera pas)
+2. Ajout du certificat manuellement si besoin (en préprod surtout) voir https://support.actility.com/agent/actility/all/tickets/details/83795000074419039

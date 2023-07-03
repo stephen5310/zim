@@ -1,0 +1,152 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-04-25T00:26:25+00:00
+
+====== Jenkins Cloudbees ======
+Créée le Tuesday 25 April 2023
+
+===== Installation =====
+
+* Follow https://www.jenkins.io/doc/book/installing/linux/
+
+==== On CentOS 7 ====
+
+=== Install ===
+wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+yum upgrade -y
+yum install java-11-openjdk -y
+yum install jenkins -y
+systemctl daemon-reload
+systemctl enable jenkins
+systemctl start jenkins
+firewall-cmd --permanent --new-service=jenkins
+firewall-cmd --permanent --service=jenkins --set-short="Jenkins ports"
+firewall-cmd --permanent --service=jenkins --set-description="Jenkins port exceptions"
+firewall-cmd --permanent --service=jenkins --add-port=8080/tcp
+firewall-cmd --permanent --add-service=jenkins --add-service=jenkins
+firewall-cmd --zone=public --add-service=http --permanent
+firewall-cmd --reload
+
+=== Unlock ===
+* Connect to http://<jenkins_address>:8080 in a browser and follow the instructions
+
+=== CLI ===
+* https://www.jenkins.io/doc/book/managing/cli/ for more details
+* To enable CLI over ssh go to **Dashboard > Manage Jenkins > Configure Global Security > SSH Server** and choose :
+	* **Random** for a random port. Use a curl on the jenkins url to find it : curl -Lv https://<JENKINS_URL>/login 2>&1 | grep -i 'x-ssh-endpoint'
+	* **Fixed** to precise the port to use
+* Select connection mode from documentation :
+	* For ssh :
+		* Add user public key at <JENKINS_URL>/users/<user_name>/configure
+		* Execute command : ssh <user_name>@<JENKINS_IP> -p 53801 <command>
+		* Examples of command : who-am-i, console, help [command]
+	* For jar :
+		* Download cli jar : wget [[http://<jenkins_server_address>:8080/jnlpJars/jenkins-cli.jar]]
+		* Get API token from <JENKINS_URL>/users/<user_name>/configure to use websocket then use credentials : 
+			* In CLI : java -jar jenkins-cli.jar -webSocket -s <JENKINS_URL> -auth <user_name>:<token> command
+			* From file : java -jar jenkins-cli.jar -webSocket -s <JENKINS_URL> -auth @<auth_file_path> command
+		* Using ssh (cannot make it work) : java -jar jenkins-cli.jar -s <JENKINS_URL> -ssh -user <user_name> command
+
+===== Operations =====
+
+==== Upgrades ====
+
+* Go to **Dashboard > Manage Jenkins** and look for a release alert
+* Click **download** to download the upgrade
+* Shutdown Jenkins at **Manage Jenkins > Prepare for Shutdown**
+* Replace the **jenkins.war** file with the downloaded upgrade (/usr/share/java/jenkins.war)
+* Restart Jenkins to apply
+* Packages are released every 3months for LTS
+* Interim packages are released weekly to make critical bug fixes
+* Security releases are published asap and should be applied immediately
+
+==== Manage Jenkins ====
+
+* Tab **Dashboard > Manage Jenkins** for most administrative tasks
+
+=== Distributed builds ===
+* Distributed builds run on nodes other than the controller node
+* The controller serves HTTP requests and stores all important info related to builds
+* Agents run on nodes to manage the task execution and supply most of the computing power for builds and tests
+* Nodes can run different OS and tools, enabling one pipeline to build and test the same software for a variety of platforms
+* Avantages of distributed builds are :
+	* Scalability : add more agents when needed
+	* Security : jobs have full permissions to all Jenkins resources when running on a controller
+	* Specialized nodes : Allow to build and test on different OS, CPU arch, and build tools
+* Distributed Jenkins components :
+	* **Jenkins controller** : 
+		* The Jenkins service, a webserver that decides how, when and where to run tasks. 
+		* Build artifacts are written on the controller FS, unless they are off-loaded to an artifact repo.
+	* **Node** : 
+		* A server where Jenkins runs build jobs on **executors**. 
+		* The Jenkins controller runs on a node.
+		* Attached nodes are monitored by the controller for disk space, free tmp, free swap, clock time/sync and response time
+		* A node is taken offline if any of these values go outside the configured threshold
+	* **Executor** : 
+		* A thread in the agent for execution of tasks
+		* The number on a node defines the number of concurrent tasks that can be executed on that node at one time
+	* **Agent** : 
+		* The tool managing the executors on a remote node on behalf of the controller
+		* Small (170KB single jar) Java client processes that are assumed to be unreliable
+		* Can use any OS that supports Java
+		* Tools required for builds and tests are installed on the node where it runs, directly or in a container
+* Number of executors per node :
+	* Choice is made based on resources available on the node, and resources required for the workload
+	* One per node is the safest
+	* One per CPU core may work well if the tasks are small
+	* Monitor I/O perf and throughput, CPU, Mem carefully when running multiple executors on a node
+	* There should be none on the controller
+
+=== System configuration ===
+* Use **Dashboard > Manage Jenkins > System Configuration** page to configure :
+	* Basic informations about the controller
+	* JDK installations
+	* Build tools - Ant and Maven
+	* Version control tools
+	* Email conf
+	* Plugins
+
+=== Global tool configuration ===
+* Use **Dashboard > Manage Jenkins > Global Tool Configuration** to configure the tools used for Pipeline development
+* Some tools are listed by default, while others are listed only if installed
+
+==== Manage Plugins ====
+
+* Use **Dashboard > Manage Jenkins > Manage Plugins** page
+* Backup the instance before applying any update
+* The full list is available at https://plugins.jenkins.io/
+* See https://www.jenkins.io/doc/book/managing/plugins/ for additional infos
+
+=== Plugins purposes ===
+* Features are implemented as plugins to provide a modular architecture
+* Some have dependencies on other plugins
+* Examples of features are scm, build tools, reporting tools, issue trackers, notification tools, views ans UI customizations, distributed builds
+
+=== Plugins internals ===
+* They are jar files with some special conventions (i.e. no web.xml)
+* Contained in files with **hpi** or **jpi** (jpi takes precedence) extension and stored in JENKINS_HOME/plugins dir
+* They are versioned artifacts that can be upgraded
+* Uninstalling a plugin does not remove the configuration that it may have created : Use **Dashboard > Manage Jenkins > Manage Old Data** to do it
+
+=== Installing plugins methods ===
+* Use **Dashboard > Manage Jenkins > Manage Plugins > Available Plugins** page to look for and install
+* Use https://github.com/jenkinsci/docker Jenkins official docker image to fetch the exhaustive list of plugins for a given instance
+* Package your own Jenkins and plugins by using the custom WAR packager (https://www.jenkins.io/blog/2018/10/16/custom-war-packager/)
+* Copy plugins directly to the JENKINS_HOME/plugins dir and restart Jenkins
+* From CLI :
+	* List plugins : java -jar jenkins-cli.jar -s http://<JENKINS_URL>:8085 -auth '<username>:<password>' list-plugins
+	* Install/update plugin : java -jar jenkins-cli.jar -s http://<JENKINS_URL>:8085 -auth '<username>:<password>' install-plugin SOURCE ... [-deploy] [-name VAL] [-restart]
+	* Disable plugin : disable-plugin <plugin_list>
+	* Enable plugin : enable-plugins <plugin_list>
+
+==== Build Notifications ====
+
+* Primary feeback for Jenkins builds
+* Can be delivered through email, slack and other channels
+* Defined in the pipeline code
+* Must be configured first to work
+* Install plugins necessary for the notification method chosen
+* Use **Dashboard > Manage Jenkins > Configure System** to configure Notification service, Credentials and other provider-specific options
+* Use **Dashboard > Manage Jenkins > Configure System > Jenkins Location > System admin e-mail address** to define the sender email address
+* Use Extended E-mail Notification for more email features

@@ -1,0 +1,106 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-03-23T16:39:23+00:00
+
+====== Servers ======
+Créée le Thursday 23 March 2023
+
+* Used to listen to clients and answer to their requests
+* Most common types are :
+	* Web
+	* Chat
+	* App
+	* DB
+	* Email
+	* Backup
+
+===== Web Servers =====
+
+* Serve web content such as html, css, js, videos, images
+* Static websites are only made of static files : There is barely no interaction with the server after the files are sent
+* nginx and Apache http are most suitable for static
+
+==== Apache http ====
+* Made for static content
+* Install with : **yum install -y httpd**
+* Logs at : **ls [[/var/log/httpd/*_log]]**
+* Conf file at : **ls [[/etc/httpd/conf/httpd.conf]]**
+* Site content shall be in **DocumentRoot** dir and accessed by http://localhost
+* Use **ServerName** to specify fqdn of the server
+* Host multiple websites with vhosts
+
+===== App Servers =====
+
+* Backend servers
+* Responsible for business logic
+* Used codes are Java, Python, NodeJS
+* Dynamic websites made of static files along with code and database : allows users to modify content in the backend
+* Apache Tomcat, gunicorn and uWSGI are most suitable for dynamic websites
+
+==== Apache Tomcat ====
+* Made for java based web apps
+* Needs java installed, then follow : https://tomcat.apache.org/tomcat-8.5-doc/setup.html
+* Start with : **bin/startupt.sh**
+* Can host multiple java web apps in **webapps** dir
+* Apps are package in .war with : **jar -cvf app.war ***
+* Tools are in **bin** dir
+* Confs are in **con** dir
+* Logs are in **logs** dir, default log file is : **logs/catalina.out**
+* Access app to **http://localhost:8080/app**
+
+==== Flask ====
+Doc https://flask.palletsprojects.com/en/2.2.x/quickstart/
+* Python web app framework
+* Requires python3 installed, then : **pip install -U Flask**
+* Run in dev with (default 5000): **python main.py**
+* Run in prod with **gunicorn**, **uWSGI**, **Gevent**, **Twisted Web**
+	* Install gunicorn with pip : **pip install gunicorn**
+	* Add [[/usr/lib/python3.X/site-packages/bin/]] to path
+	* Run with gunicorn : **gunicorn main:app** as **gunicorn <file_name>:<flask_object>**
+	* Run additional workers add **-w number**
+
+==== ExpressJS ====
+* Install NodeJS first
+* Install ExpressJS then : https://expressjs.com/fr/starter/installing.html
+* To run app, cd into project dir then : **npm install && node <app_start_point>**
+* Run with scripts section of package.json file : **npm run <script_name>**
+* A bug stops the app
+* To prevent that we can use process managers like **supervisord**, **forever**, **pm2**
+	* **pm2** is the native production process manager with a built-in load balancer
+	* Run with : **pm2 start app.js -i <number_of_instances>**
+	* Stop with : **pm2 stop app.js**
+	* Delete in case we want to add forks or else :** pm2 delete app.js**
+
+===== Database Servers =====
+
+==== SQL DB ====
+* Example of MySQL/MariaDB
+* The data unit is the row
+* Rows are organised in tables
+* Tables are organised in databases
+* Install with yum and start
+* Use SQL language to administer
+
+==== NoSQL DB ====
+* Example of MongoDB
+* The data unit is the document
+* Documents are stored in collections
+* Collections are stored in databases
+* Install and start with yum
+* Conf is at [[/etc/mongod.conf]]
+* Logs are at [[/var/log/mongodb/mongod.log]]
+* Data at [[/var/lib/mongo]]
+* Listens [[localhost:27017]]
+* Access mongo shell with mongo command : mongo
+* Access control is disabled by default and must be enabled manually
+* Some commands :
+	* show dbs : list databases
+	* use db : work on a database (create one if it does not exist)
+	* db : show the selected database
+	* db.createCollection("collection_name") : create a collection in the database
+	* show collections : list the collections in the database
+	* db.collection_name.insert({
+		 "name": "data",
+		 "age": 45 }) : add a document in the collection
+	* db.collection_name.find() : show all data in the collection
+	* db.collection_name.find({"name": "data"}) : show all data in the collection with name=data

@@ -1,0 +1,51 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-06-15T11:41:44+00:00
+
+====== 4. Advanced ======
+Créée le Thursday 15 June 2023
+
+===== Project types =====
+
+==== Freestyle ("chained") projects ====
+* Also called jobs
+* Use job orchestration tools such as Job DSL (Domain Specific Language) plugin or Jenkins Job Builder
+* Not recommended for new development
+* Only provide sequential steps although can be chained with upstream/downstream
+* Not defined in code, only through GUI
+* Do not provide centralized conf
+* Result is cumbersome with modern projects, hard to maintain, difficult to visualize
+* Many continuous objectives will be very difficult to implement because of :
+	* Complex conditional logic
+	* Resource allocation and cleanup difficulties
+	* Human interaction for manual approval not supported
+	* Disability to resume at some point of failure
+
+==== Pipeline projects ====
+* A pipeline is a tool for defining CD flow as code
+* Two types are supported :
+	* Scripted : 
+		* Many freestyle jobs chained together
+		* Sequential execution using Groovy expression for flow control
+		* Limitations are mostly Groovy limitations
+	* Declarative : 
+		* Uses a framework to control execution (Groovy not necessary)
+		* Can always be resumed after an interruption, no matter what caused it
+		* Declarative programming model
+		* Reduces the risk of syntax errors
+		* Use the script step to include scripted code
+* Both use a customized DSL that is based on Grrovy to programmatically manipulate Jenkins Objects
+* Advantages over freestyle are :
+	* Durable : Continues to run even during Controller restart
+	* Pausable : can stop and wait for human input or approval
+	* Versatile : supports complex real-world CD requirements (fork, join, loop, parallelize)
+	* Extensible : supports custom extensions to its DSL
+	* Reduces number of jobs
+	* Easier maintenance
+	* Decentralization of job conf
+	* Easier specification through code
+* Tools for working with pipelines :
+	* Graphical Blue Ocean Visual Editor with the embedded Code Editor
+	* Jenkins dashboard with the inline editor that is provided
+	* Jenkins dashboard with a text editor and standard scm tools
+* All result in **The Same Jenkinsfile**
