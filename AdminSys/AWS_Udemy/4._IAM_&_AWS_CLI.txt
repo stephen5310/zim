@@ -1,0 +1,86 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-03T12:08:16+00:00
+
+====== 4. IAM & AWS CLI ======
+Créée le Monday 03 July 2023
+
+===== Users & Groups =====
+
+* A root account is create upon aws account creation
+* It should not be shared
+* Use it only to create IAM users
+* Users are people within the organization and can be grouped
+* Groups can only contain users, not other groups
+* Users can be part of multiple groups, cumulating permissions
+* Permissions are assigned to users and groups through IAM policies
+* We apply the least privilege principle to give a user no more permissions than needed
+* Create an account alias to ease signin for IAM users
+
+===== IAM Policies =====
+
+* Users inherit policies from groups they are part of
+* Consists : 
+	* A version number
+	* An Id (optional)
+	* Statement(s) :
+		* Sid (optional) : identifier for the statement
+		* Effect : Allow or Deny
+		* Principal : account/user/role to apply policy
+		* Action : list of actions to apply effect
+		* Resource : list of resources to apply effect
+		* Condition (optional) : conditions for when to apply
+* Can use already defined policies or create a new policy with Visual/json policy editor
+* Increase account security by : 
+	* Defining a Password Policy in Account settings
+	* Enabling MFA
+* The password policy of the root account is applied to all IAM users
+* Apply specific password policies to users with AWS Directory Service
+
+===== Access AWS =====
+
+* Three options : 
+	* Management console : protected by password + MFA
+	* CLI : protected by access keys and STS for sso
+	* SDK : protected by access keys and STS for sso
+==== Access keys ====
+* Generate at Security Credentials > Access keys
+* Managed by users themselves
+* Secret credentials, not to share
+
+==== Command Line Interface ====
+* Intall following : https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+* Gives **aws** command to access the public APIs of AWS services
+* Configure access following : https://docs.aws.amazon.com/cli/latest/userguide/getting-started-quickstart.html
+* Use IAM Identity Center is recommended
+* Can use Cloudshell in the management console to avoid all the authentication hassle
+* It is available only in some regions
+
+==== Software Development Kit ====
+* Libraries, language specific APIs
+* Embedded within apps
+* Supported JS, Python, php, .NET, ruby, java, go, node.js, C++, Android, iOS, IoT Devices
+* AWS CLI is built on AWS SDK for python
+
+===== IAM Roles for services =====
+
+* Used to provide permissions to services to perform actions on resources
+* Commonly used for EC2 instances, lambda functions and CloudFormation
+* Assign an IAM role to another account so that its affected entities can perform actions in your account
+
+===== IAM Security Tools =====
+
+* Credentials Report (account-level) to list all users and the status of their various credentials
+* Access Advisor (user-level) to show the permissions of a user and when the services were last accessed
+
+===== Guidelines and best practices =====
+
+* Use root account only for AWS accounts setup
+* One physical user = One AWS user
+* Assign users to groups and assign permissions to groups
+* Create a strong password policy
+* Use and enforce the use of MFA
+* Create and use Roles for giving permissions to AWS services
+* Use IAM Identity Center for Programmatic Access
+* Audit permissions of your account using IAM Credentials Report & IAM Access Advisor
+* Never share IAM users & Access Keys

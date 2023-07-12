@@ -1,7 +1,0 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.6
-Creation-Date: 2022-07-04T13:17:06+02:00
-
-====== Session 4 ======
-Created lundi 04 juillet 2022
-

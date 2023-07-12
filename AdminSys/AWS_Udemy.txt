@@ -1,0 +1,31 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-03T11:58:22+00:00
+
+====== AWS Udemy ======
+Créée le Monday 03 July 2023
+
+===== Global Infrastructure =====
+
+* Regions : 
+	* All around the world
+	* Have a name (us-east-1)
+	* Cluster of data centers
+	* Most services are region-scoped : EC2, Lambda, Beanstalk, Rekognition
+	* Choose the region looking at :
+		* Compliance with data governance and local requirements
+		* Proximity to users
+		* Service availability
+		* Pricing
+* Availability zones :
+	* 3 to 6 per region
+	* One or more discrete data centers with redundant power, networking and connectivity
+	* Separate from each other to isolate from disaster
+	* Connected with high bandwidth and ultra-low latency
+* Data centers
+* Edge locations / PoP :
+	* 400+ PoP, 10+ regional caches, 90+ cities, 40+ countries
+	* Deliver content to end users with lower latency
+* Global services : IAM, CloudFront, Route53, WAF, Billing
+* For more : https://aws.amazon.com/about-aws/global-infrastructure/?p=ngi&loc=1
+

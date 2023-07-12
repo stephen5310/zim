@@ -1,0 +1,45 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-03T12:09:12+00:00
+
+====== 5. EC2 Basics ======
+Créée le Monday 03 July 2023
+
+===== Billing Service =====
+
+* Allow IAM users with Billing view permission to access Billing by using root account and modifying Account settings
+* Go to Bills to see what service is billing you
+* Go to Budget to define budgets
+
+===== EC2 overview =====
+
+* Elastic Compute Cloud = Infrastructure as a Service
+* Allows to : 
+	* Rent VM (EC2)
+	* Store data on virtual drives (EBS)
+	* Distributing load accross machines (ELB)
+	* Scaling services using an auto-scaling group (ASG)
+* Sizing and configuration options :
+	* Operating System : linux, windows, Mac OS
+	* CPU power and cores
+	* RAM
+	* Storage space :
+		* Network-attached (EBS, EFS)
+		* hardware (Instance store)
+	* Network card : Speed, Public IP
+	* Firewall rules : Security groups
+	* Bootstrap script : User Data (runs as root)
+	* For instance types : https://aws.amazon.com/ec2/instance-types/
+
+===== Types overview =====
+
+* Naming convention : m5.2xlarge
+	* m : instance class
+	* 5 : generation (improves over time)
+	* 2xlarge : size within class
+* Instances are optimized for different use cases
+* General purpose : balance between compute, memory and networking
+* Compute optimized : compute intensive tasks that require high performance processors
+* Memory optimized : fast performance on large data sets in memory processing
+* Storage optimized : access a lot of data sets on local storage
+* Go to https://instances.vantage.sh/ for more details

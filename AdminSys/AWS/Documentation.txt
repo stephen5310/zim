@@ -1,8 +1,0 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.6
-Creation-Date: 2023-02-08T10:14:49+01:00
-
-====== Documentation ======
-Created mercredi 08 février 2023
-
-Go to https://docs.aws.amazon.com/
