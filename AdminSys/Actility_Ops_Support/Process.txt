@@ -214,8 +214,10 @@ lrr shell <lrrid> dngentar -T fpgaup_61 ?
 
 === For Multitech ===
 
+[[/etc/init.d/lrr]] stop
 cd /usr/lib/mts-flash-binaries/
 mts-fpga-loader -i mtcap-fpga-v31.hex
+[[/etc/init.d/lrr]] start
 
 ==== Decryption on GW ====
 '''
@@ -251,7 +253,7 @@ echo "$PASS" | openssl enc -aes-256-cbc -base64 -d -pass pass:"${KEY}+${ID}" | a
 
 ==== Connexion au lab d'Actility pour tester l'image ====
 
-* se connecter au wiki [[https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product Group Portal/Ecosystem Base Station/BS LAB/]] pour voir les instructions et les liens
+* se connecter au wiki https://wiki.int.actility.com/xwiki/wiki/xwikiproduct/view/Product%20Group%20Portal/Ecosystem%20Base%20Station/BS%20LAB/ pour voir les instructions et les liens
 
 * accéder à l'inventaire par le lien Ecosystem GW LAB Inventory pour sélectionner et réserver une GW libre sur une période
 * la réservation se fait en ajoutant une entrée comme  (Stephen 3 - 7 Jan) sur la ligne du lab de la GW en question dans la feuille de calcul Booking Timetable
