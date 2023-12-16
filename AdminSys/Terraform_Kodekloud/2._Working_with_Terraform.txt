@@ -1,0 +1,125 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-11-16T12:44:45+01:00
+
+====== 2. Working with Terraform ======
+Created jeudi 16 novembre 2023
+
+===== Commands =====
+
+==== validate ====
+* Used to validate the configuration file :
+	* Checks resource block and argument syntax
+	* Does not check the values the arguments expect specific resources
+* Shows the lines with the errors and the suggestions to correct
+
+==== fmt ====
+* Formats the code of all configuration files in current directory in canonical format
+
+==== providers ====
+* Shows the list of all providers used in the configuration directory
+* Can copy the providers to another path with : ''terraform providers mirror <path>''
+
+==== refresh ====
+* synchronise terraform with real-world infrastructure
+* Updates the tfstate file
+
+==== graph ====
+* Create a visual representation of the dependencies in the configuration files in DOT format
+* The graph can be visualized with a graph visualization software like Graphviz
+
+===== Mutable vs Immutable infrastructure =====
+
+* Mutable is when we update the softwares without changing the undrelying infrastructure (servers) :
+	* Can lead to configuration drifts
+* Immutable is when we replace old servers with new servers with the updated software :
+	* Does not leave much room to configuration drifts
+* Terraform uses the Immutable approach :
+	* It deletes completely the resource and creates a new one with the updated configuration
+
+===== LifeCycle Rules =====
+
+* Use to change the way terraform updates resources
+* Add the **''lifecycle''** block to the resource configuration with the desired behavior
+''resource "local_file" "pet" {''
+''  filename = "/root/pets.txt"''
+''  content = "We love pets !"''
+
+''  lifecycle {''
+''    create_before_destroy = true''
+''  }''
+''}''
+
+* Some types of behaviors are :
+	* Create new resource before deleting the old one (this could lead to deletion if not handled correctly) : ''create_before_destroy''
+	* Do not destroy the resource (can be destroyed only with ''destroy'') : ''prevent_destroy''
+	* Prevents resource to be updated based on a list of attributes defined in lifecycle block : ''ignore_changes = [ attribute1, attribute2 ]''
+
+===== Datasources =====
+
+* Allow Terraform to read attributes from resources provisioned outside its control
+* Can be used by declaring a ''data'' block in the configuration directory
+* The data read from a datasource will be available under the corresponding "data" object
+* Example of datasource declaration :
+''data "local_file" "dog" {''
+''  filename = "/root/dog.txt"''
+''}''
+* To use the data object : ''data.local_file.dog''
+
+===== Meta-Arguments =====
+
+* Use within a resource block to change the behavior of the resource :
+	* Declare dependencies : ''depends_on''
+	* Define lifecycle rules : ''lifecycle''
+
+==== Count ====
+* Create N resources with the same block (will be a list of resources) : ''count = N''
+* Give a name to each resource from a list of elements in the block : 
+''resource "local_file" "pet" {''
+''  filename = var.filename[count.index]''
+''  count = length(var.filename)''
+''}''
+* Cons : when updating the list the apply command might delete more elements than we intend to
+	* Because the output is a list, changes in indexes are also taken into account
+
+==== For_each ====
+* Iterates through a map or a set to create resources
+''resource "local_file" "pet" {''
+''  filename = each.value''
+''  for_each = toset(var.filename)''
+''}''
+* The output is a map so modification only deletes the intended resources
+
+===== Version Constraints =====
+
+* The init downloads the latest version of plugins
+* To download specific versions of plugins we use the ''terraform'' block in the configuration file :
+''terraform {''
+''required_providers {''
+	''local = {''
+		''source = "hashicorp/local"''
+		''version = "1.4.0"''
+		''}''
+	''}''
+''}''
+* To prevent Terraform from downloading a specific version : ''version = "!= 2.0.0"''
+* For a version lesser : ''version = "< 2.0.0"''
+* For a version greater : ''version = "> 2.0.0"''
+* For an interval and a prevention : ''version = "> 1.2.0, < 2.0.0, != 1.4.0"''
+* For a specific version or any available incremental version
+	* For 1.2 to 1.9 : ''version = "~> 1.2"''
+	* For 1.2.0 to 1.2.9 : ''version = "~> 1.2.0"''
+
+===== Aliases =====
+
+* Used to create resources in different regions for a cloud platform
+	* In ''provider.tf''
+''provider "aws" {''
+'' region = "eu-west-3" ''
+'' alias = "western-europe"''
+''}''
+	* In ''main.tf''
+''resource "<type>" "<name> {''
+'' # (Attributes) ''
+'' provider = aws.western-europe''
+''}''

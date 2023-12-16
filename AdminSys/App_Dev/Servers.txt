@@ -90,7 +90,7 @@ Doc https://flask.palletsprojects.com/en/2.2.x/quickstart/
 * Conf is at [[/etc/mongod.conf]]
 * Logs are at [[/var/log/mongodb/mongod.log]]
 * Data at [[/var/lib/mongo]]
-* Listens [[localhost:27017]]
+* Listens localhost:27017
 * Access mongo shell with mongo command : mongo
 * Access control is disabled by default and must be enabled manually
 * Some commands :

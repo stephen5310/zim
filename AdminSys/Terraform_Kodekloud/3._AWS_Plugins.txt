@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-11-17T11:02:25+01:00
+
+====== 3. AWS Plugins ======
+Created vendredi 17 novembre 2023
+
+===== Access AWS account =====
+
+* Log into the account with aws cli
+* Terraform looks for the configurations in ~/.aws/ folder to log in
+* When using aws sso you just have to set the **''AWS_PROFILE''** env var to the sso profile you used to log in
+* Go to https://registry.terraform.io/providers/hashicorp/aws/latest/docs for more authentication methods
+* Go to the same link for resource creation

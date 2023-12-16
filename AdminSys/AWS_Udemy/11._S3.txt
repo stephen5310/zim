@@ -1,0 +1,192 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-28T17:53:52+02:00
+
+====== 11. S3 ======
+Created vendredi 28 juillet 2023
+
+===== Overview =====
+
+* Main building block of AWS
+* Infinitely scaling storage
+* Buckets are Region-bound
+* Used for :
+	* Backup and storage
+	* Disaster recovery
+	* Archive
+	* Hybrid Cloud storage
+	* App hosting
+	* Media hosting
+	* Data lakes & big data analytics
+	* Software delivery
+	* Static website
+* Files are stored as objects in buckets
+* Buckets must have a globally unique name :
+	* No uppercase, no underscore, not an IP
+	* 3-63 characters long
+	* Must start with lowercase letter or number
+	* Must not start with prefix **xn--**, nor end with suffix **-s3alias**
+* Objects have a Key :
+	* The key is the FULL path : s3://my-bucket/my_folder/another_folder/my_file.txt
+	* It is composed of the prefix + the object name : **my_folder/another_folder/** + **my_file.txt**
+* Object values are the content of the body :
+	* Max size is 5TB
+	* Use multi-part upload for more than 5GB
+* Objects also have :
+	* Metada (list of text key / value pairs) set by the system or the user
+	* Tags (Unicode key / value pair - up to 10) are useful for security / lifecycle
+	* Version ID if versioning is enabled
+
+===== S3 Security =====
+
+* Use AWS Policy Generator to generate policies
+* User-based : 
+	* IAM policies : which API calls should be allowed for a specific IAM user
+* Resource-based : 
+	* Bucket policies : bucket wide rules from console, allows cross account
+	* Object ACL : finer grain (can be disabled)
+	* Bucket ACL : less common (can be disabled)
+* IAM principal can access an S3 object if :
+	* The user permissions ALLOW it, OR the resource policy ALLOWS it
+	* AND there is no explicit DENY
+* Encryption : encrypt objects in S3 using encryption keys
+
+===== Static Website Hosting =====
+
+* The website URL will be depending on the region :
+	* http://bucket-name.s3-website-aws-region.amazonaws.com
+	* http://bucket-name.s3-website.aws-region.amazonaws.com
+* Make sure to allow public reads
+* You just have to activate the functionnality
+
+===== S3 Versioning =====
+
+* Enable at bucket level
+* Same key, overwrite will change the version
+* Protects against unintended deletes
+* Easy roll back to previous version
+* Suspending does not delete previous versions
+* Any file not versioned before activation will have null version
+* Deleting a specific version is not reversible
+* Deleting a object will just add a delete marker, which can be removed
+
+===== S3 Replication =====
+
+* Must enable versioning in source and destination buckets
+* Only new objects are replicated
+* Use S3 **Batch Replication** to replicate existing and failed ones
+* Cross-Region and Same-Region Replication
+* Buckets can be in different accounts 
+* Copy is asynchronous
+* Must give proper IAM permissions to S3
+* CRR : compliance, lower latency access
+* SRR : log aggregation, live replication between production and test accounts
+* Delete markers can be replicated, but deletions with a version ID are not
+* There is no chaining of replication
+
+===== S3 Storage Classes =====
+
+* Can move between classes manually or using S3 Lifecycle configurations
+
+==== Standard - GP ====
+* 99.99% Availability
+* Frequently accessed data, low latency and high throughput
+* Sustain 2 concurrent facility failures
+* Used for : Big Data analytics, mobile & gaming apps, content distribution
+
+==== Standard-IA ====
+* Less frequently accessed, requires rapid access when needed
+* 99.9% Availability : Disaster Recovery, backups
+
+==== One Zone-IA ====
+* 99.5% Availability : Storing secondary backup copies of on-premise data, or data that can be recreated
+
+==== Glacier Instant Retrieval ====
+* Low-cost storage meant for archiving / backup
+* Price for storage + object retrieval cost
+* Milliseconf retrieval : great for data accessed once a quarter
+* Minimum storage duration of 90d
+ 
+
+==== Glacier Flexible Retrieval ====
+* Expedited (1 to 5mn), Standard (3 to 5h), Bulk (5 to 12h) - free
+* Minimum storage duration of 90d
+
+==== Glacier Deep Archive ====
+* Standard (12h), Bulk (48h)
+* Minimum storage duration of 180d
+ 
+
+==== Intelligent Tiering ====
+* Small monthly monitoring and auto-tiering fee
+* Moves objects automatically between Access Tiers based on usage
+* No retrieval charges
+* Frequent Access tier (automatic) : default
+* Infrequent Access tier (automatic) : objects not accessed for 30d
+* Archive Instant Access tier (automatic) : objects not accessed for 90d
+* Archive Access tier (optional) : configuratble from 90d to 700+ d
+* Deep Archive Access tier (optional) : config from 180d to 700+ d
+
+==== Lifecycle Rules ====
+* Transition Actions : configure objects to transition to another storage class
+	* Move objects to Standard-IA 60d after creation
+	* Move to Glacier after 6months
+* Expiration Actions : configure objects to expire (delete) after some time
+	* Access log files can be set to delete after 365d
+	* Can be used to delete old versions of files
+	* Can be used to delete incomplete Multi-Part uploads
+* Rules can be created for a certain prefix
+* Rules can be created for certain object tags
+* Can use **S3 Analytics** to give recommendations for Standard and Standard-IA transition :
+	* Report is updated daily
+	* 24 to 48ho start seeing data analysis
+
+==== Requester Pays ====
+* By default bucket owners pay for all S3 storage and data transfer costs associated with their bucket
+* Activate this feature to make the requester pay the costs of the request and the data downloaded from the bucket
+* The requester must be authenticated in AWS
+==== Event notification ====
+* S3:ObjectCreated, S3:ObjectRemoved, ...
+* Object name filtering possible (*.jpg)
+* Can create as many S3 events as desired
+* Event notifications typically deliver events in seconds but can sometimes take a minute or longer
+* Can send events to SNS, SQS and Lambda by defining IAM resource access policies
+* Can send events to EventBridge : 
+	* Define rules to reach over 18 other services
+	* Avanced filtering options with JSON rules
+	* EventBridge Capabilities : Archive, Replay Events, Reliable delivery
+
+==== Performance ====
+* Automatically scales to high request rates, latency 100-200ms
+* App can achieve at least 3.500 PUT/COPY/POST/DELETE or 5.500 GET/HEAD requests per second per prefix
+* No limit to the number of prefixes
+* Spreading reads across all prefixes evenly can help achieving 22.000 requests per second for GET and HEAD
+* Multi-Part upload :
+	* Recommended for files > 100MB
+	* Must for files > 5GB
+	* Can help parallelize uploads
+* S3 Transfer Acceleration :
+	* Increase transfer speed by transferring file to AWS edge location which will forward data to S3 bucket in target region
+	* Compatible with multi-part upload
+* S3 Byte-Range Fetches :
+	* Parallelize GETs by requesting specific byte ranges
+	* Better resilience in case of failures
+	* Speed up downloads by parallelizing part downloads
+	* Retrieve only partial data
+
+==== S3 Select & Glacier Select ====
+* Retrieve less data using SQL by performing server-side filtering
+* Can filter by rows & columns (simple SQL statements)
+* Less network transfer, less CPU cost client-side
+
+==== S3 Batch Operations ====
+* Perform bulk ops on existing S3 objects with a single request :
+	* Modify objects metadata & properties
+	* Copy objects between S3 buckets
+	* Encrypt un-encrypted objects
+	* Modify ACLs, tags
+	* Restore objects from S3 Glacier
+	* Invoke Lambda function to perform custom action on each object
+* A job consists of a list of objects, the action to perform and optional params
+* S3 Batch Ops manages retries, tracks progress, sends completion notifications, generate reports, ...
+* Can use S3 Inventory to get object list and use S3 Select to filter objects

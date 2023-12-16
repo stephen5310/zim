@@ -78,7 +78,19 @@ Created jeudi 27 janvier 2022
 * lancer l'upgrade (lance le redémarrage aussi) sur chaque BS en parcourant l'array : lrrshell <lrr_id> "upgrade -V 2.6.56_2 ?"
 * lancer la commande de vérification de la version après redémarrage (2mn à 3mn après l'upgrade)
 
-==== Génération, révocation, renouvellement de certificats ====
+==== Voir les logs des commandes exécutées depuis le lrc sur les GWs ====
+
+* Voir [[/home/actility/usr/data/lrr/cmd_shells/]]
+
+==== Backup a GW ====
+
+* Execute the following command : 
+/home/actility/lrr/restoremgr/backup.sh --backup
+* Check backup infos :
+cat /var/config/backupact/backupact_info
+ll /var/config/backupact/
+
+==== Génération, révocation, renouvellement de certificats (Swisscom seulement) ====
 
 === Extraction de la liste des GWs avec certificats sur le point d'expirer ===
 * Se connecter à SQL2 prod eu
@@ -133,6 +145,27 @@ python /container-workdir/lrr-manager/conf/LRR_manager_swisscom.py test-swisscom
 
 * copier le certificat depuis le RCA sur le serveur support : sftp download23@slrc1.eu.thingpark.com:/Lrr_prod-eu_apik-ope_0B0310B9/Lrr_prod-eu_apik-ope_0B0310B9.tar.gz.enc   /tmp/
 * envoyer le certificat depuis le serveur support sur la GW : scp -P <GW_Port> <Cert_Name>.tar.gz.enc root@localhost:/tmp/secure
+
+==== Migrate a GW from lrrID to UUID ====
+
+* Execute the script below on the GW
+'''
+#!/bin/sh
+
+if grep -q "uidmode"  $ROOTACT/usr/etc/lrr/lrr.ini
+then
+  sed -i "s/^.*uidmode=.*/        uidmode=fromtwa/" $ROOTACT/usr/etc/lrr/lrr.ini
+else
+  sed -i "/^\[lrr\]/a uidmode=fromtwa"  $ROOTACT/usr/etc/lrr/lrr.ini
+  sed -i "s/^.*uidmode=.*/        uidmode=fromtwa/" $ROOTACT/usr/etc/lrr/lrr.ini
+fi
+
+sed -i "s/^PLATFORM=.*/PLATFORM=prod-eu/" $ROOTACT/usr/etc/lrr/vpn.cfg
+sed -i "s/^OPERATOR=.*/OPERATOR=swisscom-ope/" $ROOTACT/usr/etc/lrr/vpn.cfg
+/etc/init.d/lrr restart
+/etc/init.d/checkvpn2 restart
+'''
+
 
 ==== Génération des mots de passe root et USB keys pour les BS ====
 

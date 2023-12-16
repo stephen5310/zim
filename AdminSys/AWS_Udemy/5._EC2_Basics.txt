@@ -105,7 +105,7 @@ https://aws.amazon.com/ec2/pricing/
 * Define **max spot price** and get the instance while the current price < max spot price
 	* The hourly spot price varies based on offer and capacity
 	* When the max is reached you have 2mn grace period to stop or terminate the instance
-* Use **Sport Block** to block the instance during a time frame (1 to 6H) without interrruptions 
+* Use **Spot Block** to block the instance during a time frame (1 to 6H) without interrruptions 
 	* In rare situations, the instance may be reclaimed
 * Below is the lifecycle of a spot instance
 {{.\pasted_image.png}}

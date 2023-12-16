@@ -1,0 +1,62 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-25T12:50:38+02:00
+
+====== 31. WhitePapers and Architectures ======
+Created vendredi 25 août 2023
+
+===== Well-Architected Framework =====
+
+https://aws.amazon.com/architecture/well-architected/
+https://www.wellarchitectedlabs.com/
+
+* Stop guessing capacity needs
+* Test systems at production scale
+* Automate to make architectural experimentation easier
+* Allow for evolutionary architectures : Design based on changing requirements
+* Drive architectures using data
+* Improve through game days : Simulate apps for flash sale days
+* The 6 pillars : 
+	* Operational Excellence
+	* Security
+	* Reliability
+	* Performance Efficiency
+	* Cost Optimization
+	* Sustainability
+
+===== Well-Architected Tool =====
+
+* Free tool to review your architectures against the 6 pillars and adopt architectural best practices
+* How does it work
+	* Select your workload and answer questions
+	* Review your answers against the 6 pillars
+	* Obtain advice : get videos and documentations, generate a report, see the results in a dashboard
+
+===== Trusted Advisor =====
+
+* No need to install anything
+* High level acocunt assessment
+* Analyze AWS accounts and provides recommendations on 5 categories :
+	* Cost optimization
+	* Performance
+	* Security
+	* Fault tolerance
+	* Service limits
+* Support Plans :
+	* 7 core checks for Basic & Developer Support plan :
+		* S3 Bucket Permissions
+		* SG - Specific Ports Unrestricted
+		* IAM Use (one IAM user minimum)
+		* MFA on Root Account
+		* EBS Public Snapshots
+		* RDS Public Snapshots
+		* Service Limits
+	* Full Checks for Business & Enterprise Support Plan
+		* Full Checks available on the 5 categories
+		* Ability to set CW alarms when reaching limits
+		* Programmatic Access using AWS Support API
+
+===== More Architectures =====
+
+https://aws.amazon.com/architecture/
+https://aws.amazon.com/solutions/

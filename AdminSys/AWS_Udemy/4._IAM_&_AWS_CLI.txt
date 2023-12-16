@@ -43,6 +43,7 @@ Créée le Monday 03 July 2023
 	* Management console : protected by password + MFA
 	* CLI : protected by access keys and STS for sso
 	* SDK : protected by access keys and STS for sso
+
 ==== Access keys ====
 * Generate at Security Credentials > Access keys
 * Managed by users themselves

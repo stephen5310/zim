@@ -1,0 +1,218 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-22T11:52:12+02:00
+
+====== 27. VPC ======
+Created mardi 22 août 2023
+
+===== Default VPC =====
+
+* All new AWS account have a default VPC
+* New EC2 instances are launched in the default VPC if no subnet is specified
+* Default VPC has internet connectivity and all EC2 instances inside have public IPv4 addresses
+* We also get a public and a private IPv4 DNS names
+* It has no name in the Your VPCs view
+* The IP address range is 172.31.0.0/16
+* Flow logs are not enabled
+* There are no tags
+* One subnet per AZ
+* Two entries in route tables :
+	* Private IPs have local target
+	* Every other IP have the Internet GW as target
+
+===== IPv4 VPC Overview =====
+
+* Can have multiple VPCs in AWS region (5max, can be increased)
+* Max networks per VPC is 5, for each network :
+	* Min size is /28
+	* Max size is /16
+* Only private IPv4 ranges are allowed
+* Your CIDR should not overlap with your other networks
+
+==== Subnets ====
+* Sub-range of a VPC network
+* AWS reserves 5 IP addresses (first 4 and last 1) in each subnet
+* For 10.0.0.0/24 it will be :
+	* 10.0.0.0 - Network address
+	* 10.0.0.1 - VPC Router
+	* 10.0.0.2 - Mapping to Amazon-provided DNS
+	* 10.0.0.3 - Future use
+	* 10.0.0.255 - Network Broadcast address
+
+==== Internet Gateways ====
+* Allows resources in a VPC to connect to the internet
+* Scales horizontally, HA and redundant
+* Must be created separately from VPC
+* One VPC can only be attached to one IGW and vice-versa
+* Route tables must also be edited to make it work
+
+==== Bastion Hosts ====
+* EC2 instance in public subnet that has ssh access to instances in private subnet
+* Allows IPs from a restricted CIDR from the internet to have ssh access to instances in private subnet with it as first hop
+* SG of EC2 instances in private subnet must allow SG from bastion host or its private IP address
+
+==== NAT Instance (outdated) ====
+* Allows EC2 instances in private subnet to access internet
+* Must be launched in public subnet
+* Must disable EC2 setting : Source / Destination Check
+* Must have elastic IP attached to it 
+* Route tables of private subnet must be edited
+* Pre-configured Amazon Linux AMI available
+* Not HA, not resilent out of the box : need to create ASG in multi-AZ + resilient user-data script
+* Internet traffic depends on EC2 instance type 
+* Must manage SG :
+	* Inbound :
+		* Allow http/https traffic from Private Subnets
+		* Allow ssh from home network (through IGW)
+	* Outbound : 
+		* Allow http/https traffic to internet
+
+==== NAT GW ====
+* AWS-managed NAT, higher bandwidth, HA in AZ only
+* Must create multiple in NAT GWs in multiple AZs for fault tolerance
+* No need for cross AZ failover
+* Pay per hour for usage and bandwidth
+* Created in a specific AZ, uses an elastic IP
+* Can't be used by instances in the same subnet
+* Requires an IGW
+* 5 Gbps bandwidth with auto scaling up to 100 Gbps
+* No SG to manage / required
+
+==== NACL ====
+* Like firewalls controlling traffic to and from subnets
+* One NACL per subnet, new subnets are assigned default NACL
+* Define NACL rules (stateless) :
+	* Numbered from 1 to 32766, higher precedence with lower number
+	* First rule match will drive the decision
+	* The last rule is an * and will deny in case of no rule match
+	* AWS recommends adding rules by increment of 100
+* Newly created NACL will deny everything
+* Great way of blocking a specific IP address at subnet level
+* Do not modify the default NACL, create a custom one instead
+* **Ephemeral ports :**
+	* Clients connect to a defined port on server, and expect a response on an ephemeral port
+	* Different OS use different port ranges :
+		* IANA & MS Windows 10 : 49152 to 65535
+		* Many linux kernels : 32768 to 60999
+
+==== VPC Peering ====
+* Privately connect two VPCs using AWS network
+* Must not have overlapping CIDRs
+* Peering connection is not transitive : it must be established for each VPC that needs to communicate with one another
+* Must update route tables in each VPC subnet to ensure EC2 instances can communicate with each other
+* Can create peering connection between VPCs in different AWS accounts/regions
+* Can reference an SG in peered VPC, cross-account, same region
+
+==== VPC Endpoints ====
+* Allows to connect to AWS services using a private network
+* Redundant, scale horizontally
+* In case of issues check DNS setting resolution and Route tables in VPC
+* Two types :
+	* Interface Endpoint (Powered by PrivateLink) :
+		* Provisions an ENI with a private IP as an entry point, must attach a SG
+		* Supports most AWS services 
+		* Charged per hour and per GB of data processed
+	* Gateway Endpoint :
+		* Provisions a GW and must be used as a target in the route table, does not use SG
+		* Only for S3 and DynamoDB
+		* Free
+		* Does not support access from on-premises, other VPC or other Region
+
+==== Flow Logs ====
+* Capture infos about IP traffic going into interfaces :
+	* VPC Flow logs
+	* Subnet Flow logs
+	* ENI Flow logs
+* Helps monitor & troubleshoot connectivity issues
+* Flow logs data can go to S3, CW logs, KDF
+* Captures network infos from managed interfaces too : ELB, RDS, Elasticache, RedShift, WorkSpaces, NATGW, Transit GW
+* Look at the ACTION field to troubleshoot SG and NACL issues
+
+==== S2S VPN ====
+* Virtual Private GW :
+	* VPN concentrator on AWS side
+	* VGW is created and attached to the VPC from which you want to create the S2S VPN connection
+	* Possibility to customize ASN
+* Customer GW :
+	* Software app or physical device on customer side
+	* Use Public IP if available, or Public IP of NAT device with NAT Traversal enabled if behind NAT
+	* Enable Route propagation for the VGW in the route table associated with the subnets
+
+=== VPN CloudHub ===
+	* Many CGW connected to the same VGW
+	* Setup dynamic routing and configure route tables on VGW
+	* Provides low-cost hub and spoke model for network connectivity between different locations
+
+==== Direct Connect (DC) ====
+* Dedicated private connection from a remote network to VPC
+* Dedicated connection must be setup between your DC and AWS DC locations
+* Need to setup a VGW on VPC
+* Access public and private resource on same connection
+* Used for :
+	* Increased bandwidth + throughput - working with large data sets - lower costs
+	* More consistent network experience - apps using real time data feeds
+	* Hybrid envs
+* Support IPv4 and IPv6
+* Use a DC Gateway to connect to one or more VPCs in different regions for the same account
+* Connection types :
+	* Dedicated : 1Gbps, 10Gbps, 100Gbps
+		* Physical ethernet port dedicated to a customer
+		* Request made to AWS first, then completed by AWS DC partners
+	* Hosted : 50Mbps, 500Mbps, to 10Gbps
+		* Request made via AWS DC partners
+		* Capacity can be added or removed on demand
+		* 1, 2, 5, 10 Gbps available at select DC partners
+* Longer than 1month to establish a new connection
+* Data transmitted is not encrypted by default : Add VPN on top of DC to add encryption
+
+==== Transit GW ====
+* Transitive peering between thousands of VPC and on-premises, hub-and-spoke connection
+* Regional resource, can work cross-region
+* Share cross-account using Resource Access Manager
+* Can peer TGW across regions
+* Use Route Tables to limit which VPC can talk to with another
+* Works with DC GW, VPN connections
+* Helps sharing DC connections between multiple accounts
+* Only service to support IP multicast
+
+=== S2S VPN Equal Cost Multi-Path (ECMP) Routing ===
+* Create multiple S2S VPN connections to increase bandwidth of your connection to AWS
+* Increases bandwidth from 1.25Gbps max using VGW to 2.5Gbps using TGW
+* Adding a S2S VPN connection adds 2.5Gbps to bandwidth 
+* Gives access to multiple VPCs at once
+
+==== Traffic Mirroring ====
+* Capture traffic from ENIs and send to ENIs or NLB
+* Capture all packets or packets of your interest, optionally truncate them
+* Source and target can be in the same VPC, or different VPC through peering
+* Used for content inspection, threat monitoring, troubleshooting
+
+==== IPv6 ====
+* Can be enabled to operate in dual-stack mode
+* EC2 instances will get at least a private IPv4 and a public IPv6
+* If EC2 instances are not launching it may be because the subnet CIDR lacks IPv4 addresses :
+	* Create a new IPv4 CIDR in the subnet
+* Add an IPv6 CIDR to VPC to activate, and assign a subnet of the CIDR to each VPC subnet
+
+==== Egress-only IGW ====
+* For IPv6 only
+* Allows outbound connections from instances in VPC
+* Prevents inbound connections from the internet
+* Must update route tables
+
+==== Network Firewall ====
+* Used to protect entire VPC, from L3 to L7
+* Can inspect in any direction :
+	* VPC to VPC
+	* Outbound to internet and inbound from internet
+	* To / from DC & S2S VPN
+* Uses Gateway Load Balancer internally
+* Rules can be centrally managed cross-account by Firewall Manager to apply to many VPCs
+* Supports 1000s of rules :
+	* IP & port : 10.000 of IPs filtering
+	* Protocol : Block SMB for outbound
+	* Stateful domain list rule groups : only allow outbound traffic to *.google.com
+	* General pattern matching using regex
+* Traffic filtering : Allow, Drop or Alert
+* Active flow inspection to protect against network threats using IDS/IPS capabilities
+* Send logs of rule matches to S3, CW Logs, KDF

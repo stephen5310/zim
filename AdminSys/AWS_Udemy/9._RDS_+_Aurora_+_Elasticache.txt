@@ -1,0 +1,204 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-25T17:08:39+02:00
+
+====== 9. RDS + Aurora + Elasticache ======
+Created mardi 25 juillet 2023
+
+===== Relational Database Service (RDS) =====
+
+* Managed DB service for databases using SQL
+* Support managed servers (engines) for :
+	* Postgres
+	* MySQL
+	* MariaDB
+	* Oracle
+	* Microsoft SQL Server
+	* Aurora (AWS Proprietary)
+* Advantage over deploying a DB on EC2 :
+	* Automated provisioning, OS patching
+	* Continuous backups and restore to specific Point In Time (PIT)
+	* Monitoring dashboards
+	* Read replicas for improved read perf
+	* Multi-AZ setup for Disaster Recovery
+	* Maintenance windows for upgrades
+	* Scaling capability
+	* Storage backed by EBS (gp2 or io1)
+* Cannot SSH into instances, unless using **RDS Custom** :
+	* Only for Oracle and MS SQL Server with OS and DB customization
+	* Allows to configure settings
+	* Install patches
+	* Enable native features
+	* Access the underlying EC2 instance by SSH or SSM Session Manager
+	* De-activate automation mode and take a snapshot before performing any customization
+
+==== RDS Storage Auto Scaling ====
+* When enabled it will increase storage of RDS instance dynamically when it is running out of it
+* Set Maximum Storage Threshold
+* Automatically modify storage if :
+	* Free storage is less than 10% of allocated storage
+	* Low-storage lasts at least 5mn
+	* 6 hours have passed since last modification
+* Useful for apps with unpredictable workloads
+* Supports all RDS engines
+
+==== Read Replicas VS Multi-AZ ====
+* Read replicas improves read scalability :
+	* Can create up to 15 RR
+	* Within AZ, Cross AZ or Cross Region
+	* Replication is ASYNC, reads are eventually consistent
+	* Can be promoted to their own DB
+	* Apps must update the connection string to leverage RRs
+	* Pay only for Cross Region RR traffic
+* Multi-AZ is used for DR
+	* Replication is SYNC
+	* One DNS name for automatic failover
+	* Active-passive HA : master is active, secondary is standby
+	* No manual intervention in apps
+	* Can promote RR to Multi-AZ standby
+	* Zero downtime operation to go from single to multi-AZ
+
+===== Amazon Aurora =====
+
+* Proprietary DB from AWS
+* Postgres and MySQL are both supported as Aurora
+* Cloud optimized and claims 5x perf improvement over MySQL on RSQ, over 3x over Postgres on RDS
+* Storage grows automatically in increments of 10GB, up to 128TB
+* Can have up to 15 replicas, and replication is faster than MySQL (sub 10ms lag)
+* Costs 20% more than RDS but more efficient
+* 6 copies or data across 3AZ :
+	* 4/6 needed for writes
+	* 3/6 needed for reads
+	* Self healing with p2p replication
+	* Storage is striped across 100s of volumes
+* Only One instance takes writes :
+	* Automated failover for master in < 30s
+	* Master + up to 15 RR (auto scaling supported)
+	* Support Cross Region Replication
+* Uses a Writer Endpoint to point to the master
+* Uses a Reader Enpoint to load balance connections to RRs
+* Delete the reader, writer endpoints before deleting the instance
+
+==== Aurora advanced concepts ====
+* Can create custom endpoints to point to specific RRs for many different kinds or workloads
+* Serverless :
+	* Automated DB instantiation and auto-scaling based on actual usage
+	* Good for infrequent, intermittent or unpredictable workloads
+	* No capacity planning needed
+	* Pay per second, can be cost-effective
+* Multi-Master :
+	* Continuous write availability for writer nodes
+	* Every node RW, multiple writer endpoints
+* Global Aurora :
+	* 1 primary region (RW)
+	* Up to 5 secondary (RO) regions, replication lag is < 1s
+	* Up to 16 RR per secondary region
+	* Helps decreasing latency
+	* Promotin another region (DR) has an RTO of < 1mn
+	* Typical cross-region replication takes less than 1s
+* Aurora ML :
+	* Enables to add ML-based predictions to apps via SQL
+	* Simple, optimized and secure integration between Aurora and AWS ML services (SageMaker, Comprehend)
+	* Does not require ML experience
+	* Used for fraud detection, ads targeting, sentiment analysis, product recommendations
+
+===== RDS & Aurora - Backup =====
+
+==== RDS Backup ====
+* Automated backups :
+	* Daily full backup of the DB (during backup window)
+	* Transaction logs are backed-up by RDS every 5mn
+	* Ability to restore to any PIT (from oldest backup to 5mn ago)
+	* 1 to 35 days of retention, set 0 to disable
+* Manual DB Snapshots :
+	* Manually triggered by user
+	* Retention of backup as long as you want
+* Instead of stopping instance for a long time (storage charges), snapshot and restore it later
+
+==== Aurora Backups ====
+* Automated backups :
+	* 1 to 35 days (cannot be disabled)
+	* PIT recovery in that timeframe
+* Manual DB Snapshots :
+	* Manually triggered by user
+	* Retention as long as you want
+
+==== Restore options ====
+* Restoring a backup or snapshot creates a new database
+* Restoring to MySQL RDS database from S3 :
+	* Create a backup of on-premises database
+	* Store it on S3
+	* Restore the backup file onto new RDS instance running MySQL
+* Restoring to MySQL Aurora cluster from S3 :
+	* Create a backup of on-premises database with percona xtrabackup
+	* Store the backup file on S3
+	* Restore the backup file onto a new Aurora cluster running MySQL
+* **Aurora Database Cloning** :
+	* Creates a new Aurora cluster from an existing one
+	* Faster than snapshot & restore
+	* Uses copy-on-write protocol :
+		* Initially the new DB cluster uses the same data volume as the original DB cluster (no copy)
+		* When updates are made to the new DB cluster data, then additional storage is allocated and data is copied to be separated
+	* Useful to create a staging DB from a production DB without impacting the prod DB
+
+===== RDS & Aurora Security =====
+
+* At-rest encryption :
+	* Master and replicas encryption using KMS, must be defined at launch time
+	* If master is not encrypted, RRs cannot be encrypted
+	* To encrypt an un-encrypt database, go through snapshot and restore as encrypted
+* In-flight encryption : TLS-ready by default, use AWS TLS root certs client-side
+* IAM auth : IAM roles to connect to databses instead of user/pwd
+* SG : Control Network accesss to databases
+* No SSH available except on RDS custom
+* Audit logs can be enabled and sent to CloudWatch logs for longer retention
+
+===== RDS Proxy =====
+
+* Fully managed proxy for RDS
+* Allows apps to pool and share DB connections established with the database
+* Improves DB efficiency by reducing stress on resources and minimize open connections and timeouts
+* Serverless, autoscaling, HA
+* Reduced RDS and Aurora failover time by up to 66%
+* Supports RDS and Aurora
+* No code changes required for most apps, only connect to Proxy instead of DB
+* Enforce IAM auth for DB, and securely store credentials in AWS Secrets Manager
+* Never publicly accessible (only from VPC)
+
+===== Amazon Elasticache =====
+
+* Managed Redis or Memcached
+* In-memory databases with really high perf, low latency
+* Helps reduce load off of databases for read intensive workloads
+* Helps make your app stateless
+* App will fetch the data from RDS and write to Elasticache in case of cache miss
+* App will fetch data from Elasticache in case of cache hit
+* Used to store session data to make app fully stateless
+* For Redis :
+	* Multi-AZ with auto-failover
+	* RRs
+	* Data Durability using AOF persistence
+	* Backup and restore features
+	* Supports Sets and Sorted Sets
+* For Memcached :
+	* Multi-node for sharding
+	* No HA, persistency, backup nor restore
+	* Multi-threaded arch
+
+==== Advanced Elasticache ====
+* Security :
+	* IAM auth for Redis
+	* IAM policies on Elasticache only for AWS API-level security
+	* Redis AUTH :
+		* Set a pwd/token upon cluster creation
+		* Extra level of security
+		* Support SSL in-flight encryption
+	* Memcached
+		* Supports SASL-based auth
+* Patterns to load data :
+	* Lazy Loading : all the read data is cached, data can become stale in cache
+	* Write Through : Adds or updates data in cache when written to DB (no stale data)
+	* Session Store : store temporary session data in cache (using TTL)
+* Redis Use Case :
+	* Redis Sorted Sets guarantees both uniqueness and element ordering
+	* Each time a new element is added, it is ranked in real time, then added in correct order

@@ -1,0 +1,251 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-11-17T18:21:27+01:00
+
+====== 4. Advanced Topics ======
+Created vendredi 17 novembre 2023
+
+===== Remote State and State Locking =====
+
+* When terrarform is performing an operation, the state file is locked to prevent corruption
+* Version control systems like git do not support state locking
+* Using remote backends to store the state file allows teams to collaborate :
+	* When configured the state file is downloaded every time it is required by a terraform operation
+	* It uploads the state file after every apply
+	* Remote backends support state locking to prevent corruption
+	* They also provide many security options
+
+==== Remote Backend with S3 ====
+* Add the ''backend'' block inside the ''terraform'' block like this :
+'''
+terraform {
+  backend "s3" {
+	bucket = "stephenligue-tf-test-bucket"
+	key = "finance/terraform.tfstate"
+	region = "eu-west-3"
+	dynamodb_table = "stephenligue-terraform-state"
+  }
+}
+'''
+* The dynamodb table is used to enable state locking
+* As best practice the terraform block should be in a separate file called ''terraform.tf''
+* If terraform were already used locally, run ''terraform init'' to initialize the new backend
+* Go to https://github.com/hashicorp/terraform-provider-aws/issues/28263#issuecomment-1397004214 for sso issues
+* Go to https://github.com/hashicorp/terraform/issues/12877#issuecomment-288378077 for the name of the index if you have dynamodb table issues
+
+==== Useful State commands ====
+* List the resources : ''terraform state list''
+* Show the attributes of a particular resource : ''terraform state show <resource_address>''
+* Move items in state file :
+	* From one state file to another state file : **''search !!''**
+	* To rename the item : ''terraform state mv <old_address> <new_address>''
+		* Don't forget to update the config file after
+* Download and display the remote state : ''terraform state pull''
+* Remove an item : ''terraform state rm <address>''
+
+===== Provisioners =====
+
+* Allow to run scripts or tasks on resources
+* We can use ''remote-exec'' to run scripts on remote resources
+* Connectivity between local and remote machine must be establish :
+	* For linux it should be ''ssh''
+	* For windows it should be ''winrm''
+* We can use ''local-exec'' to run scripts on the terraform host :
+	* By default the command is executed after the resource creation (create time provisioner)
+	* If we use the ''when = destroy'' argument, the command will be executed before the resource is destroyed
+* To avoid failure of resource create when provisioner fails to execute the script we can the ''on_failure = continue'' argument
+* Provisioners usage is not recommended :
+	* Terraform plan has no way to accurately model their actions
+	* Use provisioners that are native to the resource instead
+
+===== Taint, Debug, Import =====
+
+==== Taint ====
+* When a resource creation fails, terraform taints it
+* Terraform will attempt to recreate it at next apply
+* We can taint manually a resource for it to be recreated with : ''terraform taint <resource_address>''
+* To untaint a resource : ''terraform untaint <resource_address>'' 
+
+==== Debugging ====
+* First look at the logs :
+	* To set log level (INFO, WARNING, ERROR, DEBUG, TRACE, JSON) : ''export TF_LOG=TRACE''
+	* To set log file path : ''export TF_LOG_PATH=<path_to_log_file>''
+
+==== Import ====
+* Used to bring resources not created by terraform under its control
+* It does not update the configuration files, it only updates the state file with the resource being imported
+* We have to update the configuration files manually
+* We can put this block in a configuration file to avoid import errors before the resource is imported :
+''resource "<resource_type>" "<resource_name> {''
+'' # (resource arguments)''
+''}''
+* We can then import the resource with the command : ''terraform import <resource_type>.<resource_name> <resource_id>''
+* After the import, we can look at the attributes from the state file and add them to the configuration file
+* We then run plan to refresh the state
+
+===== Modules =====
+
+* Every file in the configuration directory with .tf extension is considered as a configuration file
+* Using multiple files could lead to :
+	* Complex configuration
+	* Duplicate code
+	* Increased risk when updating a resource
+	* Limited reusability of code
+* A configuration directory containing a set of configuration files is called a module
+* The configuration directory from which commands are run is called the **root module**
+* The ''module'' block can be used to import code from another directory called **child module** like below :
+''module "dev-webserver" {''
+'' source = "../aws-instance"''
+''}''
+
+==== Create and Use a Module ====
+* Create a ''modules'' directory and a module inside this directory ''modules/<module_name>''
+* Create config files in the module that make use of variables where for every attribute that you want to be generic like :
+''resource "aws_instance" "app_server" {''
+''  ami = var.ami''
+''  instance_type = "t2.medium"''
+''  tags = {Name = "${var.app_region}-app-server"}''
+''  depends_on = [aws_dynamodb_table.payroll_db, aws_s3_bucket.payroll_data]''
+''}''
+* Create a ''variable.tf'' file in the module to define variables types :
+''variable "app_region" {''
+  ''type = string''
+''}''
+''variable "ami" {''
+  ''type = string''
+''}''
+* Create the configuration directory ''<app_name>'' preferably in the same directory as ''modules''
+	* Inside ''<app_name>/main.tf'' define the variable values to be used by the module
+''module "<module_resource_name>" {''
+  ''source = "../modules/<module_name>" ''
+  ''app_region = "us-east-1" ''
+  ''ami = "ami-0302f42a44bf53a45"''
+''}''
+	* You can create a ''<app_name>/provider.tf'' to specify the provider configuration 
+* Always run init after creating a module
+* Apply from the configuration directory to create all the resources defined in the module by using the variables values provided in the configuration
+
+==== Using Modules from the Registry ====
+* Go to https://registry.terraform.io/browse/modules to see all
+* Two types of modules : 
+	* Verified : they have a tick 
+	* Community
+* We use the same ''module'' block but the source will be a registry path
+''module "ec2_instance" {''
+''  source  = "terraform-aws-modules/ec2-instance/aws"''
+''  version = "5.5.0"''
+''  name = "single-instance"''
+
+''  instance_type          = "t2.micro"''
+''  key_name               = "user1"''
+''  monitoring             = true''
+''  vpc_security_group_ids = ["sg-12345678"]''
+''  subnet_id              = "subnet-eddcdzz4"''
+
+''  tags = {''
+''    Terraform   = "true"''
+''    Environment = "dev"''
+''  }''
+''}''
+* Run init to initialize or run this to only download the modules : ''terraform get''
+* It is a best practice to always specify the version of the module
+
+===== Functions and Conditional Expressions =====
+
+==== Functions ====
+* file, length, toset
+* Access terraform interractive shell to test functions with : ''terraform console''
+	* It loads all the functions, variables and resources defined in configuration files
+* Several types of functions :
+	* Numeric : max, min, ceil, floor
+		* Use with a set by expanding it into separate arguments by using the expansion periods : ''max(var.<set_name>...)'' 
+	* String : split, lower, upper, title, substr, join, 
+	* Collection (set, list) : length, index, element, contains
+	* Collection (map) : keys, values, lookup, 
+	* Type Conversion : toset
+
+==== Conditional Expressions ====
+* Arythmetic : + - x /
+* Comparison : == != > < >= <=
+* Logical : && || ! 
+* Conditional : ''condition ? true_val : false_val''
+''resource "<type>" "<name>" {''
+''  length = var.length < 8 ? 8 : var.length''
+''}''
+
+===== Local Values =====
+
+* Used to define blocks of configuration to be reused in resource definitions
+''locals {''
+'' common_tags = {''
+''  Department = "finance" ''
+''  Project = "cerberus"''
+'' }''
+''}''
+
+''resource "<type>" "<name>" {''
+'' # (attributes)''
+'' tags = local.common_tags''
+''}''
+
+===== Dynamic Blocks and Splat Expressions =====
+
+==== Dynamic Blocks ====
+* Used to generate multiple nested blocks of configuration from a list or set : use the keyword **''dynamic''**
+* Can only generate arguments that belong to the resource type, data source or provisioner being configured
+''variable "ports" {''
+'' type = list ''
+'' default = [22, 80]''
+''}''
+
+''resource "aws_security_group" "sg" {''
+'' name = "sg" ''
+'' vpc_id = aws_vpc.backend_vpc.id''
+ **''dynamic''**'' "ingress" {''
+''  for_each = var.ports''
+''  content = {''
+''    from_port = ingress.value ''
+''    to_port = ingress.value ''
+''    protocol = "tcp" ''
+''    cidr_blocks = ["0.0.0.0/0"]''
+''  }''
+'' }''
+''}''
+* In the above example, we can define an ''iterator = <iterator_name>'' inside the ''dynamic'' block to iterate with it instead of using ''ingress''
+* It is possible to declare a dynamic block inside another
+
+==== Splat Expressions ====
+* We can use ''*'' splat expression to retrieve all ''to_port'' attributes of dynamic ingress blocks in an output variable like below :
+''output "to_ports" {''
+'' value = aws_security_group.sg.ingress[*].to_port''
+''}''
+
+===== Workspaces =====
+
+* Allows to use the same config dir for multiple projects
+* To create : ''terraform ''**''workspace''**'' new <workspace_name>''
+	* Creating automatically switch to workspace
+	* To change workspace use : ''terraform workspace select <workspace_name>''
+* List workspaces : ''terraform workspace list''
+	* The current workspace is marked with a star
+* Allow to define variable values according to namespaces : 
+'''
+variable "ami" {
+  default = {
+	"ProjectA" = "ami-0302f42a44bf53a45",
+	"ProjectB" = "ami-04b7bf9494d21c5bb"
+  }
+}
+'''
+* The configuration files must also be adapted to take it into account :
+'''
+module "app_server_module" {
+  source = "../modules/just_ec2"
+  app_region = lookup(var.app_region, terraform.workspace)
+  ami = lookup(var.ami, terraform.workspace)
+}
+'''
+
+* State files for each workspace are now storesd in the directory :
+	* ''terraform.tfstate.d/<namespace>/'' for local terraform state
+	* ''env:/<namespace>/'' for remote terraform state on S3

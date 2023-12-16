@@ -1,0 +1,116 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-09T16:41:56+02:00
+
+====== 18. Containers on AWS ======
+Created mercredi 09 août 2023
+
+===== ECS =====
+
+* Launch containers on AWS by launching ECS Tasks on ECS Clusters
+* Two lauch types :
+	* EC2 :
+		* Must provision and maintain the infra of EC2 instances
+		* Eache in instance must run ECS Agent to register in the cluster
+		* AWS takes care of starting / stopping containers
+	* Fargate :
+		* All Serverless
+		* Just create task definitions
+		* AWS runs tasks based on CPU / RAM needed
+		* Scale by increasing number of tasks
+* Security :
+	* EC2 Instance Profile (EC2 LT only)
+		* Used by ECS agent
+		* Makes API calls to ECS service
+		* Send onctainer logs to CW Logs
+		* Pull Docker image from ECR
+		* Reference sensitive data in Secrets Manager or SSM Parameter Store
+	* ECS Task Role
+		* Allows each task to have a specific role
+		* Use different roles for the different ECS Services you run
+		* Task Role is defined in the task definition
+* Load Balancer Integrations :
+	* ALB works for most use cases
+	* NLB only for high throughput / high performance use cases, or to pair it with AWS Private Link
+	* CLB supported but not recommended (no advanced features - no Fargate)
+* Data Volumes :
+	* Mount EFS on ECS tasks
+	* Works for both launch types
+	* Tasks running in any AZ will share the same data
+	* Fargate + EFS = Serverless
+	* Used for persistent multi-AZ shared storage for containers
+	* S3 not support as FS
+==== ECS Service Auto Scaling ====
+* Uses AWS Application Auto Scaling :
+* Scale based on :
+	* ECS service average cpu utilization
+	* ECS service average memory utilization - scale on RAM
+	* ALB request count per target - metric coming from ALB
+* Target tracking : scale based on target value for a specific CW metric
+* Step Scaling : scale based on a specified CW alarm
+* Scheduled Scaling : scale based on a specified date/time (predictable changes)
+* Fargate auto scaling is much easier to setup
+* Scale EC2 LT :
+	* Use ASG based on cpu utilization
+	* Use ECS Cluster Capacity Provider :
+		* Automatically provision and scale infra for ECS Tasks
+		* Capacity Provider paired with an ASG
+		* Add EC2 Instances when missing capacity (CPU, RAM)
+
+==== ECS Solutions Architectures ====
+* ECS tasks invoked by Event Bridge Events coming from other services :
+	* File is uploaded to S3 bucket
+	* Event is sent to Event Bridge, which has a rule configured to run the ECS Task
+	* The ECS task Get the object, process it and save results in DynamoDB, leveraging Task Roles
+* ECS tasks invoked by Event Bridge Schedule
+	* Configured rule to run ECS task at scheduled time
+	* ECS task leverage Task role to do batch processing in S3 bucket
+* ECS - SQS Queue :
+	* ECS Tasks polling SQS Queue for messages
+	* Use ECS Service Auto Scaling to scale tasks based on number of messages in queue
+* ECS Intercept Stopped Tasks using EventBridge :
+	* Event sent to EventBridge for container exit with the stopped reason
+	* EventBridge can alert an SNS topic that will send an email to an admin
+
+===== ECR =====
+
+* Elastic Container Registry
+* Store and manage Docker imges on AWS
+* Private and public repository
+* Fully integrated with ECS, backed by S3
+* Access is controlled through IAM
+* Supports image vulnerability scanning, versioning, image tags, image lifecycle
+
+===== EKS =====
+
+* Elastic Kubernetes Service
+* Launch managed K8s clusters on AWS
+* Supports EC2 for worker nodes, or Fargate for serverless
+* Nodes can be managed by ASG
+* Expose services with ELB
+* Node Types :
+	* Managed Node Groups :
+		* Created and managed by AWS
+		* Nodes are in ASG managed by EKS
+		* Supports On-Demand or Spot Instances
+	* Self-Managed Nodes :
+		* Nodes created by you and registered to the EKS cluster and managed by an ASG
+		* Can use prebuilt AMI - Amazon EKS Optimized AMI
+		* Supports On-Demand or Spot Instances
+	* AWS Fargate
+* Data Volumes :
+	* Specify StorageClass manifest on EKS cluster
+	* Leverages Container Storage Interface (CSI) compliant driver
+	* Support EBS and EFS (Only one to work with Fargate)
+	* FSx for Luster and NetApp ONTAP
+
+===== App Runner =====
+
+* Fully managed service to deploy web apps and APIs at scale
+* No infra exp required
+* Start with source code or container image
+* Automatically builds and deploy the web app
+* Auto-scaling, HA, LB, encryption
+* VPC access support
+* Connect to db, cache and message queue services
+* Used to deploy web apps, APIs, microservices, rapid production deployments

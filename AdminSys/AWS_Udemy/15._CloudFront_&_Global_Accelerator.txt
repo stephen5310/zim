@@ -1,0 +1,65 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-04T17:15:52+02:00
+
+====== 15. CloudFront & Global Accelerator ======
+Created vendredi 04 août 2023
+
+===== CloudFront =====
+
+* CDN used to imporve read performance : content is cached at the edge
+* 216 PoP globally (edge locations)
+* DDoS protection, integration with Shield and WAF
+* Origins can be :
+	* S3 bucket :
+		* For distributing files and caching them at the edge
+		* Enhanced security with CloudFront Origin Access Control (OAC)
+		* OAC is replacing Origin Access Identity (OAI)
+		* CloudFront can be used as an ingress (to upload files to S3)
+	* Custom Origin (HTTP)
+		* ALB, EC2 instance : SG must allow all CloudFront Edge Locations public IPs (https://d7uri8nf7uskq.cloudfront.net/tools/list-cloudfront-ips)
+		* S3 website
+		* Any HTTP backend
+* Cross Region Replication is great for dynamic content that needs to be available at low-latency in few regions
+* CloudFront is great for static content that must be available everywhere
+* There is no private VPC connectivity in CloudFront
+
+==== Geo Restriction ====
+* Allowlist to list approved countries
+* Blocklist to list banned countries
+* The country is determined using a 3rd party Geo-IP database
+
+==== Pricing and price classes ====
+* The cost of data out per edge location varies
+* Reduce the number of edge locations to reduce costs
+* Three price classes :
+	* All : all regions
+	* 200 : most regions excluding most expensive regions
+	* 100 : only the least expensive regions
+
+==== Cache invalidation ====
+* Refreshes content only after TTL expiration
+* Can force entire/partial cache refresh by performing a **CloudFront Invalidation**
+* Can invalidate all files (*) or a special path (/images/*)
+
+===== Global Accelerator =====
+
+* Go as fast as possible through AWS network to minimize latency
+* Uses Anycast IP : all servers hold the same IP and the client is routed to the nearest one
+* Client talks to closest Edge location and goes through AWS internal network to route app
+* Gives two static IP addresses to end users around the globe for whatever app
+* Works with Elastic IP, EC2 instances, ALB, NLB, public or private
+* Consistent Performance :
+	* Intelligent routing to lowest latency and fast regional failover
+	* No issue with client cache (because IP does not change)
+	* Internal AWS network
+* Health Checks :
+	* Global Accelerator performs a health check or apps
+	* Helps make app global (failover less than 1mn for unhealthy)
+	* Great for disaster recovery
+* Security :
+	* Only 2 external IP to whitelist
+	* DDoS protection with Shield
+* Pricing :
+	* Fixed fee : charged per every full or partial hour of accelerator running
+	* Data Transfer-Premium fee : charged per gigabyte of data transferred over AWS network

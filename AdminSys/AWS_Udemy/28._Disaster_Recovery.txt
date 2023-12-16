@@ -1,0 +1,143 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-24T13:02:49+02:00
+
+====== 28. Disaster Recovery ======
+Created jeudi 24 août 2023
+
+===== Overview =====
+
+* Any event that has a negative impact on a company's business continuity or finances is a disaster
+* DR is about preparing for and recovering from a disaster
+* Kinds of DR :
+	* On-premise - On-premise : traditional DR, very expensive
+	* On-premise - Cloud : hybrid recovery
+	* Cloud Region A - Cloud Region B
+==== Recovery Point Objective (RPO) ====
+* How often backups are run
+* Time between disaster and RPO is data loss
+* How much of data loss are you willing to accept when a disaster occurs
+
+==== Recovery Time Objective (RTO) ====
+* Time to recover after a disaster
+* Time between disaster and RTO is app downtime
+
+==== Tips ====
+* Backup :
+	* EBS snapshots, RDS automated backups / snapshots
+	* Regular pushes to S3 / S3 IA / Glacier, Lifecycle policy, Cross-region Replication
+	* From On-Premise : Snowball or Storage GW
+* HA :
+	* R53 to migrage DNS over from Region to Region
+	* RDS Multi-AZ, ElastiCache Multi-AZ, EFS, S3
+	* Site to Site VPN as a recovery from DC
+* Replication :
+	* RDS Cross Region, Aurora + Global DB
+	* DB replication from on-premise to RDS
+	* Storage GW
+* Automation :
+	* CloudFormation / Beanstalk to re-create whole new env
+	* Recover / Reboot EC2 instances with CW if alarms fail
+	* Lambda functions for customized automations
+* Chaos :
+	* Use chaos monkeys to test infrastructure resiliency
+
+===== DR Strategies =====
+
+==== Backup and Restore ====
+* Cheap, easy to manage
+* High RPO and RTO
+
+==== Pilot light ====
+* Small version of app always running in the cloud
+* Useful for the critical core (DB only for example)
+* Lower RPO and RTO than Backup and Restore
+
+==== Warm Standby ====
+* Full system up and running, but at minimum size - can be expensive
+* Upon disaster can scale to production load
+
+==== Multi-Site / Hot Site ====
+* Very low RTO and RPO - very expensive
+* Full production scale running on AWS and On Premise
+
+==== All AWS Multi Region ====
+* Same as Multi-Site
+
+===== Database Migration Service (DMS) =====
+
+* Quickly and securely migrate db to AWS, resilient, self healing
+* The source db remains available during the migration
+* Supports :
+	* Homogeneous migrations : ex Oracle to Oracle
+	* Heterogeneous migrations : ex MS SQL Server to Aurora
+* Continuous Data Replication using Change Data Capture (CDC)
+* Must create an EC2 instance to perform the replication tasks
+* When multi-AZ enabled, DMS provisions and maintains a synchronously stand-by replica in a different AZ :
+	* Provides data redundancy
+	* Eliminates I/O freezes
+	* Minimizes latency spikes
+
+==== Schema Conversion Tool (SCT) ====
+* Convert your db schema from one engine to another
+* SQL Server or Oracle to MySQL, PostgreSQL, Aurora
+* Teradata or Oracle to Amazon Redshift
+* No need for same engine migration
+
+===== On-Premise strategy with AWS =====
+
+==== VM Import / Export ====
+* Migrate existing apps into Ec2
+* Create a DR repository strategy for on-premise VMs
+* Can export back from EC2 to on-premise
+
+==== Application Discovery Service ====
+* Gather infos about on-premise servers to plan migration
+* Server utilization and dependency mappings
+* Track with Migration Hub
+
+==== Server Migration Service ====
+* Incremental replication of on-premise live servers to AWS
+
+===== AWS Backup =====
+
+* Fully managed service to centrally manage and automate backups across AWS services
+* No need to create custom scripts and manual processes
+* Supported services are EC2, EBS, S3, RDS, Aurora, DynamoDB, DocumentDB, Neptune, EFS, FSx, Storage GW (volume GW)
+* Supports cross-region and cross-account backups
+* Suports PITR for supported services
+* On-demand and scheduled backups
+* Tag-based backup policies
+* Create backup policies known as Backup Plans
+	* Backup frequency (every 12h, daily, weekly, monthly, cron expression)
+	* Backup window
+	* Transition to cold storage (never, days, weeks, months, years)
+	* Retention Period (always, days, weeks, months, years)
+* Use Backup Vault Lock to enforce a WORM state for all backups in Vault :
+	* Additional layer of defense to protect backups
+	* Even root user cannot delete backups when enabled
+
+===== Application Discovery Service =====
+
+* Plan migration projects by gathering infos about on-premises data centers
+* Server utilization data and dependency mapping are important for migrations
+* Agentless Discovery (AWS Agentless Discovery Connector)
+	* VM inventory, configuration, and performance history such as CPU, memory, and disk usage
+* Agent-based Discovery (AWS Application Discovery Agent)
+	* System configuration, system performance, running processes, and details of network connections between systems
+* Resulting data can be viewed within AWS Migration Hub
+
+===== Application Migration Service (MGN) =====
+
+* Replacing Server Migration Service (SMS)
+* Lift-and-shift (rehost) soluction to simplify apps migration to AWS
+* Converts physical, virtual, and cloud-based servers to run natively on AWS
+* Supports wide range of platforms, OS and db
+* Minimal downtime, reduced costs
+
+===== VMware Cloud on AWS =====
+
+* Extend the on-premise VMware Data Center capacity to AWS
+* Migrate VMware vSphere-based workloads to AWS
+* Run production workloads across vSphere-based private, public and hybrid cloud envs
+* Have a disaster recovery strategy

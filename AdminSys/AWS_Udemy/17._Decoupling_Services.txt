@@ -1,0 +1,165 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-08T18:24:27+02:00
+
+====== 17. Decoupling Services ======
+Created mardi 08 août 2023
+
+===== SQS =====
+
+* Simple Queuing Service
+* Whaterver sends messages into a queue is a called a Producer
+* Something polling messages from the queue is called a Consumer
+
+==== Standard Queues ====
+* Fully managed service used to decouple apps
+* Unlimited throughput, unlimited number of messages in queue
+* Default 4d, max 14d messages of retention
+* Low latency (<10 ms on publish and receive)
+* Max 256KB/msg sent
+* Can have duplicate messages (at least once delivery, occasionally)
+* Can have out of order messages (best effort ordering)
+* **Producers** : 
+	* Send messages to SWS using the SDK SendMessage API
+	* The message is persisted in SQS until a consumer deletes it
+* **Consumers** : 
+	* Poll SQS for messages (receive up to 10 messages at a time)
+	* Process the messages (example: insert the message into an RDS database)
+	* Delete the messages using the DeleteMessage API
+	* Can scale horizontally to improve the throughput of processing
+* Security :
+	* Encryption in-flight with HTTPS, at-rest with KMS keys, and client-side
+	* Access Controls with IAM policies to regulate access to the SQS API
+	* SQS Access Policies (similar to S3 bucket policies)
+		* Useful for cross-account access and allowing other services to write to queue
+* **Message Visibility Timeout**
+	* Default is 30s after a message is polled
+	* The message is invisible to other consumers and has to be processed and deleted
+	* If not it is put back in the queue
+	* A consumer can call the ChangeMessageVisibility API to get more time
+* **Long Polling** :
+	* Consumers wait for messages to arrive if there are none in the queue
+	* Used to decrease latency and number of API calls
+	* Time can be between 1s to 20s
+	* Preferable to short polling
+	* Can be enabled at the queue level or at the API level using WaitTimeSeconds
+
+==== FIFO Queue ====
+* Ordering of messages in the queue
+* Limited throughput : 300 msg/s without batching, 3000 msg/s with
+* Exactly-once send capability by removing duplicates
+* Messages processed in order
+
+===== SNS =====
+
+* Simple Notification Service
+* Pub/Sub service
+* Producer sends messages to on SNS topic
+* As many receivers (subscribers) as we want to listen to the topic notifications
+* Each subscriber will get all the messages (can filter messages)
+* Up to 12.500.000 subscriptions per topic
+* 100.000 topics limit
+* Can publish messages to SQS, emails, SMS, Mobile, HTTPS endpoints, Lambda, KDF
+* Can receive messages from CW alarms, ASG, CloudFormation, Budgets, Bucket, DMS, DynamoDB, RDS
+* Topic Publish (using SDK)
+	* Create topic
+	* Create subscription(s)
+	* Publish to topic
+* Direct Publish (mobile apps SDK)
+	* Create a platform app
+	* Create a platform endpoint
+	* Publish to the platform endpoint
+	* Works with Google GCM, Apple APNS, Amazon ADM
+* Security :
+	* Encryption in-flight with HTTPS, at-rest with KMS keys, and client-side
+	* Access Controls with IAM policies to regulate access to the SNS API
+	* SNS Access Policies (similar to S3 bucket policies)
+		* Useful for cross-account access and allowing other services to write to topic
+
+==== SNS + SQS : Fan Out ====
+* Push once in SNS, receive in all SQS queues that are subscribers
+* Fully decoupled, no data loss
+* SQS allows for data persistence, delayed processing and retries of work
+* Ability to add more SQS subscribers over time
+* Make sure SQS queues access policies allow for SNS to write
+* Cross-Region Delivery : works with SQS Queues in other regions
+* Can send messages from SNS to S3 through KDF
+* FIFO topics are supported :
+	* Ordering by message group ID (all messages in the same group are ordered)
+	* Deduplication using a deduplication ID or Content based deduplication
+	* Can only have SQS FIFO queues as subscribers
+	* Limited throughput (same as SQS FIFO)
+* Filter messages received by a subscription by configuring a JSON policy for it
+
+===== Kinesis =====
+
+* Makes it easy to collect, process and analyze streaming data in real-time
+* Ingest real-time data such as : App logs, Metrics, Website clickstreams, IoT telemetry data
+
+==== Kinesis Data Streams ====
+* Stream big data real time (~200ms)
+* Made of multiple shards
+* Data will be split across all the shards
+* Shard will define stream capacity in terms of ingestion and consumption rates
+* Producers can be apps, clients, SDK, Kinesis Producer Library (KPL), Kinesis Agent :
+	* They all leverage the SDK at lower level
+	* Can send data at 1MB/s or 1000msg/s per shard
+* Producers generate records to be inserted into shards.
+	* They are made of a partition key (determine in which shard the data will go) and a data blob (up to 1MB)
+* Consumers can be apps (KCL, SDK), lambda, KDF, KDA
+	* Consumer receives the record with the partition key, data blob and a sequence number
+	* Two consumption modes :
+		* shared : 2MB/s per shard all consumers
+		* enhanced : 2MB/s per shard per consumer
+* Data can be retained for 1d to 365d
+* Ability to reprocess data
+* Data inserted cannot be deleted
+* Data that shares the same partition goes to the same shard
+* Provisioned mode :
+	* Choose the number of shards provisioned, scale manually or using API
+	* Each shard gets 1MB/s in or 1000records/s, 2MB/s out
+	* Pay per shard provisioned per hour
+* On-demand mode :
+	* No need to provision or manage capacity
+	* Default capacity provisioned (4MB/s in or 4000 records per second)
+	* Scales automatically based on observed throughput peak during the last 30d
+	* Pay per stream per hour & data in/out per GB
+* Security :
+	* Control access / auth with IAM policies
+	* Encryption in flight using HTTPS endpoints
+	* Encryption at rest using KMS
+	* Can implement encryption/decryption of data on client side
+	* VPC Endpoints available for Kinesis to access within VPC
+	* Monitor API calls using CloudTrail
+
+==== Kinesis Data Firehose ====
+* Producers can be apps, clients, SDK, Kinesis Producer Library (KPL), Kinesis Agent, KDS, Amazon CloudWatch (Logs & Events), AWS IoT
+* Records can go up to 1MB
+* Batch writes output without writing code
+* Destinations are : 
+	* S3, Redshift (COPY through S3), Amazon OpenSearch
+	* 3rd-party Partner Destinations : Datadog, mongoDB, splunk, New Relic
+	* Custom Destinations like HTTP Endpoints
+* Can send all the data sent to an S3 backup bucket, or only failed data
+* Fully managed Service, auto scaling, serverless
+* Pay for data going through Firehose
+* NRT :
+	* 60s latency minimum for non full batches
+	* Or minimum 1MB data at a time
+* Supports many data formats, conversions, transformations, compression
+* Custom data transformations using AWS Lambda
+* No data storage, replay not supported
+
+==== Ordering data into Kinesis ====
+* Use partition key to order data
+* The same key always go to the same shard
+* Data will be ordered at the shard level
+
+===== Amazon MQ =====
+
+* Managed RabbitMQ or ActiveMQ
+* Compatible with MQTT, AMQP, STOMP, Openwire, WSS
+* Does not scale as mush as SQS/SNS
+* Runs on servers, can run in Multi-AZ with failover
+* Has both queue feature and topic feature
+* HA with active/standby backed with EFS storage

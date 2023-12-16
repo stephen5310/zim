@@ -1,0 +1,125 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-01T20:18:36+02:00
+
+====== 14. S3 Security ======
+Created mardi 01 août 2023
+
+===== Object Encryption =====
+
+==== Server-Side Encryption with S3-Managed Keys (SSE-S3) ====
+* Enabled by default for new buckets & new objects
+* Uses keys handled, managed and owned by AWS S3 service
+* Encryption type is AES-256
+* Must set header "x-amz-server-side-encryption":"AES256"
+
+==== Server-Side Encryption with KMS (SSE-KMS) ====
+* Leverage AWS KMS to manage encryption keys
+* Allows user control and audit key usage using CloudTrail
+* Must set header "x-amz-server-side-encryption":"aws:kms"
+* KMS has rate limiting on APIs :
+	* Uploading calls GenerateDataKey
+	* Downloading calls Decrypt
+	* Count towards quota per second : 5500, 10000, 30000 req/s based on region
+	* Can request quota increase using Service Quota Console
+* DSSE-KMS is double encryption based on KMS
+
+==== Server-Side Encryption with Customer-Provided Keys (SSE-C) ====
+* Customer manages encryption keys outside AWS
+* S3 never stores the key
+* HTTPS must be used to send encryption key in headers, for every request
+ 
+
+==== Client-Side Encryption ====
+* Keys and encryption are fully manage by client
+
+==== Encryption in transit (SSL/TLS) ====
+* S3 exposes HTTP and HTTPS endpoints
+* HTTPS is recommended, but mandatory for SSE-C
+* Can use a Bucket Policy to force encryption in transit
+	* Set a Deny rule when **aws:SecureTransport** is false for an action
+
+===== Cross-Origin Resource Sharing (CORS) =====
+
+* Origin = schem (protocol) + host (domain) + port
+	* Example : https://www.example.com
+* Web Browser based mechanism to allow requests to other origins while visiting the main origin
+* Same origin : http://www.example.com/app1 & http://www.example.com/app2
+* Different origins : http://www.example.com & http://other.example.com 
+* The requests won't be fulfilled unless the other origin allows for the requests, using CORS Headers
+* S3 must be configured to allow CORS requests
+
+===== MFA Delete =====
+
+* Force users to generate a code on device (mobile or hardware) before doing important ops on S3
+* Required to :
+	* Permanently delete an object version
+	* Suspend Versioning on the bucket
+* Not required to : 
+	* Enable versioning
+	* List deleted versions
+* Versioning must be enabled to use
+* Only the root account can enable/disable
+* Can enable/disable only via aws-cli, aws-cdk
+
+===== S3 Access Logs =====
+
+* Log all access to S3 buckets for audit purpose
+* Any request made to S3, from any account, authorized or denied, will be logged into another bucket
+* Data can be analyzed using data analysis tools
+* Target logging bucket must be in the same AWS region
+* Never set logging bucket to be the monitored bucket (creates logging loop)
+
+===== Pre-signed URLs =====
+
+* Generate using S3 console, aws-cli or sdk
+* Set url expiration :
+	* Via console : 1mn to 720mn
+	* aws-cli : 1s to 604800s, default 3600s
+* Users using the url inherit permissions of the user that generated it for GET/PUT
+* Used to :
+	* Allow only logged-in users to download a premium video from bucket
+	* Allow an ever-changing list of users to download files by generating urls dynamically
+	* Allow temporarily a user to upload a file to a precise location in bucket
+===== Glacier Vault Lock =====
+
+* Adopt a WORM (Write Once Read Many) model
+* Create a Vault Lock Policy
+* Lock the policy for future edits
+* Helpful for compliance and data retention
+
+===== S3 Object Lock =====
+
+* Versioning is required
+* Adopt a WORM model
+* Block an object version deletion for a specified amount of time
+* Retetion mode :
+	* Compliance : Like Glacier Vault Lock
+	* Governance :
+		* Some users have special permissions to change the retention or delete the object
+* Must set a Retention Period, can be extended
+* **Legal Hold** :
+	* Protect the object indefinitely, independent from retention period
+	* can be freely placed and removed using s3:PutObjectLegalHold IAM permission
+
+===== S3 Access Points =====
+
+* Create an Access Point to prefix
+* Define an Access Point Policy that regulates access to this prefix
+* Also works on multiple prefixes, for analytics also
+* Each Access  Point has :
+	* Own DNS name :
+		* Internet Origin : to be accessible from internet
+		* VPC Origin : 
+			* To be accessible only from VPC
+			* Must create a VPC Endpoint to access (Gateway or Interface Endpoint)
+			* VPC Endpoint Policy must allow access to the Target Bucket and Access Point
+	* Own Policy to manage security at scale
+
+==== S3 Object Lambda Access Point ====
+* Use Lambda to change object before it is retrieved
+* Only one S3 bucket, create S3 Access Point and S3 Object Lambda Access Points
+* Used for :
+	* Redacting Personally Identifiable Information for analytics or non-production environments
+	* Converting across data formats
+	* Resizing and watermarking images on the fly

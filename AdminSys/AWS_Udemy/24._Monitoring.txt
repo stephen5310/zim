@@ -1,0 +1,194 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-16T13:29:35+02:00
+
+====== 24. Monitoring ======
+Created mercredi 16 août 2023
+
+===== CloudWatch =====
+
+==== Metrics ====
+* Metrics for every services in AWS
+* Metric is a variable to monitor (CPUUtilization, NeworkIn...)
+* Metrics belong to namespaces
+* Dimension is an attribute of a metric (instance id, env, etc)
+* Up to 30 dimensions per metric
+* Metrics have timestamps
+* Can create CW dashboards of metrics
+* Can create CW custom metrics
+==== Metric Streams ====
+* Continually stream metrics to a destination with nrt delivery and low latency
+* KDF, Datadog, Dynatrace, New Relic, Splunk, Sumo Logic...
+* Option to filter metrics to only stream subset of them
+
+==== Logs ====
+* Log groups: arbitrary name, usually representing an app
+* Log stream: instances within app/ log files/ containers
+* Can define log expiration polices (never expire, 1d to 10y)
+* Can send logs to S3 (exports), KDS, KDF, Lambda, Opensearch
+* Logs are encrypted by default
+* Can setup KMS-based encryption with your own keys
+* Can send logs using:
+	* SDK, CW Logs Agent, CW Unified Agent
+	* Beanstalk: collection of logs from app
+	* ECS: collection from containers
+	* Lambda: collection from function logs
+	* VPC Flow Logs: VPC specific logs
+	* API GW
+	* CloudTrail based on filter
+	* R53: Log DNS queries
+
+==== Logs Insight ====
+* Search and analyze log data sotred in CW Logs
+* Example: find a specific IP inside a log, count occurences of ERROR in logs
+* Provides a purpose-built query language:
+	* Automatically discovers fields from AWS services and JSON log events
+	* Fetch desired event fields, filter based on conditions, calculate aggregate stats, sort events, limit number of events...
+	* Can save queries and add them to CW Dashboards
+* Can query multiple log groups in different AWS accounts
+* Not a real-time engine
+
+==== Logs Subscriptions ====
+* Get real-time log events from CW Logs for processing and ananysis
+* Sent to KDS, KDF, or Lambda
+* Subscription Filter to filter which logs are events delivered to apps
+* Cross-Account Subscription :
+	* Send log events to resources in a different AWS account
+	* Use a CW Subscription Filter on sender side, a CW Subscription Destination on receiver side
+	* Attach a Destination Access Policy to allow the sender account to send logs into destination
+	* Create a cross-account IAM role in destination account that will be assumed by sender account
+
+==== Unified Agent & Logs Agent ====
+* Run on EC2 instance to push logs and more granular metrics to CW (default is disk, CPU, network) 
+* Make sure IAM permissions are correct
+* Can be setup on-premises too
+* Logs Agent can only send logs to CW Logs
+* Unified Agent: 
+	* Collect additional system-level metrics at a more granular level (CPU, RAM, Disk metrics, Netstat, Processes)
+	* Collect logs to send to CW Logs
+	* Centralized configuration using SSM Parameter Store
+
+==== Alarms ====
+* Used to trigger notifications for any metric
+* Various options (sampling, %, max, min)
+* Alarm States are OK, INSUFFICIENT_DATA, ALARM
+* Period: 
+	* Length of time in seconds to evaluate the metric
+	* High resolution custom metrics: 10s, 30s or multiple of 60s
+* Three main targets :
+	* Stop, Terminate, Reboot or Recover EC2 instance
+	* Trigger Auto Scaling Action
+	* Send notif to SNS
+* Composite Alarms are monitoring the states of multiple other alarms:
+	* Use AND and OR conditions
+	* Helpful to reduce alarm noise by creating complex composite alarms
+* Recovery: Same Private, Public, EIP, metadata, placement group
+* Can create alarm based on CW Logs Metrics Filters
+* To test alarms and notifs, set the alarm state to Alarm using CLI
+
+==== Container Insights ====
+* Collect, aggregate, summarize metrics and logs from containers
+* Available for containers on ECS, EKS, Fargate for ECS and EKS, K8s platforms on EC2
+* In EKS and K8s, CW Insights is using a containerized version of CW Agent to discover containers
+
+==== Lambda Insights ====
+* Monitoring, troubleshooting solution for serverless apps running on Lambda
+* Collects, aggregats and summarizes system-level metrics including CPU time, memory, disk and network
+* Collects aggregates and summarizes diagnostic infos such as cold starts and Lambda worker shutdowns
+* Provided as a Lambda Layer
+
+==== Contributor Insights ====
+* Analyze log data and create time series that display contributor data :
+	* See metrics about top-N contributors
+	* The totatl number of unique contributors and their usage
+* Helps find top talkers and understand who or what is impacting system performance
+* Works for any AWS-generated logs
+* Example : find bad hosts, identify the heaviest network users, find URLs that generate most errors
+* Can build rules from scratch, or use sample rules that AWS has created - leverages CW logs
+* CW provides built-in rules to analyze metrics from other AWS services
+
+==== Application Insights ====
+* Automated dashboards that show potential problems with monitored apps, help isolate ongoing issues
+* Apps run on EC2 with select technologies only (java, .NET, IIS, databases)
+* Can use other AWS resources : EBS, RDS, ELB, ASG, Lambda, SQS, DynamoDB, S3 bucket, ECS, EKS, SNS, API GW
+* Powered by SageMaker
+* Enhanced visibility into app health to reduce time taken to troubleshoot and repair
+* Findings and alerts are sent to EventBridge and SSM OpsCenter
+
+===== EventBridge =====
+
+* Schedule cron jobs
+* Event pattern: Event rules to react to a service doing something
+* Trigger Lambda functions, send SQS/SNS messages...
+* Three types of Event Buses: Default, Partner, Custom
+* Event Buses can be accessed cross account using resource-based policies
+* Can archive events (all/filter) sent to an event bus (indefinitely or set period)
+* Ability to replay archived events
+* EventBridge can analyze events in bus to infer schema
+* The Schema Registry allows to generate code for apps that will know in advance how data is structured in the bus
+* Schema can be versioned
+
+===== CloudTrail =====
+
+* Provides governance, compliance and audit for account
+* Enabled by default
+* Get an history of events / API calls made within account by console, SDK, CLI, AWS Services
+* Can put logs from CloudTrail into CW Logs or S3
+* A trail can be applied to ALL Regions (default) or a single Region
+* If a resource is deleted in AWS, investigate CT first
+==== CloudTrail Events ====
+* Management Events:
+	* Operations that are performed on resources in account
+	* Example Configuring security, setting up logging
+	* Trails are configured to log them by default
+	* Can separate Read Events from Write Events
+* Data Events:
+	* Not logged by default
+	* S3 object-level activity : can separate Read from Write Events
+	* Lambda function execution activity
+* CT Insights:
+	* Detect unusual activity in account:
+		* Inaccurate resource provisioning
+		* Hitting service limits
+		* Bursts of IAM actions
+		* Gaps in periodic maintenance activity
+	* Analyzes normal management events to create a baseline
+	* Then continuously write events to detect unusual patterns:
+		* Anomalies appear in CT console
+		* Event is sent to S3
+		* An EventBridge event is generated (for automation needs)
+* Events are stored for 90d
+* To keep events beyond this period, log them to S3 and use Athena to analyze them
+* **Intercept API Calls** :
+	* Configure an event in CT to be sent to EventBridge when API call is logged
+	* Configure EventBridge to send an alert to an SNS Topic for the event
+
+===== Config =====
+
+* Auditing and recording compliance of AWS resources
+* Record conf and changes over time
+* Can receive alerts (SNS) for any changes
+* Per-region service
+* Can be aggregated across regions and accounts
+* Possibility of storing the configuration data into S3 (analyze with Athena)
+
+==== Config Rules ====
+* Can use AWS managed config rules or make custom config rules in Lambda
+	* Evaluate if each EBS disk is of type gp2, each EC2 instance is t2.micro
+* Rules can be evaluated / triggered:
+	* For each config change
+	* And / or at regular time intervals
+* Config Rules does not prevent actions from happening
+* Automate remediation of non-compliant resources using SSM Automation Documents:
+	* Can use AWS-managed automation documents or create custom ones
+	* Documents can invoke Lambda function to whatevever you want
+* Can set Remediation Retries if the resource is still non-compliant after auto-remediation
+
+==== Config Resource ====
+* View compliance of resource over time
+* View configuration of a resource over time
+* View CloudTrail API calls of a resource over time
+
+==== Notifications ====
+* Use EventBridge to trigger notifications when AWS resources are non-compliant
+* Ability to send config changes and compliance state notifications to SNS (all / SNS filtering / filter at client-side)

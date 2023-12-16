@@ -5,3 +5,42 @@ Creation-Date: 2023-07-03T12:09:32+00:00
 ====== 6. EC2 SAA Level ======
 Créée le Monday 03 July 2023
 
+===== Private vs Public vs Elastic IP =====
+
+* EC2 instances change public iP when stopped
+* Use Elactic IP for a fixed public IP :
+	* Can be attached to one instance at a time
+	* Can be moved to another started instance
+	* Max 5 per account, can ask for an increase
+	* Try to avoid because it reflects poor architectural decisions
+	* Use random public IP and register a DNS name to it
+* We are billed if the Elastic IP is not associated with an instance
+
+===== Placement Groups =====
+
+* Used to control the instances placement strategy :
+	* Cluster : low-lantency group in a single AZ, same rack
+	* Spread : spreads across underlying hardware (max 7 instances per group per AZ) for critical apps
+	* Partition : spreads instances across many different partitions (on different sets or racks) within AZ, scales to 100s instances per group for big data
+
+===== Elastic Network Interfaces (ENI) =====
+
+* Logical component in VPC that represents a virtual network car
+* Can have :
+	* Primary IPv4, one or more secondary IPv4
+	* One EIP per private IPv4
+	* One Public IPv4
+	* One or more SG
+	* A MAC address
+* Can be created independantly and attached on the fly for failover
+* Bound to specific AZ
+
+===== Hibernate =====
+
+* The RAM content is preserved during 60 days max:
+	* It is writtend to a file in the root EBS volume
+* It allows to boot much faster
+* The EBS volume must be encrypted and have as much free space as the RAM size
+* Option must be enabled during instance creation
+* Used for long-running processing, saving RAM state, services that take time to initialize
+* Not supported for bare metal instances

@@ -1,0 +1,271 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-10T10:51:11+02:00
+
+====== 19. Serverless ======
+Created jeudi 10 août 2023
+
+* Deploy services without managing servers
+* Everything is managed by AWS : databases, messaging, storage, etc
+* Serverless in AWS include Lambda, DynamoDB, Cognito, API GW, S3, SNS & SQS, KDF, Aurora Serverless, Step Functions, Fargate
+
+===== Lambda =====
+
+* Virtual functions - no servers to manage
+* Limited by time - short executions
+* Run on-demand
+* Scaling is automated
+* Easy and cheap pricing : 
+	* Pay per request and compute time
+	* Free tier 1million requests and 400.000GBs of compute time
+	* See https://aws.amazon.com/lambda/pricing/ for more details
+* Integrated with the whole AWS suite of services : API GW, Kinesis, DynamoDB, S3, CloudFront, CW EventBridge, CW Logs, SNS, SQS, Cognito
+* Integrated with many programming languages : Node.js, Python, Java, C#, Golang, Ruby, Custom Runtime API
+* Easy monitoring through CW
+* Easy to get more resources per functions (up to 10GB RAM)
+* Increasing RAM will also improve CPU and network
+* Lambda Container Image :
+	* Must implement the Lambda Runtime API
+	* ECS / Fargate is preferred for running arbitrary Docker images
+* Serverless CRON Job :
+	* Use EventBridge rule  at the periodicity configured
+
+==== Limits per region ====
+* Execution :
+	* Memory allocation : 128MB - 10GB (1MB inc)
+	* Max execution time : 900s / 15mn
+	* Env vars : 4KB
+	* Disk capacity in the function container (/tmp) : 512MB to 10GB
+	* Concurrency executions : 1000 (can be increased)
+* Deployment :
+	* Function compressed deployment size (.zip) : 50MB
+	* Uncompressed deployment (code + dependencies) : 250MB
+	* Can use the [[/tmp]] dir to load other files at startup
+	* Size of env vars : 4KB
+
+==== Lambda@Edge & CloudFront Functions ====
+* Execute some form of the logic at the edge
+* Edge Function is a attached to CloudFront distributions to run close to users to mimize latency
+* two types : CloudFront Functions and Lambda@Edge
+* Serverless, globally deployed, pay for usage
+* Used to customize CDN content
+* Use cases :
+	* Website Security and Privacy
+	* Dynamic Web App at the Edge
+	* Search Engine Optimization
+	* Intelligently Route Across Origins and Data Centers
+	* Bot Mitigation at the Edge
+	* Real-time Image Transformation
+	* A/B Testing
+	* User Authentication and Authorization
+	* User Prioritization
+	* User Tracking and Analytics
+* CloudFront Functions :
+	* Lightweight functions written in JS
+	* For high-scale, latency-sensitive CDN customizations
+	* Sub-ms startup times, millions of requests/second
+	* Used to change Viewer requests and responses :
+		* Viewer Request : after CloudFront receives a request from a viewer
+		* Viewer Response : before CloudFront forwards the response to the viewer
+	* Native feature of CloudFront : code is entirely managed within CloudFront
+	* Used for cache key normalization, http header manipulation, url rewrites or redirects, request authentication and authorization
+* Lambda@Edge :
+	* Functions written in NodeJS or Python
+	* Scales to 1000s of requests/s
+	* Used to change CloudFront requests and responses :
+		* Viewer Request : after CF receives a request from a viewer
+		* Origin Request : before CF forwards the request to the origin
+		* Origin Response : after CF receives the response from the origin
+		* Viewer Response : before CF forwards the response to the viewer
+	* Author functions in on AWS Region (us-east-1), the CF replicates to its locations
+	* Used for longer execution time, adjustable cpu or mem, 3rd libraries, network access, fs access, http body access
+
+==== Lambda in VPC ====
+* Functions launched by default outside owned VPC
+* Cannot VPC resources
+* To lauchn in VPC :
+	* Define VPC ID, subnets, SG
+	* Lambda will create ENI in subnets
+* Used generally with RDS Proxy
+
+==== Invoking Lambda from RDS & Event Notifications ====
+* Invoke Lambda functions from within DB instance
+	* Allows to process data events from within a database
+	* Supported fro RDS for PostgreSQL and Aurora MySQL
+	* Must allow outbound traffic to Lambda function from within db instance (public, NAT GW, VPC Endpoints)
+	* DB instance must have the required permissions to invoke the Lambda function (Lambda Resource-based Policy & IAM Policy)
+* Event Notifications :
+	* Tells info about db instance (created, stopped, start)
+	* Don't have info about data in db
+	* Subscribe to event categories : db instance, db snapshot, db param group, db SG, RDS proxy, Custom Engine Version
+	* NRT events (up to 5mn)
+	* Send notifs to SNS or subscribe to events using EventBridge
+
+===== DynamoDB =====
+
+* Fully managed, HA, multi-AZ replication
+* NoSQL db with transaction support
+* Scales to massive workloads, distributed
+* Millons req/s, trillions or row, 100s of TB storage
+* Fast and consistent (single-digit ms)
+* Integrated with IAM for security, authorization and administration
+* Low cost and auto-scaling capabilities
+* Standard & Infrequent Access Table Class
+==== Basics ====
+* Create a Table
+* Table has a Primary Key (decide at creation time)
+* Table sort key is optional
+* Table can have infinite number of items (rows)
+* Item has attributes (can be added over time - can be null)
+* Item max size is 400KB
+* Data types supported are :
+	* Scalar Types : String, Number, Binary, Boolean, Null
+	* Document Types : List, Map
+	* Set Types : String Set, Number Set, Binary Set
+* Can rapidly evolve schemas
+* Read/Write Capacity Modes :
+	* Provisioned Mode (default) :
+		* Specify the number of r/w per second
+		* Need to plan capacity beforehand
+		* Pay for provisioned Read Capacity Units (RCU) & Write Capacity Units (WCU)
+		* Possibility to add auto-scaling mode for RCU & WCU
+	* On-Demand Mode :
+		* R/W automatically scale up/down with your workloads
+		* No capacity planning needed
+		* Pay for what you use, more expensive
+		* Great for unpredictable workloads, steep sudden spikes
+
+==== DynamoDB Accelerator (DAX) ====
+* Fully-managed, HA, seamless in-memory cache for DynamDB
+* Help solve read congestion by caching
+* ms latency for cached data
+* Does not require app logic modification (compatible with existing DynamDB APIs)
+* 5mn TTL for cache (default - can be changed)
+* Use DAX for individual objects cache, query & scan cache
+* Use ElastiCache to store aggregation result
+
+==== DynamoDB Stream Processing ====
+* Ordered stream of item-level modifs in tables
+* Use cases :
+	* React to changes in real-time (welcome email to users)
+	* Real-time usage analytics
+	* Implement cross-region replication
+	* Invoke AWS Lambda on changes to DynamoDB Table
+* Two kinds of stream processing
+	* DynamDB Streams :
+		* 24H retention
+		* Limited number of consumers
+		* Process using AWS Lambda Triggers, or DynamoDB Stream Kinesis adpater
+	* KDS :
+		* 1 year retention
+		* High number of consumers
+		* Process using Lambda, KDA, KDF, AWS Glue Streaming ETL
+
+==== Global Tables ====
+* Table replicated across multiple regions
+* active-active two-way replication
+* Reduce access latency in multiple regions
+* Must enable DynamoDB Streams as pre-requisite
+
+==== TTL ====
+* Automatically delete items after an expiry timestamp
+* Used to :
+	* Reduce stored data by keeping only current items
+	* Adhere to regulatory obligations
+	* Web session handling
+
+==== Backups for DR ====
+* Continuous backups using PITR
+	* Optionally enabled for the last 35d
+	* PITR to any time within backup window
+	* Recovery process creates a new table
+* On-demand backups
+	* Full backups for long-term retention, until explicitely deleted
+	* Does not affect performance or latency
+	* Can be configured and managed in AWS backup (enables cross-region copy)
+	* The recovery process creates a new table
+
+==== Integration with S3 ====
+* Export to S3 (must enable PITR)
+	* Works for any point of time in the last 35d
+	* Does not affect read capacity
+	* Perform data analysis on top of DynamoDB
+	* Retain snapshots for auditing
+	* ETL on top of S3 data before importing back into DynamoDB
+	* Export in DynamoDB JSON or ION format
+* Import from S3
+	* Import csv, DynamoDB json or ion format
+	* Does not consume write capacity
+	* Creates new table
+	* Import errors are logged in CW
+
+===== API Gateway =====
+
+* Support WebSocket Protocol
+* Handle API versioning, different envs, security (authentication and authorization)
+* Create API keys, handle request throttling
+* Swagger / Open API import to quickly define APIs
+* Transform and validate requests and responses
+* Generate SDK and API specs
+* Cache API responses
+
+==== Integrations ====
+* Lambda function :
+	* Invoke function
+	* Easy way to expose REST API backed by Lambda
+* HTTP :
+	* Expose HTTP endpoints in the backend
+	* Example : internal HTTP API on premise, ALB...
+	* Used to add rate limiting, caching, user authentications, API keys, ...
+* AWS Service
+	* Expose any AWS API
+	* Example : start Step Function workflow, post message to SQS
+	* Used to add authenticatin, deply publicly, control rate
+
+==== Endpoint Types ====
+* Edge-Optimized (default) : For global clients
+	* Requests are routed through the CF Edge locations
+	* The API GW still lives in ony one region
+* Regional :
+	* For clients within the same region
+	* Could manually combine with CloudFront (more control over the caching strategies and the distribution)
+* Private :
+	* Can only be accessed from your VPC using an interface VPC endpoint
+	* Use resource policy to define access
+
+==== Security ====
+* User authentication through :
+	* IAM roles (internal apps)
+	* Cognito (external users)
+	* Custom authorizer
+* Custom Domain Name HTTPS security through integration with Certificate Manager (ACM)
+	* For Edge-Optimized endpoint, cert must be in us-east-1
+	* For Regional endpoint, cert must be in the API GW region
+	* Must setup CNAME or A-alias record in R53
+
+===== Step Functions =====
+
+* Serverless visual workflow to orchestrate Lambda functions
+* Support sequence, parallel, conditions, timeouts, error handling
+* Can integrate with EC2, ECS, on-premises servers, API GW, SQS queues, ...
+* Possibility of implementing human approval feature
+* Used for order fulfillment, data processing, web apps, any workflow
+
+===== Cognito =====
+
+* Give users an identity to interact with our web or mobile app
+==== Cognito User Pools (CUP) ====
+* Sign in functionality for app users
+* Create a serverless database of user for web & mobile apps
+* Simple login, password reset, email & phone number verification, MFA, Federated Identities (Facebook, Google, SAML)
+* Integrate with API GW & ALB :
+	* Client retrieve a token from CUP and pass it API GW or ALB
+	* API GW or ALB will check token from CUP and use it to identify user
+==== Cognito Identity Pools (Federated Identity) ====
+* Provide temporary AWS credentials to users so they can access AWS resources directly without going through API GW or ALB
+* Integrate with IDPs such as CUP, 3rd party
+* IAM policies applied to credentials are defined in Cognito, can be customized based on user_id for fine grained control
+* Default IAM roles for authenticated and guest users
+* Can help achieve Row Level Security in DynamoDB : leading key in DynamoDB must be equal to Cognito identity user ID
+
+==== Cognito vs IAM : hundred of users, mobile users, SAML support ====

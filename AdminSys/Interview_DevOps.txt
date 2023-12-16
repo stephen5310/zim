@@ -1,0 +1,34 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-09-25T15:59:46+02:00
+
+====== Interview DevOps ======
+Created lundi 25 septembre 2023
+
+===== Linux =====
+
+==== Your EC2 instance is running out of disk space. What actions will you take to mitigate the issue ? ====
+* Look for which partition is full
+* Look for what is taking up space
+* For logs rotate them
+* For data backup them
+* For others take EBS snapshot and increase disk space
+
+==== What is a bastion host or gateway server ? What role do they play ? ====
+* First Hop for accessing an internal/private network from the internet
+
+==== Multiple EC2 instances in ASG is getting terminated and this is causing downtime. EC2 pricing, quota all good. ====
+* Check if HC are configured correctly
+* Use lifecycle hooks to troubleshoot before temination
+* Check disk space, cpu usage, memory usage
+
+==== Create a linux script that will push certain logs to S3 automatically at a particular time. ====
+* IAM role to allow to write to S3 bucket
+* Gateway endpoint to lower traffic costs
+* aws cli to copy
+* Crontab to schedule
+
+==== Why logging is important ? What is centralised logging ? What tools help to achieve that ? ====
+* Helps investigate on issues by showing what the system/app was doing when they happened
+* Centralised logging is a way of collecting all logs from machines/apps in a infra and store them in a log aggregator
+* Elasticsearch, CW Logs, Splunk, Datadog, Prometheus

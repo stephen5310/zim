@@ -1,0 +1,42 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-11-23T17:06:24+01:00
+
+====== 5. Terraform Cloud ======
+Created jeudi 23 novembre 2023
+
+* SaaS Terraform environment to help teams collaborate more efficiently
+* Available at : https://app.terraform.io/session
+* Has natively :
+	* Shared states
+	* Consistent and Reliable environment
+	* UI Interface
+	* Secrets management
+	* Access controls
+	* Private registry
+	* Policy controls
+
+===== Plans =====
+
+==== Free ====
+* All features or Terraform plus :
+	* Remote state and operations
+	* Private module registry
+	* Community support
+* Maximum of 5 users
+
+==== Team ====
+* All features of free plan plus :
+	* Team Management
+==== Team and Governance ====
+* All features of team plan plus :
+	* Policy as Code (Sentinel)
+	* Policy Enforcement
+	* Cloud SLA and Support
+
+==== Business ====
+* All features of team and Governance plan plus :
+	* SSO
+	* Custom Concurrency : Multiple jobs can be processed in parallel
+	* Self-hosted options : Runs executed within own environment and state (Only x86 64 or better Linux OS supported, docker agent also supported)
+	* Premium support

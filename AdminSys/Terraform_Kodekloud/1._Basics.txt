@@ -1,0 +1,201 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-10-18T13:28:44+02:00
+
+====== 1. Basics ======
+Created mercredi 18 octobre 2023
+
+===== Providers =====
+
+* Different kinds of providers :
+	* Official (plugins maintained by terraform) : aws, gcp, azure, local
+	* Partner (plugins maintained by terraform partners) : heroku, digitalocean, bigip
+	* Community (plugins maintained by the community) : activedirectory, ucloud, netapp-gcp
+* When executing ''terraform init'', terraform downloads the plugins for the providers specified in the .tf files
+* For the ''local'' provider :
+'''
+Initializing provider plugins...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/local v2.4.0
+'''
+
+* Plugins are downloaded in ''./.terraform/plugins'' in the configuration directory
+* ''hashicorp/local'' is known as the source address
+	* It is used by terraform to locate and download the plugin
+	* ''hashicorp'' is the organizational namespace
+	* ''local'' is the type
+	* The source address can optionally have a hostname which defaults to ''registry.terraform.io''
+	* This source address can be represented as : ''registry.terraform.io/hashicorp/local''
+* By default latest versions of plugins are installed
+
+===== Configuration Directory =====
+
+* All .tf files within the conf dir are considered by terraform
+* We can add all resource definitions to a single file usually named ''main.tf''
+* We can also create a : 
+	* ''variables.tf'' for variable declarations
+	* ''outputs.tf'' for outputs from resources
+	* ''provider.tf'' for provider definitions
+
+===== Input Variables =====
+
+* We can put variables in another .tf file
+* They can be defined like this :
+''variable "<var_name>" {''
+  ''default = "<value>"''
+''}''
+
+* We use the variable in the ''main.tf'' file like this :
+''resource "local_file" "pet" {''
+  ''filename = ''**''var.<var_name>''**
+''}''
+
+==== Variable Types ====
+* Three parameters are accepted : 
+	* default (optional) : default value
+	* type (optional) : enforce the type. Some values possible are string, number, bool and any (default value), list, map, object, tuple
+	* description (optional) : describe what the variable is used for
+* More details on types :
+	* List : array of elements referenced by their order starting by 0
+	* Map : set of key/value pairs (''key = value'')
+	* Can combine some types : ''list(string)'', ''map(number)''
+	* Set : list without duplicate elements
+	* Object : create complex data structures with the other types, for example
+''variable "bella" {''
+  ''type = object({''
+	''name = string''
+	''color = string''
+	''age = number''
+	''food = list(string)''
+	''favorite_pet = bool''
+''})''
+  ''default = {''
+	''name = "bella"''
+	''color = "brown"''
+	''age = 7''
+	''food = ["fish", "chicken", "turkey"]''
+	''favorite_pet = true''
+'' }''
+''}''
+
+	* Tuple : list with elements of different types in the same order and number they are defined
+''variable kitty {''
+''  type = tuple([string, number, bool])''
+''  default = ["cat", 7, true]''
+''}''
+
+==== Validating Variables ====
+
+* Use the ''validation'' block inside the variable definition in ''variables.tf''
+''variable "ami" {''
+'' type = string''
+'' description = "ID of AMI to use"''
+'' validation {''
+''  condition = substr(var.ami, 0, 4) == "ami-" ''
+''  error_message = "The AMI should start with \"ami-\"."''
+''}''
+
+==== Using Variables ====
+* When variables are defined without default values terraform prompts to enter values for each variable at apply stage
+* Variable values can be passed as arguments to the apply command with the keyword '' -var ''like below :
+''terraform apply -var "<var1_name>=<var1_value>" -var "<var2_name>=<var2_value>"''
+
+* We can also export variables as environment vars by adding the prefix ''TF_VAR_'' to the variables names :
+''export TF_VAR_<var1_name>=<var1_value>''
+''export TF_VAR_<var2_name>=<var2_value>''
+''terraform apply''
+
+* We can also put the variables assignments in a file
+''<var1_name> = <var1_value>''
+''<var2_name> = <var2_value>''
+* To load the variables values automatically the file must have the extension ''.auto.tfvars'' or ''.auto.tfvars.json''
+* To load the variables values when applying the file must have the extension ''.tfvars'' or ''.tfvars.json''
+* Note that the ''variables.tf'' file is for the declaration of variables, name, type, description, default values and additional metadata
+''terraform apply -var-file <varfile_name>.tfvars''
+
+* If we a variable is assigned different values, the precedence is :
+1. -var and -var-file options on the command line
+2. *.auto.tfvars or *.auto.tfvars.json in alphabetical order
+3. ''terraform.tfvars.json'' file
+4. ''terraform.tfvars'' file
+5. Environment variables
+
+===== Resources =====
+
+==== Reference attributes ====
+* They are used to call a resource attribute within another. For example :
+'''
+resource "local_file" "pet" {
+	filename = var.filename
+	content = "My favorite pet is ${random_pet.your-pet.id}."
+	file_permission = "0700"
+}
+
+resource "random_pet" "your-pet" {
+	prefix = var.prefix
+	separator = var.separator
+	length = var.length
+}
+'''
+* A reference cannot be passed in an input variable
+
+==== Dependencies ====
+* For resource creation, terraform creates resources that do not depend on other resources before creating resources that depend on them
+* For deletion it does it in the reverse order
+* Using the reference attribute of a resource in another one is called **Implicit Dependency**
+* Using the ''depends_on'' attribute on a resource to declare dependancies in a list is called **Explicit Dependency**
+'''
+resource "local_file" "pet" {
+	filename = var.filename
+	content = "My favorite pet is Mr.Cat."
+	file_permission = "0700"
+	depends_on = [
+	  random_pet.your-pet
+	]
+}
+
+resource "random_pet" "your-pet" {
+	prefix = var.prefix
+	separator = var.separator
+	length = var.length
+}
+'''
+
+* An explicit dependency is only necessary when there is no implicit ones
+
+==== Targeting a resource ====
+* Used to tell Terraform to apply modifications to only specified resources
+* Use the ''-target'' option : ''terraform apply -target <resource_address>''
+* Use only when the situation warrants it
+
+===== Output Variables =====
+
+* Variables used to store outputs from terraform creations
+* The values are references to resources attributes
+* The description field is optional
+''output pet-name {''
+''  value = random_pet.your-pet.id''
+''  description = "Record the value of pet ID generated by the random_pet resource"''
+''}''
+
+* Use the ''terraform output'' command to print the values of all the output variables
+* To print the value a particular one : '' terraform output <variable_name>''
+
+===== Terraform State =====
+
+* json file that :
+	* Maps terraform config to the real world infra
+	* Tracks metadata such as dependencies
+	* Improves the performance of terraform operations while working with large config files, especially those with different cloud providers
+	* Allows team to collaborate and provision resources as a team
+* It is updated when running plan and apply
+* ''terraform plan'' look for drifts between the state file and the configuration file to make a plan
+* ''terraform apply'' applies the plan and updates the state file after
+* The state file also tracks metadata details about resources such as the dependencies
+* For very big infrastructures, it is better not to check the state file at each plan or apply execution :
+	* It can be done by adding a flag to the command : ''terraform plan ''**''--refresh=false''**
+	* Terraform will rely on the cached attributes to execute the commands
+* The tfstate file can be stored in a remote data store (Consul, S3, Terraform Cloud, Google Cloud Storage) to allow teams to collaborate
+* The state file contains sensitive information in plain text :
+	* Make sure it is always stored in a secure storage
+	* It is designed to be used by terraform internally. We should not modify it manually

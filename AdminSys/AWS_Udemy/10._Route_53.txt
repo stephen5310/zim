@@ -1,0 +1,146 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-07-27T12:37:51+02:00
+
+====== 10. Route 53 ======
+Created jeudi 27 juillet 2023
+
+===== DNS =====
+
+==== Terminologies ====
+* Domain Registrar : 
+	* Used to register domain names
+	* Amazon R53, GoDaddy
+* Records : A, AAAA, CNAME, NS, MX
+* Zone File : contains DNS records
+* Name Server : resolves DNS queries (Authoritative or Non-Authoritative)
+* Top Level Domain (TLD) : .com, .us, .in, .gov, .org
+* Second Level Domain (SLD) : amazon.com, google.com
+{{.\pasted_image.png?width=1000}}
+
+===== R53 overview =====
+
+* HA, scalable, fully managed and Authoritative (customer can update records) DNS
+* Domain Registrar
+* HC supported
+* Only AWS service with 100% availability SLA
+* Each record contains :
+	* Domain/subdomain Name
+	* Record Type
+	* Value
+	* Routing Policy
+	* TTL
+* Supports following record types:
+	* A : hostname to IPv4 
+	* AAAA : hostname to IPv6 
+	* CNAME : hostname to another hostname
+		* The target is a domain name which must have an A or AAAA record
+		* Does not support root domains (SLDs or TLDs)
+	* Alias : hostname to AWS resource
+		* Supports root and non root domains
+		* Free
+		* Native HC
+		* TTL set automatically by R53 (cannot change)
+		* Can target ELB, CloudFront, API GW, Beanstalk, S3 Websites, VPC interface endpoints, Global Accelerator, R53 record
+		* Cannot target EC2 DNS name
+	* NS : Name servers for the hosted zone
+		* Control how traffic is routed for a domain
+	* Advanced : CAA, DS, MX, NAPTR, PTR, SOA, TXT, SPF, SRV
+* Hosted zones are container for records that define how to route traffic to a domain and its subdomains
+	* Public : for internet
+	* Private : within one or more VPCs
+	* $0.50/month per hosted zone
+* **TTL** (Time To Live) :
+	* Time for client to keep DNS record in cache
+
+===== Health Checks =====
+* HTTP HC are only for public resources
+* Provides automated DNS failover
+
+==== Monitoring an endpoint (app, server, other AWS resource) ====
+* 15 global health checkers will check the endpoint
+* Set healthy/unhealthy threshod (3 default)
+* Interval : default 30s, can set to 10s (higher cost)
+* If > 18% of health checkers report the endpoint healthy it will be considered healthy. Otherwise it is unhealthy
+* Can choose which locations to use
+* Pass only for 2xx and 3xx status codes
+* Can be setup to pass/fail based on the text in the first 5120 bytes of the response
+* Configure your router/firewall to allow incoming requests from Route 53 health checkers
+
+==== Monitoring other HC (Calculated HC) ====
+* Combine the results of multiple HC into a single one
+* Can use OR, AND or NOT
+* Can monitor up to 256 Child HC
+* Specify how many of the HC need to pass to make the parent pass
+* Usage: perform maintenance to your website without causing all health checks to fail
+
+==== Monitoring CloudWatch Alarms (helpful for private resources) ====
+* Create CloudWatch metric and associate CloudWatch alarm
+* Create HC that checks the state of the alarm itself
+* Used for Throttles of DynamoDB, alarms on RDS, custom metrics
+
+===== Routing Policies =====
+
+* Routing refers to responding to DNS queries in particular way
+
+==== Simple ====
+* Route to a single resource
+* Can specify multiple values in the same record VS only one resource when Alias is enabled
+* A random one is chosen by the client when multiple values are returned
+* Does not support HC
+
+==== Weighted ====
+* Control the % or requests that go to each specific resource
+* Assign each record a relative weight : trafic % = record weight / sum of all the weights
+* Records must have **same name and type**
+* Assign weight 0 to stop sending traffic
+* Support HC
+* Used for load balancing between regions, testing new app versions
+* If all records have the same weight (even 0), traffic is routed equally
+
+==== Latency based ====
+* Redirect to the resource that has the least latency close to us
+* Records must have **same name and type**
+* Latency is based on traffic beween users and AWS region
+* Support HC
+
+==== Failover ====
+* Active-passive with failover to secondary when HC fails on primary
+* Records must have **same name and type**
+
+==== Geolocation ====
+* Based on user location
+* Specify location by Continent, Country, or by US State
+* Should create a Default record in case there is no match on location
+* Support HC
+* Used for website localization, restrict content distribution, load-balancing
+* Records must have **same name and type**
+
+==== Geoproximity ====
+* Based on geographic location of users and resources
+* Ability to shift more traffic to resources on the defined bias
+* Cange the size of the geographic region, specify bias values :
+	* To expand (1 to 99) : more traffic to the resource
+	* To shrink (-1 to 99) : less traffic to the resource
+* Resources can be : 
+	* AWS resources (specify region)
+	* Non-AWS resources (specify Latitude and Longitude)
+* Must use R53 **Traffic Flow**
+
+==== IP-based ====
+* Based on clients' IP addresses
+* You provide a list of CIDRs for your clients and the corresponding endpoints/locations (user IP to endpoint mappings)
+* Used to optimize performance, reduce network costs
+* For example route end users from a particular ISP to a specific endpoint
+
+==== Multi-Value ====
+* Used when routing to multiple resources
+* Returns multiple values/resources
+* Support HC
+* Up to 8 healthy records are returned for each Multi-Value query
+* Multi-Value is not a substitute for having an ELB
+
+===== 3rd party Domains & R53 =====
+
+* Can buy a domain with another Registrar and use R53 as DNS service provider
+* Can configure DNS servers in domain configuration on Registrar to use R53 public DNS addresses

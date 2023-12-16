@@ -1,0 +1,146 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-08-17T12:15:07+02:00
+
+====== 25. IAM Advanced ======
+Created jeudi 17 août 2023
+
+===== Organizations =====
+
+* Global service to manage multiple AWS accounts
+* The main account is the management account
+* Other accounts are member accounts
+* Member accounts can only be part of one organization
+* Consolidated Billing across all accounts - single payment method
+* Pricing benefits from aggregated usage (volume discount for EC2, S3, ...)
+* Shared reserved instances and Savings Plans discounts across accounts
+* API is available to automate account creation
+* Made of a Root Organizational Unit (ROU) which contains the Management Account :
+	* Other OUs are inside the ROU
+	* OUs are made of Member Accounts and/or other OUs
+	* Examples of OUs are Business Units, Environment Lifecycles, Projects
+* Advantages:
+	* Multiple accounts are better than one account with multiple VPCs
+	* Use tagging standards for billing purposes
+	* Enable CloudTrail on all accounts, send logs to central S3 account
+	* Send CW Logs to central logging account
+	* Establish Cross Account Roles for Admin purposes
+* Service Control Policies:
+	* IAM policies applied to OU or Accounts to restrict Users and Roles
+	* They do not apply to the management account (full admin power)
+	* Must have an explicit Allow (does not allow anything by default)
+	* Explicit Deny have precedence over explicit Allow
+	* Blocklist and Allowlist strategies
+
+===== IAM Advanced Policies =====
+
+==== Conditions ====
+* aws:SourceIp to restrict the client IP from which the API calls are being made
+* aws:RequestedRegion to restrict the region the API calls are made to
+* ec2:ResourceTag restrict based on tags on EC2 instances
+* aws:MultiFactorAuthPresent to force MFA
+
+==== S3 ====
+* Bucket level permissions :
+	* Apply to arn:aws:s3:::bucket
+	* Example s3:ListBucket 
+* Object level permissions :
+	* Apply to arn:aws:s3:::bucket/*
+	* Example s3:GetObject, s3:PutObject, s3:DeleteObject
+* aws:PrincipalOrgId can be used in any resource policy to restrict access to accounts that are member of an AWS organization
+
+==== Roles vs Resource Based Policies ====
+* When assuming a role, you give up your original permissions to take the permissions granted by the role
+* When using a resouce-based policy, the principal does not have to give up his permissions
+* Lambda, SNS, SQS, CW Logs, API GW support resource-based policy to allow EventBridge
+* For KDS, ECS tasks, Manager Run Comman a IAM role will be necessary for EventBridge
+
+==== Permission Boundaries ====
+* Supported for users and roles
+* Use a managed policy to set the max permissions an IAM entity can get
+* IAM Permission Boundary has precedence over IAM policy
+* Can be used in combination of Organizations SCP
+* Used to :
+	* Delegate responsibilities to non admin within their permission boundaries
+	* Allow devs to self-assign policies and manage their own permissions, while making sure they can't escalate their privileges
+	* Restrict on specific user instead of whole account
+
+==== Policy Evaluation Logic ====
+* By order of precedence
+* All explicit Deny
+* Organizations SCPs
+* Resource-based policies
+* Identity-based policies
+* IAM permission boudaries
+* Session policies
+
+==== Identity Center ====
+* One login (SSO) for all :
+	* AWS accounts in Organizations
+	* Business cloud apps (Salesforce, Microsoft 365)
+	* SAML2.0-enabled apps
+	* EC2 Windows Instances
+* Identity providers :
+	* Built-in identity store
+	* 3rd party : AD, OneLogin, Okta...
+* Workflow :
+	* Login to Identity Center
+	* Store / retrieve User identities
+	* Configure SSO to apps
+	* Use Permission Sets to define which user have access to what
+	* Permission Sets grant defined rights to Identity Center users/groups on Organizations OUs they are applied to
+* Fine-grained Permissions and Assignements :
+	* Multi-Account Permissions :
+		* Manage access across AWS accounts in Organization
+		* Permission Sets - collection of one or more IAM Policies assigned to users and groups to define AWS access
+	* Application Assignments :
+		* SSO access to many SAMLL 2.0 business apps
+		* Provide required urls, certs and metadata
+	* Attribute-Based Access Control :
+		* Fine-grained permissions based on users attributes stored in Identity Center Identity Store
+		* Example cost center, title, locale
+		* Used to define permissions once, then modify access by changing attributes
+
+===== Directory Services =====
+
+==== MS Active Directory ====
+* Database of objects : User Accounts, Computers, Printers, File Shares, Security Groups
+* Centralized security management, create account, assign permissions
+* Objects are organized in trees
+* A group of trees is a forest
+* All machines are connected to the AD server called the Domain Controller
+* Authentication is made through the DC
+
+==== AWS Directory Services types ====
+* Managed Microsoft AD :
+	* Create own AD in AWS, manage users locally, supports MFA
+	* Establish trust connections with your on-premise AD
+* AD Connector :
+	* Directory GW to redirect to on-premise AD, supports MFA
+	* Users are managed on on-premise AD
+* Simple AD :
+	* AD-compatible managed directory on AWS
+	* Cannot be joined with on-premise AD
+	* MFA not supported
+
+==== IAM Identity Center Integration ====
+* Integration is out of the box for Managed MS AD
+* For a Self-Managed AD there is two ways:
+	* Create a Two-way Trust Relationship using AWS Managed MS AD
+	* Create an AD Connector
+
+===== Control Tower =====
+
+* Set up and govern a secure and compliant multi-account AWS env based on best practices
+* Uses Organizations to create accounts
+* Benefits :
+	* Automate en setup in a few clicks
+	* Automate ongoing policy management using guardrails
+	* Detect policy violations and remediate them
+	* Monitor compliance through an interactive dashboard
+
+==== Guardrails ====
+* Provides ongoing governance for Control Tower env
+* Two kinds :
+	* Preventive : using SCP to restrict things (Regions across all accounts)
+	* Detective : using Config (identify untagged resources)

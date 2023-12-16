@@ -5,3 +5,89 @@ Creation-Date: 2023-07-03T12:09:50+00:00
 ====== 7. EC2 Instance Storage ======
 Créée le Monday 03 July 2023
 
+===== Elastic Block Store (EBS) =====
+
+==== Volumes ====
+* EBS volumes are network drives that can be attached to instances while they run
+* Used to persist data after instance termination
+* Some can be mounted to multiple instances at a time, or many can be mounted to one instance
+* AZ bound, snapshot to move
+* Have provisioned capacity, billed for that
+* Capacity can be increased over time
+* Can be attached on demand
+* The delete on termination option is enabled by default for the root volume only
+* **It takes some time after creation to become available to attach on instance**
+
+==== Snapshots ====
+* A snapshot is a backup at a Point In Time (PIT)
+* Not necessary, but recommended to detach the volume before doing a snapshot
+* Can be copied across AZ or region
+* Can be used to create a volume
+* Can be moved to an archive tier that is 75% cheaper but takes up to 72H to restore
+* Use the recycle bin to retain and recover deleted snapshot during a period by setting rules 
+* Can use Fast Snapshot Restore to force full initialization of a snapshot to have no latency on the first use (expensive)
+
+==== Volume types ====
+https://aws.amazon.com/ebs/volume-types/
+* ssd-based : can be used as root volumes
+	* io1 / io2 / io2 block express : high performance EBS storage option designed for critical, I/O intensive database and application workloads, as well as throughput-intensive database and data warehouse workloads, supports EC2 Nitro for more IOPS, support EBS multi-attach (AZ-bound, 16 max), can provision IOPS sometimes independantly of storage size
+	* gp1 / gp2 : ideal for a wide variety of applications that require high performance at low cost
+* hdd-based : cannot be used as root volumes
+	* st1 : ideal for frequently accessed, throughput-intensive workloads with large datasets and large I/O sizes
+	* sc1 : ideal for less frequently accessed workloads with large, cold datasets
+
+===== Amazon Machine Image (AMI) =====
+
+* Customization of EC2 instance
+* Region-bound, can be copied across regions
+* Used to launch instances
+* Provided by AWS, Marketplace, yourself
+* Steps to build AMI :
+	* Start instance
+	* Customize
+	* Stop instance
+	* Build AMI (also creates snapshots)
+
+===== Instance Store =====
+
+* Storage of the physical machine on which the EC2 instance is created
+* Used for better I/O and throughput
+* Storage is lost upon stop or termination (ephemeral)
+* Good for buffer, cache, scratch data, temporary content
+* Risk of data loss if hardware fails (no backup nor replication)
+
+===== Encryption =====
+
+* For an encrypted EBS volume :
+	* Data at rest is encrypted inside
+	* All data in flight moving between the instance and the volume is encrypted
+	* All snapshots are encrypted
+	* All volumes restored from snapshots are encrypted
+* Encryption and decryption are handled transparently
+* Minimal impact on latency
+* Leverages keys from KMS (AES-256)
+* Copying an unecrypted snapshot allows encryption
+
+===== Elastic FileSystem (EFS) =====
+
+* Managed NFS (NFSv4.1) that can be mounted on many EC2, POSIX fs
+* Multi-AZ, HA, scalable, expensive, pay per use (no provisioning)
+* Used for content management, web serving, data sharing, Wordpress
+* Use SG to control access
+* Only compatible with linux AMIs
+* Encryption at rest using KMS
+* Performance mode (set at creation time) :
+	* General purpose (default) : latency sensitive use-cases (web server, CMS, ...)
+	* Max I/O : higher latency, throughput, highly parallel (big data, media processing)
+* Throughput mode :
+	* Enhanced : More flexibility and higher throughput levels
+	* Bursting : 1TB=50MiB/s + burst up to 100MiB/s
+	* Provisioned : Set regardless of storage size
+	* Elastic : Scale automatically based on workload
+* Storage tiers :
+	* Standard : frequently accessed files
+	* Infrequent access (EFS-IA) : cost to retrieve files, lower cost to store, enable with lifecycle policy
+* Availability and durability :
+	* Standard : Multi-AZ , good for prod
+	* One Zone : great for dev, backup enabled by default, compatible with IA (EFS One Zone IA)
+

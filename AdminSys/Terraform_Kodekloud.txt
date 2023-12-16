@@ -1,0 +1,68 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-09-12T16:54:47+02:00
+
+====== Terraform Kodekloud ======
+Created mardi 12 septembre 2023
+
+===== Introduction =====
+
+* IaC tool for infra provisioning
+* Free and open source
+* Installed by a single binary
+* Able to deploy infra on multiple private and public cloud platforms
+* Providers allows to leverage Cloud Platforms APIs to deploy infra
+* Uses HCL to define infrastructure resources in .tf files
+* Uses declarative code :
+	* Init : initialize the project and determine the cloud provider
+	* Plan : draft a plan to get to the target state
+	* Apply : makes the necessary changes to get to the target state
+* Every object managed is called a Resource
+* The Resource lifecycle is managed from provisioning, to configuration, to decomissioning
+* The state of the in fra as seen in the real world is recorded in .tfstate files
+* The .tfstate files allows to determine what action to take to maintain the infra in the desired state at all times
+* Can read attributes of existing infra components to configure other resources
+* Can import other resources under its control
+* Terraform Cloud and Terraform Enterprise for UI and collaboration
+
+===== Installation =====
+
+* Go to https://developer.hashicorp.com/terraform/downloads and follow the instructions
+* Check version with : ''terraform version''
+
+===== HashiCorp Configuration Language (HCL) Basics =====
+
+==== Syntax ====
+''<block_name> <provider>_<type of block_name> <arguments> {''
+	''key1 = value1''
+	''key2 = value2''
+''}''
+
+* The HCL file consists of blocks and args
+* A block is defined within curly braces and contains a set of args in key/value pair format representing the configuration data
+* A block contains the information about the infra platform and a set of resources within that platform that we want to create
+* Example to create a file [[/root/pets.txt]] with the content "We love pets!" :
+	* Create the local.tf file in a directory with the following content (cd into the dir) :
+''resource "local_file" "pet" {''
+	''filename = "/root/pets.txt"''
+	''content = "We love pets!"''
+''}''
+	* Initialize the config dir : ''terraform init''
+	* See the plan : ''terraform plan''
+	* Apply plan : ''terraform apply''
+	* See the details of the created resources : ''terraform show''
+* To see the full list of blocks, providers and arguments : https://developer.hashicorp.com/terraform/language
+
+==== Update infra ====
+* Change something in the block :
+''resource "local_file" "pet" {''
+	''filename = "/root/pets.txt"''
+	''content = "We love pets!"''
+	''file_permission = "0700"''
+''}''
+
+* See the plan : ''terraform plan''
+* Apply the plan : ''terraform apply''
+
+==== Destroy infra ====
+* Execute the command in the config dir : ''terraform destroy''
