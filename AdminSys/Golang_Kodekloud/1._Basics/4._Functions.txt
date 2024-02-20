@@ -1,0 +1,83 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:07:44+01:00
+
+====== 4. Functions ======
+Created samedi 17 février 2024
+
+===== Syntax =====
+
+**''func <function_name>(<params>) <return_type> {''**
+ **''// body''**
+**''}''**
+
+* Example
+''func addNumbers(a int, b int) int {''
+ ''return a + b''
+''}''
+
+* Function name :
+	* Must begin with a letter
+	* Cannot contain spaces
+	* Are case-sensitive
+
+===== Return Types =====
+
+* The return value must match with the function signature
+* To return multiple values : 
+**''func <function_name>(<params>) (<return_type1>,<return_type2>){''**
+ **''...''** 
+ **''return value1, value2''**
+**''}''**
+* Named return values to give names to values to return
+''func <function_name>(<params>) (''**''name1''** ''<return_type1>,'' **''name2''** ''<return_type2>){''
+ **''name1''** ''= value1''
+ **''name2''** ''= value2''
+ **''return''**
+''}''
+* Can use the blank identifier **''_''** to ignore a value returned by a function : **''v, _ := f()''**
+
+===== Variadic functions =====
+
+* Accept a variable number of arguments
+* Possible to pass a variable number of args of the same type
+* The type of the final param is preceded by an ellipsis : **''func <function_name>(<params1> <type1>, <param2> <type2>...) <return_type>''**
+* All the values passed will be stored in an array
+
+===== Recursive functions =====
+
+* The function keeps calling itself until it reaches a base case
+* Used to solve a problem where the solution is dependent on the smaller instance of the same problem
+''func factorial(n int) int {''
+ ''if n == 1 {''
+  ''return 1''
+ ''}''
+ ''return n * factorial(n - 1)''
+''}''
+
+===== Anonymous functions =====
+
+* Declared without any named identifier to refer to it
+* Behave as standard functions
+* Can be used to contain functionality that need to be named and possibly for short-term use
+''x := func(l int, b int) int {''
+ ''return l * b''
+''}''
+fmt.Println(''x(20, 30))''
+
+* We can even call the function directly without storing it
+''x := func(l int, b int) int {''
+ ''return l * b''
+''}(20, 30)''
+fmt.Println(''x)''
+
+===== Higher order functions =====
+
+* Receive a function as argument and/or returns a function as output
+* Used to create complex functions by using different smaller functions
+* Reduces bugs as tests are easier to implement
+* Improves code readability 
+
+===== Delay Statement =====
+
+* Delays the execution of a function until the surrounding function returns

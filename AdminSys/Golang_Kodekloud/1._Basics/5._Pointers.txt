@@ -1,0 +1,39 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:07:56+01:00
+
+====== 5. Pointers ======
+Created samedi 17 février 2024
+
+* Variable that holds the memory address of another one
+* Point where this memory is allocated
+
+===== Address-of Operator =====
+
+* Use **''&''** to get the address where a variable is stored : ''pointer = &var''
+
+===== De-reference Operato =====
+
+* Use **''*''** to manipulate the value at the address stored by the pointer : ''value = *pointer''
+* Modify the value : ''*pointer = new_value''
+
+===== Declaration and initialization =====
+
+* Declare : ''var <pointer_name> *<data_type>''
+* Initializing : 
+	* Specifying data type : ''var <pointer_name> *<data_type> = &<variable_name>''
+	* Not specifying data type : ''var <pointer_name> = &<variable_name>''
+	* Shorthand : ''<pointer_name> := &<variable_name>''
+
+===== Passing arguments by reference to a function =====
+
+* By default arguments are passed by value
+	* Only a copy is accessed
+* Passing by reference means passing a pointer to the variable in argument
+	* The data of the orginal variable is directly manipulated by the function
+	* The parameter type in the function definition must be a pointer
+''func modify(s'' **''*string''**'') {''
+ ''*s = "world"''
+''}''
+''modify(''**''&a''**'')''
+* **Slices and maps are passed by reference by default**

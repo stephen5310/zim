@@ -1,0 +1,91 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:07:28+01:00
+
+====== 3. Arrays, Slices and Maps ======
+Created samedi 17 février 2024
+
+===== Arrays =====
+
+* Collection of similar data elements stored at contiguous memory locations
+* Length is fixed at declaration and cannot be changed
+* The pointer points to the first element
+* The properties :
+	* **''length''** for the number of elements it contains : **''len(array)''**
+	* **''capacity''** for the number of elements it can contain
+	* For arrays they are the same
+* Syntax : ''var <array_name> [<size>]<data_type> = [<size>]<data_type>{value1, ...}''
+* Example : ''var grades [3]int = [3]int{10, 20, 30}''
+* Shorthand :
+	* With fixed length : ''grades := [3]int{10, 20, 30}''
+	* Use ellipses (**''...''**) for inferred length : ''grades := [...]int{10, 20, 30}''
+* Access elements with indexes : ''array[1]''
+* Change value of an element : ''array[1] = 100''
+
+==== Looping through ====
+* Using index : **''for i := 0; i < len(array); i++ { /* code */ }''**
+* Using **''range''** keyword to retrieve loop by accessing index and element : **''for index, element := range array { /* code */ }''**
+* If index is not needed replace it with **''_''**
+
+==== Mutidimensional ====
+* Syntax : ''<array_name> := [<n_lines>][n_columns]<data_type>{{elm1,...},...,{elmN,...}}''
+* Access with indexes : array[2][1]
+
+===== Slices =====
+
+* Continuous segment of an underlying array
+* Provides access to parts of an array in sequential order
+* Elements can be added or removed : varable typed
+* The pointer points generally to the first element, but not necessarily
+* The properties :
+	* **''length''** for the number of elements it contains : **''len(slice)''**
+	* **''capacity''** for the number of elements from the first of the slice to the last of the underlying array : **''cap(slice)''**
+* Syntax : ''<slice_name> := []<data_type>{<values>}''
+	* An array is created first
+	* Then the compiler returns the a slice reference to it
+* Create from an array : ''array[start_index: end_index]''
+	* The element at the end_index is not included
+* Use **''make''** function : ''<slice_name> := make([]<data_type>, length, capacity)''
+* Index for slices begin at 0 because elements are reindexed
+* Modifying slice will modify underlying array
+
+==== Appending ====
+* Use **''append''** function : ''func append(s []T, vs ...T) []T''
+* First parameter is a slice of some data type
+* The others are values of the same data type
+* Returns a slice containing all the elements of the slice provided plus the provided values in the order they were provided
+* The returned array will 
+	* Have twice the initial capacity if it could not contain all the elements
+	* Point to the newly allocated array
+* Can append a slice to another by using ellipses : ''slice = append(slice, other_slice...)''
+
+==== Deleting ====
+* Create slices that does not contain the elements and append them
+
+==== Copying ====
+* Use **''copy''** function : ''func copy(dst, src []Type) int''
+* Returns the number of elements that have been copied :
+	* Does not exceed the number of elements of the destination slice
+* Slices must be initialized with the same data type
+
+==== Looping through ====
+* Same as array
+
+===== Maps =====
+
+* Unordered collection of key/value pairs implemented by hash tables
+* Provide efficient add, get, delete operations
+* Syntax : ''var <map_name> map[<key_data_type>]<value_data_type>''
+* Example : ''var my_map map[string]int''
+* Need to be initilized if we want to add elements : ''<map_name> := map[<key_data_type>]<value_data_type>{key1: value1, ...}''
+* Can use **''make''** function to declare and initalize : ''<map_name> := make(map[<key_data_type>]<value_data_type>, <initial_capacity>)''
+* Can use **''len''** function to determine the number of elements
+* Access an item by referring to its key name : ''map[key]''
+	* Returns two element, the value and a boolean to indicate if the key exists : value, found := map[key]
+	* If the key does not exist the value will be the default zero value
+* Add an element by using a new index key and assign a value to it : ''map[new_key] = new_value''
+* Delete an element with the **''delete''** function : ''delete(map, key_name)''
+* Iterate with **''range''** function : ''for key, value := range map {}''
+* Truncate by :
+	* Deleting the keys one by one
+	* Reinitialize it with an empty map

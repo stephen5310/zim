@@ -1,0 +1,65 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:08:15+01:00
+
+====== 6. Struc, Methods and Interfaces ======
+Created samedi 17 février 2024
+
+===== Struct =====
+
+* User-defined data type, same as classes
+* Structure that groups together data elements
+* Reference a series of grouped values through a single variable name
+* Use **''type''** keyword to declare a user-defined data type
+''type <struct_name> struct {''
+ ''field1 type1''
+ ''...''
+ ''fieldN typeN''
+''}''
+* Initialize :
+	* Without specifying values (takes default zeros) : ''var <var_name> <struct_name>''
+	* Shorthand w/o spec values : ''<var_name> := new(<struct_name>)''
+	* Shorthand with values :
+''<var_name> := new(<struct_name>) {''
+ ''<field1_name>: <value1>,''
+ ''...''
+ ''<fieldN_name>: <valueN>''
+''}''
+* Print with the **''%+v''** format specifier
+* Access fields : <var_name>.<field_name>
+* Fields are public by default
+* Structs are passed by value to functions by default
+* Structs of the same type can be compared only using equality operators (== and !=)
+
+===== Method =====
+
+* Augments a function by adding an extra param after the **func** keyword a single argument called **receiver**
+* The receiver associates the method with a named type or a pointer to a named type
+	* Any instance of this named type will have this method available to them
+''func'' **''(<var_name> <struct_name>)''** ''<func_name>(<params>) <return_type>''
+
+==== Method sets ====
+* Set of methods available to a data type
+* Useful for encapsulation
+* Just declare the methods after the struct to make them visible
+
+===== Interface =====
+
+* Specifies a method set
+* Describe all methods for a method set by providing the function signature for each method
+* Does not implement methods
+* Declaration :
+''type <interface_name> interface {''
+ ''// Method signatures''
+''}''
+* Example :
+''type FixedDeposit interface {''
+ ''getRate() float64''
+ ''calc() float64''
+''}''
+
+==== Implementing Interfaces ====
+* A struct implements an interface when it is associated to all the methods it defines
+* Implementation is implicit
+* **Helpful to define functions that take the interface as argument :**
+	* **The methods can be called inside the function and will be executed like each struct will specify them**

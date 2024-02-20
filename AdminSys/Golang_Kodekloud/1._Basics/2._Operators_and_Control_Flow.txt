@@ -1,0 +1,64 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:07:02+01:00
+
+====== 2. Operators and Control Flow ======
+Created samedi 17 février 2024
+
+===== Operators =====
+
+* Five types
+* Comparison : ''== != < <= > >=''
+* Arithmetic : ''+ - * / % ++ --''
+	* Cannot use **''-''** on strings
+* Assignment : ''= += -= *= /= %=''
+* Bitwise : ''& | « » ^''
+	* Work at bit level to perform bit by bit operation
+	* bitwise AND (&) to do AND on every bit of two numbers
+	* bitwise OR (|) to do OR on every bit of two numbers
+	* bitwise XOR (^) to XOR on every bit of two numbers
+	* right shift (>>) to shift all bits towards right by the specified number of bits by deleting the number of bits to the right
+	* left shift (<<) to shift all bits towards left by the specified number of bits by adding zeros to the right
+* Logical : ''&& || !''
+
+===== If-else and else if =====
+
+''if condition_1 {''
+ ''// executes when condition_1 is true''
+''} else if condition_2 {''
+ ''// executes when condition_2 is true''
+''} else {''
+ ''// executes when all above conditions are false''
+''}''
+
+* else  and else if blocks are optional
+	* They must always start on the same line as the closing curly brace of the previous block
+
+===== Switch-case =====
+
+''switch expression {''
+  ''case value_1:''
+	''// execute when expression equals to value_1'' 
+  ''case value_2, value_3:'' 
+	''// execute when expression equals to value_2 or value_3''
+  ''default:''
+	''// execute when no match is found''
+''}''
+
+* Expression can be 
+	* A variable specified after switch
+	* Conditions specified at each case, nothing after switch 
+* Use **''fallthrough''** to force the execution flow to fall through the successive case block
+
+===== For =====
+
+''for init; condition; post {''
+  ''// statements''
+''}''
+
+''for i:= 1; i <= 3; i++ {''
+ ''fmt.Println("Hello World")''
+''}''
+
+* Use **''break''** keyword to break the loop
+* Use **''continue''** keyword to skip the currenti iteration and go to the next iteration

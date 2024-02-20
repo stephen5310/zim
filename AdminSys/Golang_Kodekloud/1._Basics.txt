@@ -1,0 +1,44 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:03:59+01:00
+
+====== 1. Basics ======
+Created samedi 17 février 2024
+
+* Created by engineers at Google to combine :
+	* The ease of programming of an interpreted, dynamically typed language (python)
+	* The efficiency and safety of a statically typed, compiled language (Java, C++)
+	* The aim to be modern, with support for networked multicore computing
+* Go is compiled
+
+===== First Program : simple Hello World =====
+
+''package main''
+
+''import "fmt"''
+
+// This is a comment
+
+''func main() {''
+	''fmt.Print("Hello World!")''
+''}''
+
+==== Packaging ====
+* Way of organizing and reusing code
+* Every go program must start with the package declaration
+* When building reusable pieces of code, packages are developed as shared libraries
+* For executable programs, the package **''main''** is enough
+
+==== Import ====
+* Used to import packages
+* **''fmt''** is short for format. It implements formatting for input and output.
+* In go package names in import are surrounded by double quotes
+
+==== Comments ====
+* Comment on one line start with //
+* Comment multiple lines start with [[/*]] and end with */
+
+==== Functions ====
+* Declaration start with **''func''** keyword
+* The **''main''** function in go contain the code that is executed
+* Every executable program must contain the single main package and the main function

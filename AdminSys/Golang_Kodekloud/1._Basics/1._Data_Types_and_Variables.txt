@@ -1,0 +1,141 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-17T19:06:39+01:00
+
+====== 1. Data Types and Variables ======
+Created samedi 17 février 2024
+
+* Caracterize a set of related values
+* Describe the operations that can be done on them
+* Define the way data is stored
+
+===== Static vs Dynamic Typed Languages =====
+
+* Static when the compiler throws an error when types are used incorrectly : C++, Java
+* Advantages are :
+	* Better performance
+	* Bugs can be caught by compiler
+	* Better data integrity
+* Dynamic when the compiler does not enforce the type system : Python, JS
+	* Faster to write code
+	* Shorter learning curve
+* Go is static but feels like dynamic :
+	* The data type is inferred during the variable initilization
+
+===== Kinds of Data Types =====
+
+* Go there for an exhaustive list : https://go.dev/ref/spec#Types
+
+==== Integer ====
+* Can be defined using many keywords
+* Most used is **''int''** for signed integers
+* For unsigned integer use **''uint''**
+* Use 32 bits or 64 bits
+
+==== Floating Point Numbers ====
+* Can be 32 bits (single precision) and 64 bits (double precision) in go
+* Recommended is **''float64''** for 64 bits
+
+==== String ====
+* Any sequence of characters of any kind
+* Defined by the keyword **''string''** and surrounded by " or '
+* Use 64 bits
+
+==== Booleans ====
+* Defined with **''bool''**
+* Only two values, **''true''** of **''false''**
+* Use 8 bits
+
+==== Arrays, Slices and Maps ====
+* See chapter 3
+
+===== Variables, Syntax and Declaration =====
+
+* Go is statically typed
+* Variables are assigned a type, either explicitly or implicitly
+* Generally : **''var <variable_name> <data_type> = <value>''**
+* Multiple : **''var var1, var2 type = val1, val2''**
+* Multiple on separate lines :
+**''var (''**
+**''var1 type1 = val1''**
+**''var2 type2 = val2)''**
+* Short declaration : **<variable_name> := <value>**
+	* Tell the compiler to infer the data type using the value provided
+
+===== Printing =====
+
+* A variable : ''fmt.println(var)''
+* A variable and string : ''fmt.Print("string", var)''
+	* Does not add space between strings
+* Add newline : 
+	* By addind the string **''"\n"''**
+	* By using **''Println''** instead (adds newline after each call)
+* Can use string formatting with **''Printf''** : fmt.Printf("Template string %s", variable) 
+	* Format specifiers are used in this case
+	* **''%v''** for default format
+	* **''%d''** for decimal integers
+	* **''%s''** for strings
+	* For more go to https://pkg.go.dev/fmt
+
+===== Variable Scope =====
+
+* Scopes are defined by blocks, which are defined with curly braces
+* Inner blocks can access variables within outer blocks, but not vice versa
+
+===== Zero values =====
+
+* A declared and non initialized variable is assigned the zero value of its data type automatically
+* Some zero values by type :
+	* bool : false
+	* int : 0
+	* float64 : 0.0
+	* string : ""
+	* pointers, functions, interfaces, maps : nil
+
+===== User Input =====
+
+* Use **''Scanf''** : ''fmt.Scanf("%<format_specifier> (s)", Object_args)''
+* Example : ''fmt.Scanf("%s", &var)''
+* Multiple inputs : 
+	* Use Multiple Scanf
+	* All in one call : ''fmt.Scanf("%s %t", &var1, &var2)''
+	* Scanf will read from the input sequentially by using blank space as separator
+* Returns two values :
+	* The number of args that the function wrote to successfully with **''count''**
+	* Any error thrown during the execution of the function with **''err''**
+	* Example : ''count, err := fmt.Scanf("%s %d", &a, &b)''
+
+===== Finding the type of a variable =====
+
+==== %T ====
+* The simplest way is by using this format specifier
+* With Printf for example : ''fmt.Printf("%v is of type %T", var, var)''
+
+==== reflect.TypeOf() ====
+* Import **''reflect''** package to use the function
+* Example with Printf : ''fmt.Printf("Type: %v", reflect.TypeOf(var))''
+
+===== Type Casting =====
+
+* Convert data to another data type
+* Does not guarantee that the value will remain intact
+* Use functions with the same name as the type you want, no need to import : **''float64(var)''**
+
+==== Strconv ====
+* Package used to convert string to number types and vice versa
+* **''Itoa''** function to convert integer to string
+	* Returns only the string formed with the given integer
+	* Example : ''strconv.Itoa(var)''
+* **''Atoi''** function to convert string to integer
+	* Returns the corresponding integer and error if any
+	* Example : ''var_int, err := strconv.Atoi(var_string)''
+
+===== Constants =====
+
+* Syntax : **''const <const_name> <data_type> = <value>''**
+* Constants are **untyped** unless they are exlicitly given a type at declaration
+	* Allows for flexibility : ''const age = 12''
+	* Multiple : ''const name, age = "Hermione", 12''
+* Any attempt to change the value of a constant will cause a runtime panic :
+	* Even declaring without initializing and trying after will do the same
+	* The shorthand variable assignment won't work either
