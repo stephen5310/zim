@@ -1,0 +1,195 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-23T06:30:49+01:00
+
+====== 3. Core Packages ======
+Created vendredi 23 février 2024
+
+===== Strings =====
+
+* Strings are immutable
+* The only way to modify them is by using this package
+
+==== Contains(str, substr) bool ====
+* Used to search whether a particular text/string/character is present in a given string
+
+==== ReplaceAll(text, oldstr, newstr) string ====
+* Replace all occurences of a string with a given text with the specified string
+
+==== Count(text, str) int ====
+* Counts the number of occurences of a string in a text
+
+===== Input/Output =====
+
+* Writing and reading a file
+* Writing and reading HTTP response
+* Processing database operations
+* Abstract the I/O processes with two interfaces
+* Implemented by any struct that need to read and write
+
+==== Reader interface ====
+* Provides the input function
+''type Reader interface {''
+  ''Read(p []byte) (n int, err error)''
+''}''
+
+==== Writer interface ====
+* Provides the output function
+''type Writer interface {''
+  ''Write(p []byte) (n int, err error)''
+''}''
+
+==== Copy(dst Writer, src Reader) (int64, error) ====
+* Uses the writer to write data read by the reader
+''r := strings.NewReader("some reader")''
+''_, err := io.Copy(os.Stdout, r)''
+
+===== File handling libraries =====
+
+* Getting metadata information
+* Creating and deleting files
+* Reading and writing data
+
+==== OS package ====
+* OS agnostic API interface for creation, deletion, opening, modifying permissions...
+
+=== Stat(path string) (FileInfo, error) ===
+* Returns infos on the file and an eventual *PathError
+* Infos is a struct with Name(), Size(), Mode(), IsDir() methods
+
+=== ReadFile(path string) ([]byte, error) ===
+* Returns all the file content in ascii and an enventual EOF error if the file is empty
+* If the file does not exist an opening error will be returned
+* Not good for large files
+
+=== Open(path string) (*File, error) ===
+* Opens a file in ro mode 
+* Allows reading by chunks
+''file, err := os.Open(path)''
+''b := make([]byte, 4)''
+for {
+  ''data, err := file.Read(b)''
+  ''if err != nil {''
+	''fmt.Println("Error: ", err)''
+	''break''
+  ''}''
+  ''fmt.Println(string(data))''
+}
+
+=== OpenFile(path sting, flag int, perm FileMode) (*File, error) ===
+* Opens a file with the specified flag
+* Can even create the file if it does not exists with the flag **''O_CREATE''** and the permissions specified
+* See all flags with : ''go doc os O_RDONLY''
+* Can use multipe flags : **''file, error := os.OpenFile(<path>, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)''**
+
+=== WriteString (f *File) (s string) (n int, err error) ===
+* Writes the content of the string to the file
+
+=== Close (f *File) () ===
+* Closes a file
+
+==== I/O package ====
+* Provides standard I/O
+
+==== Filepath package ====
+* Parse and construct file paths
+
+=== Join(elm ...string) ===
+* Construct path in a portable way : ''join("dir", "subdir", "file")''
+* Will output the path corresponding to the OS
+
+=== Dir(path) and Base(path) ===
+* Split path into directory and path
+
+=== IsAbs(path) ===
+* Check if path is absolute or not
+
+=== Ext(path) ===
+* Get the extension of a filename
+
+==== fmt package ====
+* Format I/O functions to read and write to standard I/O
+
+===== Errors =====
+
+* No try/catch in go
+* Errors are strings of type error that we use to check for an error
+
+==== New(text string) error ====
+* Returns an error that formats the given text
+* A new error is returned even if the text does not change
+
+==== fmt.Errorf(format string, a ...any) error ====
+* Formats according to the format specifier and returns the string as value that satisfies error
+''fmt.Errorf("only odd numbers allowed, got: %d", i)''
+
+===== Logging =====
+
+==== Why ====
+* Spot bugs in the code
+* Discover performance problems
+* Do post-mortem analysis of outages and security incidents
+
+==== What ====
+* The timestamp of an event
+* Log levels such as debug, error, info
+* Contextual data
+
+==== log.SetOutput(wrt io.Writer) ====
+* Specify the writer to use to write logs
+
+==== log.Println(str) ====
+* Writes the timestamp with the string with the writer set with SetOutput (stdout by default)
+
+==== Logging Frameworks ====
+* Standardize log data
+* Easier to read and understand
+* Most popular are **glog** and **logrus**
+* Logrus is better maintained and used in docker
+
+==== logrus ====
+* Install : **''go get "github.com/sirupsen/logrus"''**
+* Import : ''import log "github.com/sirupsen/logrus"''
+* Uses the same methods as the standard log package so ...
+* Adds log level support (Trace, Debug, Info, Warn, Error, Fatal, Panic)
+	* Print a log at specific level : **''logrus.<level>(<str>)''**
+* Set the level to show logs up to that level only : **''logrus.SetLevel(logrus.<level>Level)''**
+
+===== Sort =====
+
+* Methods to sort slices of each built-in type
+
+==== Ints(slice []int) ====
+* Sorts a slice of integers in increasing order
+
+===== Hashes and Cryptography =====
+
+* Ensuring secure communication in the presence of third-parties 
+* Uses **''crypto''** package to provide aes, cipher, rsa and sha
+
+==== crypto/md5.Sum(bytes []byte) ====
+* Returns the md5 sum of the array of bytes
+''import (''
+  ''"crypto/md5"''
+  ''"encoding/hex"''
+'')''
+''func toMD5(str string) string {''
+  ''var hash = md5.Sum([]byte(str))''
+  ''return hex.EncodeToString(hash[:])''
+''}''
+
+===== Testing =====
+
+* Built-in test runner and framework for standard language
+* To run any tests within dir and subdirs run : **''go test ./...''**
+* Test must be in files separate from main package code that end with : **''_test.go''**
+* A test function name must always start with : **''Test''**
+* It takes a **''*testing.T''** element as a parameter and use it to throw an error when the test fails
+''func TestCheckEven(t *testing.T) {''
+	''i := 10''
+	''expected := true''
+	''response := checkEven(i)''
+	''if expected != response {''
+		''t.Errorf("expected: %v, got: %v", expected, response)''
+	''}''
+''}''

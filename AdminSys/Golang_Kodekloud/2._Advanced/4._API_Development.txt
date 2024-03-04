@@ -1,0 +1,55 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-23T13:59:49+01:00
+
+====== 4. API Development ======
+Created vendredi 23 février 2024
+
+===== API Server =====
+
+* Use **''http''** library
+
+==== ListenAndServer(addr string, handler Handler) error ====
+* Creates a server
+* Listens on the TCP network address addr
+* Calls Serve with handler to handle requests on incoming connections
+* Accepted connections are configured to enable TCP keep-alives
+* The handler is typically nil, in which the DefaultServeMux is used
+* Always return a non-nil error
+
+==== REST architecture ====
+* REpresentational State Transfer
+* Client requests transfer a representation of the state of the resource to the requester/endpoint
+* Data is delivered via HTTP in json, yaml, xml, html, xlt, python, php or plain text
+* An API is RESTful if :
+	* It manages servers and resources through http with a client-server architecture
+	* Client-server communication is stateless : 
+		* No client info is stored between GET requests
+		* Each request is separate and unconnected
+	* Uniform interface between components so that information is transferred in a standard form
+	* Allows Code-on-demand (optional) : 
+		* Send executable code from server to client when requested
+		* Extends client functionality
+
+==== Project explanation ====
+* Develop a REST API to manage products
+* Product attributes : Id, name, quantity, price
+* Products will be stored in a database
+* Five API endpoints :
+	* GET [[/products]] to get the list of all the products
+	* GET [[/product/id]] to get info about a product
+	* POST [[/product]] to create a new product in the db
+	* PUT [[/product/id]] to update a product
+	* DELETE [[/product/id]] to delete a product
+
+==== Mux Router ====
+* Package gorilla/mux 
+* Like standard http.ServeMux : 
+	* **''mux.Router''** matches incoming requests against a list of registered routes and calls a handler for the corresponding route or other conditions
+* Supports : 
+	* Method based routing
+	* Variables in url paths
+	* Regex route patterns
+
+==== MySQL Driver ====
+* Used interact with a mysql database

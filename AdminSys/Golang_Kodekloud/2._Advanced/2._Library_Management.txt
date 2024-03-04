@@ -1,0 +1,108 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-22T17:16:41+01:00
+
+====== 2. Library Management ======
+Created jeudi 22 février 2024
+
+* Based around three concepts :
+
+===== Repository =====
+
+Place in vcs where the source code for a project is stored
+
+===== Module =====
+
+* Root of a go library or app stored in a repository. 
+* Consists of one or more **packages** which the module organization and structure.
+* Store only one per repository is a best practice
+* Everything within a module is versioned together
+* Can import code from projects declared as module
+* Has a globally unique identifier
+* Specifies the dependencies needed to run code including the go version and the set of other modules in the **go.mod** file
+* Initialize by executing the command in the directory : **''go mod init <module_path>''**
+* Module path must be a globally unique identifier like : example.com/learn
+* The command will create a **''go.mod''** file in the directory
+
+==== Go.mod file ====
+* At creation it only specifies the module path and the minimum go version compatible
+''module example.com/learn''
+
+''go 1.22.0''
+
+* Run this command when importing a third-party module in the main.go file : **''go mod tidy''**
+	* It downloads the modules and adds the dependencies in the go.mod file
+
+===== Package =====
+
+* go code
+
+==== Creating ====
+* Create a directory in the dir with the main.go file with the name of the package
+	* Initialize it as a module
+* Create a file inside with the code :
+	* The name of the file is not important
+	* The **package** directive should have the same name as the directory
+	* The **functions name** should be **capitalized** to be imported in the main.go file
+
+===== Importing and exporting =====
+
+* Go uses capitalization to determine if a package level identifier is visible outside a package
+	* Hence all capitalized identifiers are exported
+* Anything exported is part the package's API
+* Import with the **import** keyword : ''import <module_path>/<package_name>''
+* To import a module locally we edit the current module with the **replace** keyword : ''go mod edit -replace <module_path>=<local_module_path>''
+	* It adds a line like that in the go.mod file : ''replace github.com/stephen5310/encrypt => ../cryptit/''
+	* Don't forget to tidy the module
+	* To import a package locally, import its module locally to access it
+* Can give an alias to an imported package by putting the alias before the module_path in the import : **''import mrand "math/rand"''**
+
+===== Compiling and installing =====
+
+* Build the app : **''go build''**
+	* It will create an executable file with the name of the module in the root directory
+* Install the app : **''go install''**
+	* It will add create the executable if not already done and put it in the $GOPATH/bin directory
+	* To retrieve the GOPATH variable run : **''go env GOPATH''**
+	* Add it to the path to execute the app anywhere
+
+===== Developing and publishing a module =====
+
+* Design and code the packages that the module will include
+* Commit code a repo using conventions that ensure it is available to others via go tools
+* Publish the module to make discoverable by other developers
+	* After someones fetches it with go tools it will become available at pkg.go.dev
+* Revise the module with versions that use a version numbering convention that signals each version stability and backward compatibility
+
+==== Module version numbering ====
+* Example of version : ''V 1.4.0 - beta 2''
+	* 1 is the major version : no guaratee for backward compatibility
+	* 4 is the minor version : backward compatibility with public API
+	* 0 is the patch version : does not affect public API or dependencies
+	* After the - is the pre-release version : no stability guarantee
+
+==== Publishing ====
+* Make the module a git repo
+* Tag it with the desired version
+* Push it to github on the tag
+
+==== Downloading ====
+* Tidying already does it
+* To do it manually : **''go get <module_path>@tag''**
+
+==== Comments and documentation ====
+* To document a type, variable, constant, function, or package :
+	* Write a regular comment on the lines directly preceding its declaration, with no blank line
+	* Use blank comment to break documentation into multiple paragraphs
+* For a long documentation, put it in a **''doc.go''** file inside the package
+* Display the doc for a package and a list of identifiers : **''go doc <package_name>''**
+	* For a specific identifier : **''go doc <package_name>.<identifier_name>''**
+* Any exported identifier should be documented
+
+==== Naming ====
+* Package names should : 
+	* Be descriptive
+	* Match the name of the directory that contains it
+* Avoid repeating the name of the package in its identifiers
+* Every go file in a directory must have an identical package clause
+* 

@@ -1,0 +1,166 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-21T09:29:29+01:00
+
+====== 1. Concurrency ======
+Created mercredi 21 février 2024
+
+* Execute more than one task simultaneously
+* Each core will be executing each task by switching over them over time
+* Parallel processing assign a task to a core so that it won't be executed by any other
+
+===== Go routines =====
+
+* Lightweight thread that has a separate independant execution
+* Can execute concurrently with other routines
+* All routines are managed by the go runtime scheduler
+* Start a routine by using **''go''** keyword before a function or a method call for it to be executed in the routine
+* The main function does not wait for all the routines to finish before exiting by default
+
+==== Main routine ====
+* The main function in the main package is the main routine
+* It executes alongside other routines
+* Other routines exit when 
+	* Their functions exit
+	* The main routine that launched them exits
+* Go routines have no other parent than the main routine
+	* Even if they are launched by another routine
+
+==== Anonymous routine ====
+* It is an anonymous function called in a routine
+''go func() {''
+ ''// code''
+''}(args...)''
+
+===== Runtime scheduler =====
+
+* Go programs are launched in OS threads equal to the max number of logical cpus available
+* OS threads are managed by the kernel/OS
+* Find the number of logical processors using **''runtime.Numcpus''** method
+	* Logical cores = N physical cores * N threads that can run on each core
+* Go routines are lightweight app level threads that multiplexed on OS level threads by the Go Runtime Scheduler
+* It schedules an arbitrary number of go routines onto an arbitrary number of OS threads
+{{./pasted_image.png?width=1000}}
+* The Go Scheculer will assign any routine from the Global Run Queue to any Local Run Queue
+* It is a cooperative scheduler as OS never interrupts a running process to initiate a context switch from one process to another
+	* Processes must volontarily yield control periodically or when logically blocked on a resource
+	* Context switches can happen when a routine yields its execution to another for example during :
+		* Functions calls
+		* Garbage collection
+		* Network calls
+		* Channel operations
+		* Using go keyword
+	* Context switching is much faster than OS
+
+==== Wait groups ====
+* Primitive from **''sync''** library that allows multiple routines to wait for each other
+* Acts like a counter that blocks execution in a structured way until its internal counter becomes 0
+* A wait group is declared like a variable : ''var <wg_name>'' **sync.WaitGroup**
+	* Set the number of routines to wait for : **<wg_name>.Add(int)**
+	* Wait for the number of routines to become 0 : **''<wg_name>.Wait()''**
+	* Decrease the number of routines to wait for : **''<wg_name>.Done()''**
+	* Pass waitgroup variable to routines by reference
+
+==== Channels : don't forget to close them !!! ====
+* Means through which routines communicate
+* Traditionnally programs threads used to communicate by sharing memory (threads and mutexes)
+* Go routines share memory by communicating through channels :
+	* Ensures only on routine has access to the memory at given time
+* Communication can be :
+	* Bidirectional : allows go routines to sync without explicit locks or condition vars
+	* Single directional
+* Use the keyword **''chan''** to declare a variable of type channel and the type of data that can pass through it : 
+	* With var : **''var <channel_name> chan <data_type>''**
+	* Shorthand wiith make : **''<channel_name> := make( chan string)''**
+
+=== Channel Operations ===
+* Sending value : 
+	* Use the send operator  (**''<-''**) : ''<channel> <- <data>''
+	* This operation blocks the execution of the routine until another receives the value in channelS
+* Receiving value :
+	* Assign it to a variable using the receiving operator : **''<var> := <-<channel>''**
+* Closing a channel : **''close(<channel>)''**
+	* Check if a channel is closed by trying to receive : **''var, open := <-<channel>''**
+	* Open variable will receive a boolean value that tells if the channel is closed or not
+	* A channel only closes when empty
+* Querying Buffer of a channel : **''cap(<channel>)''**
+* Querying Length of a channel : **''len(<channe>)''**
+* Channels are passed by reference to functions by default
+
+==== Buffered channels ====
+* Channel that need a receiver as soon as they receive data are unbuffered (default ones)
+	* We do not declare any capacity and it cannot store any data
+* Buffered channels has some capacity to hold data
+* Receiving data in the channel only blocks the routine when the buffer is full : Only for buffered channels
+* Receiving data from the channel only blocks the routine when the buffer is empty : **Same for unbuffered channels**
+* Create with make : **''<channel_name> := make(chan string, <cap_superior_to_zero>)''**
+
+==== Panic Situations ====
+* Exception that arises because your program is terminated before some execution :
+	* Sending data to a channel after it has been closed
+	* Closing an already closed channel
+
+==== Looping through a channel ====
+* Don't forget to close the channel to avoid errors :
+	* Eventually close before reading values from it, it will close itself automatically when empty
+* Same loop for buffered and unbuffered :
+''for val := range channe { // code }''
+
+==== Select Statement ====
+* Like switch but for channels
+* Combine with routines and channels gives a powerful tool to manage sync and concurrency
+* Lets a routine wait for multiple communication (send or receive) operations
+* Each of the case statements waits for a send or receive operation from a channel
+* Select blocks until any of the case statements are ready
+	* If multiple are ready, selects one at random and proceeds
+* The optional default case makes the select non-blocking as it will be executed when the others are not
+* Syntax :
+''select {''
+ ''case channel_send_or_receive:''
+  ''// do something''
+
+ ''case channel_send_or_receive:''
+  ''// do something''
+
+ ''default:''
+  ''// optional''
+''}''
+
+===== Concurrency Practices =====
+
+==== Cleaning up routines ====
+* **Go-routine leak** : If a go routine does not terminate, it occupies the memory it reserved forever
+* Go-routines leak if :
+	* They are blocked forever on I/O like channel communication
+	* Fall into infinite loops
+
+==== Spawning routine closures in a loop ====
+* Always pass the loop index as a parameter to the function :
+''for i := 0; i < 10; i++ {''
+		''go func(i int) {''
+			''fmt.Println(i)''
+			''wg.Done()''
+		''}(i)''
+	''}''
+
+* It prevents routines from using the value of the index at the time they are launched
+* It enforces each routine to use its corresponding index in the loop
+
+==== Buffered or Unbuffered channel ====
+* Buffered channels are useful when :
+	* You know how many routines you have launched
+	* You want to limit the number of routines you will launch
+	* You want to limit the amount of work that is queued up
+* In other cases use unbuffered ones
+
+==== Time out code ====
+* Achieve blocking timeout in select with **time.After** : ''func After(d Duration) <-chan Time''
+* The function waits for the duration to finish and then returns the current time on a channel
+* Useful to give a timeout to a select :
+''select {''
+	''case msg := <-ch1:''
+		''fmt.Println(msg)''
+	''case <-time.After(1 * time.Microsecond):''
+		''msg := <-ch1''
+		''fmt.Println("Code Timeout: ", msg)''
+	''}''
