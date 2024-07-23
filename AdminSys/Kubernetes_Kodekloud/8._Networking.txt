@@ -11,8 +11,8 @@ Created mardi 17 janvier 2023
 
 * Used to create isolated networks on a host
 * Create with : **ip netns add <ns_name>**
-* List ns with : ** ip netns**
-* Execute command in ns : **ip netns exec <ns_name> <command> **OR** ip -n <ns_name> <command>**
+* List ns with :  **ip netns**
+* Execute command in ns : **ip netns exec <ns_name> <command>** OR **ip -n <ns_name> <command>**
 * Link two ns with veth link : 
 	* Create link : **ip link add <veth-1> type veth peer name <veth-2>**
 	* Attach : **ip link set <veth-1> netns <ns-1>** AND **ip link set <veth-2> netns <ns-2>**
@@ -26,7 +26,7 @@ Created mardi 17 janvier 2023
 	* Bring up : **ip link set dev <br> up**
 	* Add ip subnet: **ip addr add <br-ip>/<mask> dev <br>**
 	* Connect all ns to bridge :
-		* Create link for ns : ** ip link add <veth> type veth peer name <veth-br>**
+		* Create link for ns :  **ip link add <veth> type veth peer name <veth-br>**
 		* Attach link to ns : **ip link set <veth> netns <ns>**
 		* Connect link to bridge : **ip link set <veth-br> master <br>**
 		* Set ip address : **ip -n <ns> addr add <ip>/<mask> dev <veth>**
@@ -171,8 +171,8 @@ https://kubernetes.io/docs/concepts/services-networking/ingress
 	* There is a default rule to route traffic to a default backend **default-http-backend:80**, such backend must be defined
 	* Rules for multiple domains use **.spec.rules[*].host** to specify hostname
 	* Imperative resource creation : **kubectl create ingress <ingress-name> --rule="host/path=service:port"**
-==== Deploy Nginx Ingress Controller ====
 
+==== Deploy Nginx Ingress Controller ====
 * Create ns : **kubectl create namespace <ns>**
 * Create configmap : **kubectl create configmap <cfgmap> -n <ns>**
 * Create two ServiceAccounts :
