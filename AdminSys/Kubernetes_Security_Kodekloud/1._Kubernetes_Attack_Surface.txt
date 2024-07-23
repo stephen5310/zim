@@ -1,0 +1,20 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:46:38+02:00
+
+====== 1. Kubernetes Attack Surface ======
+Created mercredi 08 mai 2024
+
+===== The 4 C's of Cloud Security =====
+
+==== The Cloud ====
+* The infrastructure that hosts the servers of the cluster
+
+==== The Cluster ====
+* Cluster components like kubeapiserver
+
+==== The Containers ====
+* The container runtime engine
+
+==== The Code ====
+* The code of the application

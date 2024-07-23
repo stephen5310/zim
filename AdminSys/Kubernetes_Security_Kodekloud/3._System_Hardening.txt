@@ -1,0 +1,193 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:48:17+02:00
+
+====== 3. System Hardening ======
+Created mercredi 08 mai 2024
+
+===== Limit Node Access =====
+* Limit controlplane and worker nodes access to internet
+	* Set clusters in private networks
+	* Use a firewall to allow some networks
+* Set types on users by using id ranges as defined in /etc/login.defs:
+	* regular
+	* root
+	* system
+	* service
+* Gather infos on a user : **''id <user>''**
+* See connected users : **''who -a''**
+* See connection history : **''last''**
+* Deny access to non-required users
+	* Change shell to nologin : **''usermod -s /bin/nologin <user>''**
+	* Delete user : **''userdel <user>''**
+	* Remove from group : **''deluser <user> <group>''**
+
+===== SSH Hardening =====
+
+* Force keys usage
+* Disable root ssh
+* Use CIS Benchmark part 5.2 on linux for more extensive actions : https://www.cisecurity.org/cis-benchmarks/
+
+===== Privilege Escalation in Linux =====
+
+* Edit sudoers file with visudo :
+	* Set limited privileges to users
+
+===== Remove Obsolete Packages and Services =====
+
+* List services : **''systemctl --list-units --type service''**
+
+===== Restrict Kernel Modules =====
+
+* List modules : **''lsmod''**
+* Prevent modules loading by blacklisting them :
+	* Blacklist a module : **''echo "blacklist <module_name>" >> /etc/modprobe.d/blacklist.conf''**
+	* Reboot the system to apply
+
+===== Identify and disable open ports =====
+
+* List open ports : **''netstat -an | grep -w LISTEN''**
+* Disable those that are not needed
+
+===== Minimize IAM Roles =====
+
+* Create another user than root with only the necessary privileges
+* Use AWS Trusted Advisor to run security checks and have suggestions
+
+===== UFW Basics =====
+
+* Status : **''ufw status''**
+* Add default rules :
+	* **''ufw default allow outgoing''**
+	* **''ufw default deny incoming''**
+* Add custome ones :
+	* **''ufw allow from <ip> to any port 22 proto tcp''**
+	* **''ufw deny 8080''**
+* Enable : **''ufw enable''**
+* Delete rule : **''ufw delete <rule / rule number>''**
+
+===== Restricting Syscalls using Seccomp =====
+* **Cannot restrict access of programs to objects like file or dir**
+
+{{./pasted_image.png?width=1000}}
+
+==== Trace syscalls ====
+* For a command : **''strace <command>''**
+* Get process pid : **''pidof <process_name>''**
+* For a process : **''strace -p <pid>''**
+* For more syscalls : **''strace -c <args>''**
+
+==== Trace syscalls in a container with Tracee ====
+* Uses EBPF to trace the system at runtime
+* EBPF allows to launch programs in the kernel space without interfering with it
+* Run tracee in a container to trace **''ls''** command : ''docker run --name tracee --rm --privileged --pid=host -v /lib/modules/:/lib/modules/:ro -v /usr/src:/usr/src:ro \''
+										''-v /tmp/tracee:/tmp/tracee aquasec/tracee:0.4.0'' **''--trace comm=ls''**
+* To trace all new processes : **''--trace pid=new''**
+* To trace all new containers : **''--trace container=new''**
+
+==== Seccomp ====
+* Check kernel for seccomp support : **''grep -i seccomp /boot/config-$(uname -r)''**
+* Operates with three modes :
+	* Mode 0 : Disabled
+	* Mode 1 : Strict (only allow Read, Write, Exec, Sigreturn)
+	* Mode 2 : Filtered (Selected syscalls)
+* Check Seccomp mode on process : **''grep Seccomp /proc/<pid>/status''**
+* Docker has a Seccomp profiles that applies by default on containers : https://github.com/moby/moby/blob/master/profiles/seccomp/default.json
+* Two types of profiles :
+	* Whitelist : identify every syscalls needed and whitelist them
+	* Blacklist : identify every syscall not needed and blacklist them
+* Run container with a custom profile : **''docker run --security-opt seccomp=/path/to/profile''**
+* Run container with seccomp disabled : **''docker run --security-opt seccomp=unconfined''**
+* Check syscalls blocked with amicontained : **''docker run r.j3ss.co/amicontained amicontained''**
+
+===== Seccomp in K8s =====
+https://kubernetes.io/docs/tutorials/security/seccomp/
+* Check syscalls blocked with amicontained : **''kubectl run amicontained --image r.j3ss.co/amicontained amicontained -- amicontained''**
+* Seccomp is disabled by default
+* Activate by adding **''SecurityContext''** to pod and container definition :
+''apiVersion: v1''
+''kind: Pod''
+''metadata:''
+  ''name: default-pod''
+  ''labels:''
+	''app: default-pod''
+''spec:''
+  **''securityContext:''**
+	''seccompProfile:''
+	  ''type: RuntimeDefault''
+  ''containers:''
+  ''- name: test-container''
+	''image: hashicorp/http-echo:1.0''
+	''args:''
+	''- "-text=just made some more syscalls!"''
+	**''securityContext:''**
+	  ''allowPrivilegeEscalation: false''
+
+* For a custom profile on host fs :
+''spec:''
+  **''securityContext:''**
+	''seccompProfile:''
+	  ''type: Localhost''
+	  ''localhostProfile: profiles/audit.json''
+
+* Can use k8s default path for seccomp profiles :
+	* Create dir : **''mkdir /var/lib/kubelet/seccomp/profiles''**
+	* Put profile in dir and use it in pod definition
+* For a mapping between syscall numbers and names : **''/usr/include/asm/unistd_64.h''**
+* A container prevented to run by syscalls with have the status of **''ContainerCannotRun''**
+
+===== Kernel Hardening Tools - AppArmor =====
+
+* **Seccomp cannot restrict access of programs to objects like file or dir**
+* AppArmor is a kernel module used to limit a program to a set of resources
+* Check if it is installed : **''systemctl status apparmor''**
+* Check if it is enabled : **''cat /sys/module/apparmor/parameters/enabled''**
+* Look for profiles : **''cat /sys/kernel/security/apparmor/profiles''**
+* Example of profile to deny all writes on fs :
+''profile apparmor-deny-write flags=(attached_disconnected) {''
+	''file,''
+	''# Deny all file writes.''
+	''deny /** w,''
+}
+
+* Check if module is loaded and status of profiles : **''aa-status''**
+* Programs can be loaded in three modes :
+	* **enforce** : rules are monitored and enforced
+	* **complain** : rules not enforced, infractions are logged as events
+	* **unconfined** : infractions are not logged
+* Load profile : **''apparmor_parser /etc/apparmor.d/<profile>''**
+* Disable profile :
+	* Unload : **''apparmor_parser -R /etc/apparmor.d/<profile>''**
+	* Create symlink to disabled profiles dir : **''ln -s /etc/apparmor.d/<profile> /etc/apparmor.d/disable/''**
+
+==== Creating AppArmor profiles ====
+* Install utilities : ''apt-get install -y apparmor-utils''
+* Use **''aa-genprof''** to confine a script : **''aa-genprof <script>''**
+	* Follow the instructions
+	* Once done, the profile is loaded and enforced
+	* Profile is stored in **''/etc/apparmor.d/''**
+
+==== AppArmor in k8s ====
+* Module must be enabled on all nodes
+* Profiles must be loaded on all nodes
+* Container runtime must support AppArmor
+* Profiles are applied only on containers :
+	* Profile must be loaded on all noded where the pod can be scheduled
+	* The configuration must be added to the securityContext of the pod :
+''spec:''
+  **''securityContext:''**
+	''appArmorProfile:''
+	  ''type: Localhost''
+	  **''localhostProfile''**'': <profile_name>''
+
+===== Linux Capabilities =====
+
+* After kernel 2.2, process launched by root no longer have all privileges
+* They have assigned limited set of actions called capabilities
+* Get capabilities for a command : **''getcap <command>''**
+* Get capabilities for a process : **''getpcaps <pid>''**
+* Can be added to container securityContext :
+	**''securityContext:''**
+		**''capabilities:''**
+			**''add: ["SYS_TIME"]''**
+* Can also drop capabilities by using **''drop''** instead of **''add''**

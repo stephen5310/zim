@@ -1,0 +1,162 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:48:45+02:00
+
+====== 4. Microservice Vulnerabilities ======
+Created mercredi 08 mai 2024
+
+===== Security Contexts =====
+
+* Pod level for all the containers of the pod
+* Container level for only the container
+
+===== Admission Controllers =====
+
+* Validate configuration for objects
+* Change request
+* Perform additional operation before or after object creation
+* Can provide a file path for Admission Controllers config in kube-apiserver config with the option : **--admission-control-config-file <path>**
+* Some admission controllers :
+	* Enabled by default: AlwaysPullImages, DefaultStorageClass, EventRateLimit, NamespaceExists, ...
+	* Not enabled by default : NamespaceAutoProvision
+* View enabled admission controllers : 
+	* kube-apiserver as a unix service : **''kube-apiserver -h | grep enable-admission-plugins''**
+	* kube-apiserver as a pod : **''kubectl exec kube-apiserver-controlplane -n kube-system -- kube-apiserver -h | grep enable-admission-plugins''**
+* Enable an admission controller by adding it to the kube-apiserver configuration option : **''--enable-admission-plugin=<plugin1>,<plugin2>''**
+* Disable an admission controller : **''--disable-admission-plugin=<plugin1>,<plugin2>''**
+
+==== Types of Admission Controllers ====
+* K8s native ones :
+	* Validating Admission Controllers : Accept or reject a request upon some validation
+	* Mutating Admission Controllers : Change or mutate the object before it is created
+* Some are of both types
+* Mutating ones are called before Validating ones
+* One can use personal Admission Controllers via webhooks :
+	* MutatingAdmission Webhook
+	* ValidatingAdmission Webhook
+* The process :
+	* Personal Admission Controllers are called after native ones
+	* kube-apiserver sends an AdmissionReview object to the webhook server
+	* The server responds with an AdmissionReview object that allows or denies
+* Configure a personal Admission Controller :
+	* Deploy a webhook server that supports the Mutates and Validates APIs, and responds with a json object that the webserver expects
+		* It must be accessible by the k8s
+	* Configure the Admission Webhook by creating a ValidatingWebhookConfiguration object :
+		* Use the **.webhooks[].clientConfig** attribute to set the way to reach the webhook server
+		* A certificate bundle should be configured to allow communication with the kube-apiserver
+		* Use **.webhooks[].rules** to specify when the Admission controller should be called
+
+==== PodSecurityPolicy ====
+* Validating and Mutating Admission Controller
+* Authorizing PodSecurityPolicy API is required for it to work :
+	* It can be done by create a role with the rights to access the API
+	* Then bind the role to the default SA
+* Default one to check security policies on Pods to allow their creation or modify their attributes before creation
+* Used in versions < 1.25
+* It must be enabled with the **--enable-admission-plugins**
+* The create a PodSecurityPolicy object :
+	* Specify required values for the spec attributes of the pods and those that need to be dropped or added
+
+==== PodSecurityAdmission and PodSecurityStandards ====
+* PodSecurityAdmission is an Admission Controller enabled by default since 1.25
+* It is configured at a namespace level by applying a label to it : **kubectl label ns <ns> pod-security.kubernetes.io/<mode>=<security_standard>**
+* PodSecurityStandards are predefined security profiles to apply with PodSecurityAdmission :
+	* Privileged : unrestricted
+	* Baseline : minimally restricted
+	* Restricted : heavily restricted
+* The mode specifies the action to take :
+	* enforce : Reject pod
+	* audit : Record in audit logs
+	* warn : Trigger user-facing warning
+* We can configure exemptions based on : 
+	* A list of Usernames
+	* A list of RuntimeClassNames
+	* Namespaces
+
+==== Open Policy Agent (OPA) ====
+* Centralized policy management for services
+* All services will ask OPA for permission to reach another
+* Usage :
+	* Install
+	* Load policies
+	* Post requests received by app to OPA with needed params
+	* Use OPA's response to validate request
+* Uses Rego language
+
+=== Deploy OPA in k8s with the **Gatekeeper** approach ===
+{{./pasted_image.png?width=1000}}
+* Works with the OPA Constraint Framework
+* Uses CRD based policies to set policies easy to share and trust
+* Follow this doc to install : https://open-policy-agent.github.io/gatekeeper/website/docs/install
+* The Gatekeeper Framework helps to define OPA policies with **ConstraintTemplate** objects by specifying :
+	* The requirements :
+		* Use the **spec.targets[].target** key, usually it is **admission.k8s.gatekeeper.sh** 
+	* Where to enforce them :
+		* Define a crd under **spec.crd.spec** section
+		* Use **spec.crd.spec.names.kind** for the kind that constraints objects will use
+		* Use **spec.crd.spec.validation.openAPIV3Schema.properties** to define the parameters
+	* What to check and what actions to take :
+		* Use Rego code to define the actions to take under the **spec.targets[].rego** section
+		* Specify parameters in code with **input.parameters.<param>** defined in the **spec.crd.spec.validation.openAPIV3Schema.properties** part
+* Then create a constraint object of the kind specified in the template to apply it to resources :
+	* Using the OPA doc and the k8s API reference will help : https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#deployment-v1-apps
+* **kube-mgmt** is the component that manages k8s objects (policies, data) via OPA
+	* For more : https://github.com/open-policy-agent/kube-mgmt
+
+===== Encrypting secrets at rest =====
+
+* Using third-party secrets store providers should also be considered
+* Follow the doc : https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/
+* The first provider in the list will be the one used for encryption
+
+===== Container Sandboxing =====
+
+* Sandboxing is any technique that isolate something from the rest of the system
+* Use **Seccomp** to limit containers system calls
+* Use **Apparmor** to define which resource containers can access
+
+==== gVisor ====
+* Tool from Google
+* Adds additional layer between containers and the kernel
+* Made of two components :
+	* Sentry : 
+		* Independant app level kernel for containers
+		* Intercept and answers to syscalls made by containers 
+		* Supports fewers syscalls than the linux kernel
+	* Gofer :
+		* File proxy that gives containers access to the filesystem
+* Also has its ow networking management
+* Each container will have a dedicated instance of gVisor
+* Some apps are not compatible
+* Consumes more CPU
+
+==== Kata containers ====
+* Puts each container into its own virtual machine
+* Each VM will have its own kernel running inside
+* VMs are lightweight and focused on performance
+* Need more memory and CPU
+* Cannot run on Cloud providers without nested virtualization
+
+==== Container runtimes ====
+* Docker, containerd, podman, and cri-o use **runc** as container runtime
+* gVisor uses **Runsc**
+* Kata uses **Kata-runtime**
+
+==== Use a different container runtime in k8s ====
+* Create a RuntimeClass object
+* For gVisor installed on the nodes, use **runsc** as **handler**
+* For kata installed on the nodes, use **kata** as **handler**
+* Set the **spec.runtimeClassName** attribute to the name of the RuntimeClass object for a pod or deployment definition
+
+===== One Way SSL vs Mutual TLS (MTLS) =====
+* One way SSL occurs usually between an end user and a server :
+	* Only the cert of the server is checked by the client with the CA
+* MTLS is usually used between servers or apps:
+	* Each entity will ask the CA for the authenticity of the cert of the other
+	* They will the use symmetric encryption for communication
+
+==== Interpod MTLS ====
+* Let app communicate without encryption and add encryption on top of their communications
+* We use service mesh third-party tools such as Istio and Linkerd
+* They use sidecar containers inside pods that will intercept communications and encrypt them
+* Communication is encrypted only when supported by interlocutors

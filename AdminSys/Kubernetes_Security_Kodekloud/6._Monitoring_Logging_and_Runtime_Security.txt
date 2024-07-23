@@ -1,0 +1,104 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:49:41+02:00
+
+====== 6. Monitoring Logging and Runtime Security ======
+Created mercredi 08 mai 2024
+
+===== Behavioral analytics on syscalls using Falco =====
+
+* Can use a kernel module of eBPF to intercept syscalls
+{{./pasted_image.png?width=1000}}
+
+* Install : https://falco.org/docs/install-operate/installation/
+* Install as a service separated from k8s so that it can still operate even if k8s is compromised
+* Can be installed as daemonset : https://github.com/falcosecurity/charts/tree/master/charts/falco
+* Watch logs for events : **journalctl -fu falco**
+* Events are logged according to defined rules
+
+==== Falco Rules and Configuration ====
+* More infos : https://falco.org/docs/rules/basic-elements/
+* Falcon config file is by default at **[[/etc/falco/falco.yaml]]**
+	* Use the option **rules_file** to define the list of files that contain the rules
+		* Rules in the last file in the list override the others of the same name 
+	* Use the option **log_level** to define the level of the logs about falco itself
+	* Use the option **priority** to define the level of the logs about the rules
+	* Can configure multiple outputs : https://falco.org/docs/outputs/channels/
+	* The [[/etc/falco/falco_rules.yaml]] comes with predefined rules that are updated with falco 
+		* We can override them by defining them in [[/etc/falco/falco_rules.local.yaml]] or any other in the **rules_file** list
+		* Apply the rules by hot reloading falco : **kill -1 $(cat /var/run/falco.pid)**
+- rule: <Name of the rule>
+  desc: <Detailed Description of the Rule>
+  condition: <When to filter events matching the rule>
+  output: <Output to be generated for the Event>
+  priority: <Severity of the event
+
+* Example of rule :
+- rule: Detect Shell inside a container
+  desc: Alert if a shell such as bash is opened inside a container
+  condition: container.id != host and proc.name = bash
+  output: Bash shell opened (user=%user.name %container.id)
+  priority: WARNING
+
+* Use list in condition :
+- rule: Detect Shell inside a container
+  condition: container.id != host and proc.name in (linux_shells)
+  ...
+- list: linux_shells
+  items: [bash, zsh, ..., csh]
+
+* Use macros as shortcuts for conditions :
+- rule: Detect Shell inside a container
+  condition: container and proc.name in (linux_shells)
+  ...
+- macro: container
+  condition: container.id != host
+
+===== Ensure Immutability of containers at runtime =====
+
+* Use the security context to set the rootfs to readonly : **spec.containers[].securityContext.readOnlyRootFilesystem: true**
+	* This can prevent some containers to start because they need to write to some directories
+	* Mount these directories as emptyDir volumes
+	* This is not very useful if the containers are run in privileged mode
+
+===== Use audit logs to monitor access =====
+
+* Disabled by default
+* Audit logs record all stages of request processing by kube-apiserver :
+	* **RequestReceived**
+	* **ResponseStarted**
+	* **ResponseComplete**
+	* **Panic**
+* We define audit policies to record only wanted events
+* Example of audit policy to log the Metadata for the RequestReceived to delete the webapp-pod pod in the namespace prod-namespace
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: ["RequestReceived"]
+rules:
+  - namespaces: ["prod-namespace"]
+	verbs: ["delete"]
+	resources:
+	- groups: " "
+	  resources: ["pods"]
+	  resourceNames: ["webapp-pod"]
+	level: Metadata
+
+* Levels can be **Metadata, Request** and **RequestResponse**
+* Example of rule to log Metadata for all operations on secrets in all ns
+- level: Metadata
+  resources:
+  - groups: " "
+	resources: ["secrets"]
+
+==== Enable auditing in k8s ====
+* Configure an auditing backend :
+	* log backend to write to a file on the fs
+	* webhook backend to send logs to a server like Falco
+* For log backend add the following options to kube-apiserver start command : 
+	* Set audit file : **--audit-log-path=/var/log/k8-audit.log**
+		* **Directory should be mounted as a volume inside the pod**
+	* Set policy file : **--audit-policy-file=/etc/kubernetes/audit-policy.yaml**
+		* **Directory should be mounted as a volume inside the pod**
+	* Set rotation in number of days : **--audit-log-maxage=10**
+	* Set max number of files to keep : **--audit-log-maxbackup=5**
+	* Set max file size in MB : **--audit-log-maxsize=100**

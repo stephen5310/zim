@@ -1,0 +1,176 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:47:07+02:00
+
+====== 2. Cluster Setup and Hardening ======
+Created mercredi 08 mai 2024
+
+===== CIS Benchmarks =====
+
+* Center for Internet Security set of best practices to secure servers, OS, Cloud, Mobiles, Network equipments, Browsers
+* Go to CIS website to download the benchmark for the solution of your choice and apply the recommendations
+* They also provice tools to check for the vulerabilities, generate a report and apply the recommendations
+* CIS-CAT pro is a configuration assessment tool made by CIS :
+	* Requires CIS SecureSuite membership (paying)
+	* See : https://www.cisecurity.org/cybersecurity-tools/cis-cat-pro
+	* Lite version is free
+	* Launch interactively : **''Assessor-CLI.sh -i''**
+* The CIS Benchmark for Kubernetes is only available in the pro tool version
+
+==== kube-bench ====
+* Open source tool from aqua security
+* Allows to perform Configuration Assessment on a k8s cluster for free
+* Assessments are based on CIS benchmarks
+* Can be deployed as container, pod, binary or compiled
+
+===== Authentication =====
+
+* Entities that we authenticate are Users and Service Accounts
+* Users cannot be created with kubectl
+* Users are registered with :
+	* Static user/pwd file, pass this option to kubeapiserver : **''--basic-auth-file=file.csv''**
+	* Static user/token file, pass this option to kubeapiserver : **''--basic-token-file=file.csv''**
+	* Certificates created in kubernetes
+	* A connected IDP
+
+===== Authorization =====
+
+* Check access with : **''kubectl auth can-i create deployment -n <ns> --as <user>''**
+
+==== Node ====
+* Uses the node authorizer to allow actions on system:nodes group
+* Used by kubelet to perform actions on nodes, and admin to read infos about them
+
+==== ABAC ====
+* Associate a user/group with a set of permissions by creating a policy file
+* Restart the kubeapiserver everytime you modify
+
+==== RBAC ====
+* Create a role/clusterrole with the required set of permissions
+* Associate it with users/groups
+
+==== Webhook ====
+* Manage auth externally
+* K8s make an API call to the external IDP to check for permissions everytime a user makes an API call
+
+==== AlwaysAllow and AlwaysDeny ====
+* When **''--authorization-mode''** is not set in kubeapiserver options, AlwaysAllow is used
+* We may specify many authorization modes to be tried in the order specified : **''--authorization-mode=Node,RBAC,Webhook,AlwaysDeny''**
+
+===== Service Accounts =====
+
+==== Before k8s v1.22 ====
+* A token is generated upon creation for authentication
+* The token is inserted into a secret object which is linked to the SA
+* The default SA for the ns is mounted on each pod of this ns 
+* A SA can only be added at pod creation
+* To avoid mounting it automatically set : **''automountServiceAccountToken: false''**
+
+==== Since k8s v1.22 ====
+* SA tokens are :
+	* Audience bound
+	* Time bound (expire)
+	* Object bound (per object)
+* A token with a defined lifetime is generated and mounted as a projected volume
+
+==== Since k8s v1.24 ====
+* Creating a SA no longer automatically creates a secret
+* Must run this command to create a token for the SA : **''kubectl create token <sa_name>''**
+* Default expiration is 1H
+* Can still create the secret with no expiry date by using : 
+	* **''apiVersion: v1''**
+	* **''type: kubernetes.io/service-account-token''**
+
+===== TLS in K8s =====
+
+* Used for client-server communication between k8s components
+* Also used for a user to authenticate with the kubeapiserver. For the admin user :
+	* First generate a key : **''openssl genrsa -out admin.key 2048''**
+	* Second generate a csr : **''openssl req -new -key admin.key -subj "/CN=kube-admin/O=system:masters" -out admin.csr''**
+	* Finally sign it with kubeapiserver CA : **''openssl x509 -req -in admin.csr -CA ca.crt -CAkey ca.key -out admin.crt''**
+* Role are identified by groups : **''/O:<group>''**
+* Default groups in k8s are :
+	* **''system:kube-scheduler''**
+	* **''system:kube-controller-manager''**
+	* **''system:kube-proxy''**
+	* **''system:kube-apiserver''**
+	* **''system:kubeletserver''**
+	* **''system:nodes''**
+* Use the certs for users:
+	* In a curl request : **''curl https://apiserver:6443/api/v1/pods --key admin.key --cert admin.cert --cacert ca.crt''**
+	* In kube-config file : Create with kubectl
+* Use the certs for components in their configuration by passing them as options
+
+==== Certificates API ====
+* Allows to sign certs in K8s
+* User creates a csr object with required infos
+	* csr must be converted in base64 and put in the request field
+* See the request with more details : **''kubectl get csr -o yaml''**
+* Approve : **''kubectl certficate approve/deny <csr_name>''**
+
+==== Kubeconfig ====
+* By default : **''$HOME/.kube/config''**
+* Can be passed with kubectl option : --**''kubeconfig <path>''**
+* Made of three parts :
+	* Clusters : define clusters infos
+	* Users : define users infos
+	* Contexts : link users to clusters, allow to switch easily, supports namespace
+* The current context is defined in the field : **''current-context''**
+* Switch contexts : **''kubectl config use-context <context>''**
+
+===== Protect Node and Metadata Endpoints =====
+
+==== Kubelet ====
+* Serves two APIs that do not require auth by default :
+	* 10250 : full access
+	* 10255 : read-only access
+* List pods on node : **''curl -sk https://<node_ip>:10250/pods/''**
+* See logs on node : **''curl -sk https://<node_ip>:10250/logs/syslog''**
+* See metrics on node : **''curl -sk https://<node_ip>:10255/metrics''**
+* Enable auth by setting : **''--anonymous-auth=false''**
+	* Certificate based auth : **''--client-ca-file=<path>''**
+* Athorization mode is AlwaysAllow by default :
+	* Set to webhook with : **''--authorization-mode=webhook''**
+* Disable the read-only port : **''--read-only-port=0''**
+
+===== Securing K8s Dashboard =====
+
+* Allows to fully manage a k8s cluster
+* Deployed as a deployment and is accessible via a ClusterIP service
+* Can be accessed using : 
+	* kubectl proxy to configure port forwarding
+	* Changing the service to a NodePort one
+	* Configure an authentication proxy with an Ingress controller
+* Authenticate using :
+	* A token : create user with only necessary rights with RBAC and retrieve the associated token
+	* A kubeconfig file with the required credentials
+* Retrieve token with this command : kubectl get secrets -n kubernetes-dashboard admin-user -o go-template=""
+
+===== Verifying Platform Binaries =====
+
+* Use the hash to check 
+* Download the checksum from k8s git repo and put it in the same directory as the archive
+* Check : **''sha512sum -c <checksum_file>''**	
+
+===== Upgrade K8s Frequently =====
+
+* Important
+
+===== Network Policies =====
+
+* Only types of traffic (ingress or egress) specified with the **''policyTypes''** option are filtered 
+	* Types not specified are all allowed by default
+* Set the pod we allow traffic from : **''ingress.-from.-podSelector.matchLabels.name''**
+* Set namespace for the selected pod : **''ingress.-from.namespaceSelector.matchLabels.name''**
+* Set IP range we allow : **''ingress.-from.-ipBlock.cidr''**
+* Setting multiple **''-from.-<rule>''** will do OR operation between
+* Set the port we allow traffic on : **''ingress.-from.-ports.{protocol,port}''**
+* Network solutions that do not support : Flannel
+* Network solutions that support : kube-router, calico, romana, weave-net
+
+===== Securing Docker =====
+
+* Enable tls encryption on docker daemon
+* Enable certificate based authentication on docker daemon
+* Disable password-based ssh and only allow key-based ssh
+* Restrict access only to required users

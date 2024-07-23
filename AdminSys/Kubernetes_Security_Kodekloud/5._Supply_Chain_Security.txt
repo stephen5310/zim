@@ -1,0 +1,60 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-05-08T14:49:08+02:00
+
+====== 5. Supply Chain Security ======
+Created mercredi 08 mai 2024
+
+===== Minimize base image footprint =====
+
+* A base image is buit **FROM scratch**
+* A parent image is used to build other images
+* Build microservices images
+* Do not store data into containers, persistant stores for that
+* Use only images :
+	* From official repos
+	* Up-to-date
+	* Minimal
+* Install only necessary stuff
+* Maintain different images for different environments :
+	* Dev with debug tools
+	* Prod lean
+* Use multi-stage builds to create lean and production ready images
+* Use distroless docker images for builds
+* Scan images for vulnerabilities with tools like **trivy**
+
+===== Image security =====
+
+* Specify the repo in the image name in object definitions
+* Use private registries by creating docker-registry secrets :
+	* Specify the secret to use in the pod **spec.imagePullSecrets[].name**
+* Whitelist allowed registries by using admission controllers like with OPA :
+	* Use the built-in admission controller **ImagePolicyWebhook**
+	* Create an AdmissionConfiguration object with the **plugins.name** of ImagePolicyWebhook
+	* The admission webhook server can be an OPA like or kainlite/kube-image-bouncer like
+	* To enable it add the following to the kube-apiserver config : **--enable-admission-plugins=ImagePolicyWebhook**
+	* Add the configuration file with : **--admission-control-config-file=<path>**
+
+===== Static Analysis of User Workloads =====
+
+* Review the resource files and enforce policies before they are pushed to the cluster
+* Use tools like **kubesec**, available at kubesec.io :
+	* Analyze a definition file an returns a score and details about the critical issues found in it 
+	* Can be installed as a binary and executed : **kubesec scan pod.yaml**
+	* Can send a request to the publicly hosted service : **curl -sSX POST --data-binary @"pod.yaml" https://v2.kubesec.io/scan**
+	* Can be run as a local server : **kubesec http 8080 &**
+
+===== Scan images for Common Vulnerabilities and Exposures (CVE) =====
+
+* Use a CVE scanner like Trivy 
+* Simple vulnerability scanner for containers and other artefacts
+* Suitable for integration with ci/cd pipelines
+* Install : https://aquasecurity.github.io/trivy/v0.52/getting-started/installation/
+* Scan an image : **trivy image <image>**
+* Show only critical and high CVEs : **trivy image --severity CRITICAL,HIGH <image>**
+* Show only fixed by upgrade CVEs: **trivy image --ignore-unfixed <image>**
+* Best practices :
+	* Continuously rescan images
+	* K8s Admission Controller to scan images
+	* Private repo with pre-scanned images ready to go
+	* Integrate scanning in ci/cd
