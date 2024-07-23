@@ -12,7 +12,7 @@ Created samedi 17 février 2024
 
 * Use **''&''** to get the address where a variable is stored : ''pointer = &var''
 
-===== De-reference Operato =====
+===== De-reference Operator =====
 
 * Use **''*''** to manipulate the value at the address stored by the pointer : ''value = *pointer''
 * Modify the value : ''*pointer = new_value''

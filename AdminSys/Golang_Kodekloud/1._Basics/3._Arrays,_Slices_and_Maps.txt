@@ -74,7 +74,7 @@ Created samedi 17 février 2024
 ===== Maps =====
 
 * Unordered collection of key/value pairs implemented by hash tables
-* Provide efficient add, get, delete operations
+* Provides efficient add, get, delete operations
 * Syntax : ''var <map_name> map[<key_data_type>]<value_data_type>''
 * Example : ''var my_map map[string]int''
 * Need to be initilized if we want to add elements : ''<map_name> := map[<key_data_type>]<value_data_type>{key1: value1, ...}''
