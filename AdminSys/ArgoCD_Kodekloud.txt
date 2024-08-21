@@ -1,0 +1,67 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-07-23T20:54:04+02:00
+
+====== ArgoCD Kodekloud ======
+Created mardi 23 juillet 2024
+
+===== GitOps =====
+
+* Extension of IaC that uses Git as the VCS
+* Ensures that the desired state in the repository and the actual state in prod always match
+* A GitOps operator in prod continuously monitors and pulls manifests from the git repository and applies them
+
+==== The 4 Principles ====
+* Entire system (Infrastructure and Apps manifests) must be declared in an declarative state
+* All the declarative files that make the declarative state must be managed with git to make the Source of Truth State
+* Any changes to the state must be applied automatically : GitOps operators or Apps agents pull the state to apply it to one or more envs
+* The GitOps Operators make sure the entire system is self healing to reduce the risk of human error
+	* The reconcile loop : Observe > Diff > Act
+
+===== DevOps vs GitOps =====
+
+{{./pasted_image.png?width=1200}}
+
+===== Pull-based VS Pushed-based deployments =====
+
+{{./pasted_image001.png?width=1200}}
+
+===== Feature Set and Use Cases =====
+
+* Single Source of Truth
+* Everything as a Code
+* Rollback Application with Git Repo
+* Everything is Auditable
+* CI/CD Automation
+* Continuous Deployment of Apps
+* Continuous Deployment of Cluster Resources
+* Continuous Deployment of Infrastructure
+* Detect/Avoid configuration drift with prod state
+* Multi-Cluster Deployment with only one operator installed on only one cluster
+
+===== Benefits and Challenges =====
+
+==== Benefits ====
+* Lightweight and Vendor neutral
+* Faster, Safer, Immutable, with Reproducible Deployments
+* Eliminates configuration Drift
+* Uses familiar tools and processes
+* Revisions with history
+
+==== Challenges ====
+* Doesn't help with Secret Management
+* Number of Git Repositories
+* Challenges with programmatic updates
+* Governance other than PR approval
+* Malformed YAML/Config Manifests
+
+===== GitOps Projects and Tools =====
+
+* ArgoCD as GitOps controller or :
+	* Atlantis : Terraform GitOps
+	* Autoapply : k8s manifests GitOps
+	* FluxCD : k8s GitOps
+	* Helm Operator : Helm Charts GitOps
+	* Flagger : k8s GitOps with testing, Canary and blue/green deployments
+	* Ignite : GitOps for VMs
+	* Faros : CRD based GitOps

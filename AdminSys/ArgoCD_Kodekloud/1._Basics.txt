@@ -1,0 +1,22 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-07-23T21:52:47+02:00
+
+====== 1. Basics ======
+Created mardi 23 juillet 2024
+
+===== Presentation =====
+
+* Declarative GitOps CD tool for k8s resources defined in a Git repo
+* Continously monitors running apps and compare their live state to the desired state
+* Reports the deviations and provide visualizations to help developers manually or automatically sync the live state with the desired state
+
+==== Benefits of using ArgoCD ====
+* Extends the benefits of declarative specifications and Git-based conf management
+* First step in achieving continuous operations based on monitoring, analytics, and automated remediation
+* Can deploy to multiple clusters and is enterprise-friendly (auditability, compliance, security, RBAC, SSO, and lot more)
+
+==== How it works ====
+* Follows gitops pattern by using Git repos as source of truth for the desired state of app and the target deployment envs
+* Support k8s manifests as Kustomize apps, Helm Charts, Ksonnet apps, Jsonnet files, yaml/json manifests
+* Automates the sync of the desired app state with each of the specified target envs
