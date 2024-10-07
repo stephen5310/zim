@@ -1,0 +1,64 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-08-21T21:40:10+02:00
+
+====== Hardware ======
+Created mercredi 21 août 2024
+
+Essential Computer Hardware
+		About the Author
+		Table of Contents
+General Concepts
+		Types of Hardware
+		Internal Hardware
+		Basic Peripherals
+		Basic Operating Systems
+Hardware Components
+		Memory (RAM)
+		Hard Disk Drive (HDD)
+		Solid State Drive (SSD)
+		CD/DVD/Blu-ray Drive
+		Memory Cards
+		USB Flash Drives
+		External Hard Disk
+		NAS Drives 
+		Personal Cloud
+		Storage Units
+		CPU / Processor
+		Sound Card
+		Video Card
+		Expansion Slots
+		Inside the Case
+Computer Peripherals
+		Inkjet Printer
+		Laser Printer
+		USB
+		Ethernet
+		FireWire
+		ThunderBolt
+		eSATA
+		DVI
+		HDMI
+		VGA 
+		Component Video
+		Composite Video
+		1/8” (3.5mm) Phono Jack
+		1/4” (6.35mm) Phono Jack
+		3 Pin XLR
+		RCA Audio
+		S/PDIF Optical Audio
+Types of Computer
+		Desktop Computer
+		Desktop: All-in-one
+		Laptop 
+		Netbook
+		Chrome Book
+		Tablet Computers
+		Hybrids
+		Mainframe Computer
+		Super Computer
+Understanding Hardware Specifications
+So Many Machines
+Mac or PC?
+Decoding Computer Specs
+Printer Specs
