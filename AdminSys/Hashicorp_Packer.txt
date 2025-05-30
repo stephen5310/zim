@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-11-25T20:11:55+01:00
+
+====== Hashicorp Packer ======
+Created lundi 25 novembre 2024
+
+Packer lets you create identical machine images for multiple platforms from a single source configuration. 
+A common use case is creating golden images for organizations to use in cloud infrastructure.

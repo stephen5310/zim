@@ -149,7 +149,7 @@ Created mercredi 08 mai 2024
 * Set the **spec.runtimeClassName** attribute to the name of the RuntimeClass object for a pod or deployment definition
 
 ===== One Way SSL vs Mutual TLS (MTLS) =====
-* One way SSL occurs usually between an end user and a server :
+* One way SSL occurs usually between an end user and a server:
 	* Only the cert of the server is checked by the client with the CA
 * MTLS is usually used between servers or apps:
 	* Each entity will ask the CA for the authenticity of the cert of the other
@@ -160,3 +160,5 @@ Created mercredi 08 mai 2024
 * We use service mesh third-party tools such as Istio and Linkerd
 * They use sidecar containers inside pods that will intercept communications and encrypt them
 * Communication is encrypted only when supported by interlocutors
+
+i8z!9hfLPoEpmgsR

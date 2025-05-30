@@ -1,0 +1,67 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:36:44+01:00
+
+====== 19. IAM ======
+Created mardi 07 janvier 2025
+
+===== IAM Security Tools =====
+* Credentials Report (account level)
+	* Lists all account's users and the status of their various credentials
+* Access Advisor (user level)
+	* Shows the service permissions granted to a user and when those services were last accessed
+
+===== IAM Access Analyzer =====
+
+* Find out which resources are shared externally (Buckets, Roles, Keys, Lambdas, SQS, Secrets)
+* Define Zone of Trust (Account or Organization)
+* Access outside zone of trusts are findings
+* Archive intended access, remediate on not intended
+	* Can create archive rules to automate
+* Rescan to refresh status
+
+===== Identity Federation =====
+
+==== For Enterprises ====
+* Support of LDAP, MS AD, SAML, SSO, OpenID, Cognito
+* SAML with any SAML 2.0 compliant IDP
+* Custom for any SAML 2.0 non-compliant IDP
+	* The identity broker must determine the appropriate IAM policy
+
+==== For Public Applications (Cognito) ====
+* Provide direct access to AWS Resources from client side
+* Log in to federated IDP or remain anonymous
+* Get temporary AWS credentials from the Federated Identity Pool
+* Credentials come with pre-defined IAM policy stating their permissions
+
+===== STS =====
+
+* Allows to grant limited and temporary access to AWS resources
+* AssumeRole:
+	* Within own account
+	* Cross Account
+* AssumeRoleWithSAML:
+	* Return credentials for users logged with SAML
+* AssumeRoleWithWebIdentity
+	* Return creds for users logged with an IDP
+	* Use Cognito instead
+* GetSessionToken
+	* for MFA, from a suer or AWS account root user
+
+===== Cognito User Pools (authentication) =====
+
+* Create a serverless database of user for your web and mobile apps
+* Simple login/pwd combination, pwd ressed, email and phone number verfication
+* MFA, Ferated Identities, block users if their credentials are compromised elsewhere
+* Login sends back a JWT
+* Integrates with API-GW and ALB
+
+===== Cognito Identity Pools (authorization) =====
+
+* Get identities for users so they obtain temporary AWS credentials
+* Can include public providers, a Cognito User Pool, OIDC providers, SAML IDP, Developer Authenitcated Identities (custom login server)
+* Allow for unauthenticated (guest) access
+* Users then access services directly or through API-GW
+	* The IAM policies applied to the credentials are defined in Cognito
+	* They can be customized based on the user_id for fine grained control
+	* Can partition users' access using policy variables

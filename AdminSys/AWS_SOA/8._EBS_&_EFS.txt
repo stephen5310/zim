@@ -1,0 +1,23 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:33:19+01:00
+
+====== 8. EBS & EFS ======
+Created mardi 07 janvier 2025
+
+===== EBS =====
+
+* Volumes are locked to AZ, use snapshots to move
+* Can multi-attach 16 max instances on the same volume
+* Cannot decrease size:
+	* Commands to repartition when increasing can be different
+* Can use Amazon Data Lifecycle Manager to automate snapshots creation, retention and deletion
+	* Can't be used to maanage snapshots created outside of it, or instance-store backed instances
+
+===== EFS =====
+
+* Can use Access Points to manage access with POSIX permissions or IAM policies
+	* Good for chrooting
+* Operations that require migration using datasync:
+	* Migration to encrypted EFS
+	* Performance mode 

@@ -1,0 +1,75 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-03-18T18:38:27+01:00
+
+====== 2. SOA ======
+Created mardi 18 mars 2025
+
+===== USER DATA =====
+* Use **!Base64** function to pass user data to EC2 resource **Properties.UserData**
+* Logs are in /var/log/cloud-init-output.log
+
+===== HELPER SCRIPTS =====
+* Python scripts that come with Amazon linux, can be installed on REL likes
+* Init, Signal, Get-metadata and Hup
+* Used in **Metadata.AWS::CloudFormation::<function>**
+
+===== CFN-INIT =====
+AWS::CloudFormation::Init:
+	config:
+		packages: <packages to install>
+		groups: <user groups to define>
+		users: <users to create>
+		sources: <dowload files and archives on instance>
+		files: <create files on instance, inline or downloaded from url>
+		commands: <run a series of commands>
+		services: <launch a list of sysvinit>
+
+* Logs go to /var/log/cfn-init.log 
+
+===== CFN-SIGNAL & WAITCONDITION =====
+* Run after Init to tell CloudFormation if the resource creation succeeded or failed
+* Signal is sent in user-data script with **/opt/aws/bin/cfn-signal**
+* The WaitCondition will block the template until it receives a signal from cfn-signal
+* We attach a CreationPolicy (EC2 and ASG) with a **Count** equal to the number of signals we want CF to receive 
+CreationPolicy:
+	ResourceSignal:
+		Timeout: PT5M #Timeout of 5mn
+		Count: 1
+
+===== CFN-SIGNAL FAILURES =====
+* The AMI maybe does not have the helper scripts
+* Check logs
+* Check if the instance has internet access to be able to communicate with CF
+
+===== NESTED STACKS =====
+* Stacks within other stacks to isolate common components and be called when needed
+* Load-balancer of SG that are reused
+* To update a nested stack, always update the parent stack
+* Cross stacks are stacks that use ouputs from others
+* Create a Resource of type **AWS::CloudFormation::Stack**
+
+===== DEPENDS ON =====
+* Set depency between resources for creation order
+* Applied automatically when using !Ref and !GetAtt
+
+===== STACKSETS =====
+* Deploy stacks across multiple accounts and regions with a single operation/template
+* Updating a stack set updates all the deployed stacks within it
+* Deploy automatically to new accounts with AWS Organizations
+* Stacks can be deleted individually from a stackset
+	* The stacks removed can be retained to a avoid destruction in account
+
+===== TROUBLESHOOTING =====
+* DELETE_FAILED: 
+	* Some resources must be emptied before deletion (S3 buckets)
+	* SG can't be deleted until all instances in the group are gone
+	* Use DeletionPolicy=Retain to skip some deletions
+* UPDATE_ROLLBACK_FAILED:
+	* Resources changed outside of CF, insufficient permissions, ASG does not receive enough signals...
+	* Manually fix and ContinueUpdateRollback
+* Stackset stack operation failed and stack instance status is OUTDATED:
+	* Insufficient permissions in a target account for resource creation
+	* Resources in templates with names that should be unique but are not
+	* Admin does not have trust relationship with target account
+	* Reached limit or quota in target account

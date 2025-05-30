@@ -1,0 +1,60 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-02-02T19:38:55+01:00
+
+====== 2. Intermediate ======
+Created dimanche 02 février 2025
+
+==== Reconcilation loop ====
+* How often it sync with the git repo
+* There is a default **timeout** of 3mn, and defined by the env var ARGOCD_RECONCILATION_TIMEOUT
+* Can remove the polling delay by configuring the server to receive webhooks from the git repo
+
+==== Application health ====
+* Healthy: All resources are 100% healthy
+* Processing: Resource is unhealthy, but could still be healthy given time
+* Degraded: Resource status indicates failure or an inability to reach a healthy state
+* Missing: Resource is not present in the cluster
+* Suspended: Resource is suspended or paused (paused deployment)
+* Unknown: Health assessment failed and actual health status is unknown
+
+==== Custom Health Checks ====
+* Written in lua
+* Defined in argocd-cm configmap 
+* Add lua code to data.resource.customization.health.<k8s_group_kind>
+
+==== Sync strategies ====
+* Automatic: Apply the changes immediately upon detection
+* Manual: Applying the changes require human intervention even if argocd detects them
+* Auto-pruning of resources: Describes what happens when files are deleted/removed from git
+	* Enabled: resources are deleted when files associated are deleted
+	* Disabled: resources are not deleted even files associated with them are  
+* Self-Heal of cluster: Behavior when kubectl edit changes directly to the cluster
+
+==== Declarative setup - Mono App ====
+* Put the Application manifest in a subdirectory named <application_name>
+* Put the manifests of the k8s objects in a subdirectory at manifests > application_name
+* Create the application with: kubectl -n argocd apply -f <application_name>/<application_manifest>.yaml
+
+==== Declarative setup - App of Apps ====
+* Put the App of Apps manifest in a subdirectory named multi-app/<application_name>. It will refer to the subdir with the definitions of the sub-apps
+* Put the App manifest of each sub-app in a subdirectory named  <application_name>. Each App manifest will refer to the subdir containing the manifests of its k8s objects
+* Put the manifests of the k8s objects of each sub-app in a subdirectory named manifests/<sub_app_name>
+* Creating the app of apps will also create the subapps
+
+==== Deploy helm chart ====
+* --repo to set helm repo url
+* --helm-chart to set chart name
+* --path to set helm chart path in repo
+* --helm-set to set parameter value in cli
+* --values-literal-file to set Values file name
+* --dest-namespace to set namespace
+* --dest-server to set k8s server
+* --revision to set chart version
+argocd app create nginx --repo https://charts.bitnami.com/bitnami --helm-chart nginx --revision 12.0.3 --values-literal-file values.yaml \
+--dest-namespace default --dest-server https://kubernetes.default.svc
+
+==== Multi-cluster deployment ====
+* Add the other clusters in the kubeconfig file with kubectl config set-cluster, set-credentials and set-context
+* Add the context to argocd with the command: argocd cluster add <context>
+* List the available clusters in argocd: argocd cluster list

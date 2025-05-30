@@ -1,0 +1,28 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-11-17T15:50:10+01:00
+
+====== OpenTelemetry ======
+Created dimanche 17 novembre 2024
+
+===== Definition =====
+
+* Obervability framework and toolkit designed to create and manage telemetry data such as traces, metrics and logs
+* Vendor-agnostic and tool-agnostic, can be used with Jaeger, Prometheus and commercial offerings
+* Not an observability backend like Jaeger, Prometheus and commercial offerings
+* Focused on the generation, collection, management and export of telemetry
+* Satisfies the need for observability while following two key principles :
+	* You own the data that you generate. There is no vendor lock-in.
+	* You only have to learn a single set of APIs and convention.
+
+===== Main Components =====
+
+* A specification for all components
+* A standard protocol that defines the shape of telemetry data
+* Semantic conventions that define a standard naming scheme for common telemetry data types
+* API that define how to generate telemetry data
+* Language SDK that implement the specification, APIs, and export telemetry data
+* A library ecosystem that implements instrumentation for common libraries and framework
+* Automatic instrumentation components that generate telemetry data without requiring code changes
+* The OpenTelemetry Collector, a proxy that receives, processes and exports telemetry data
+* Various other tools, such as the OpenTelemetry Operator for Kubernetes, OpenTelemetry Helm Charts, and Community Assets for FaaS

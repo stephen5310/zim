@@ -5,10 +5,19 @@ Creation-Date: 2021-08-02T11:23:18+00:00
 ====== 1. Installation ======
 
 * Installation de Vagrant
+
+RHEL
 ```
 yum install -y yum-utils
 yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
 yum -y install vagrant
+```
+
+Debian
+```
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install vagrant
 ```
 
 * Vagrant fonctionne avec VirtualBox par défaut. D'autres hyperviseurs comme kvm peuvent être utilisés. Pour utiliser vagrant avec kvm, installer le plugin nécessaire.

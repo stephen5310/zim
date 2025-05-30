@@ -1,0 +1,18 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:32:37+01:00
+
+====== 5. Beanstalk ======
+Created mardi 07 janvier 2025
+
+* Handle all the infrastructure in one interface from a developer perspective
+* The developer's only responsibility is the code
+* Free, just pay for the infrastructure
+* The process is :
+	* Create an application
+	* Upload / Update an app version
+	* Launch en environment
+	* Manage the environment (deploy new app version)
+* Two tiers :
+	* Web server Tier for ALB with ASG
+	* Worker Tier for SQS Queue with ASG

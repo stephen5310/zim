@@ -1,0 +1,155 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:31:19+01:00
+
+====== 1. EC2 for SysOps ======
+Created mardi 07 janvier 2025
+
+===== EC2 instance console creation =====
+
+* Allow ssh in SG and public IP allocation for instance connect
+	* Find the prefix to allow here by looking for **EC2_INSTANCE_CONNECT** and your region name : https://ip-ranges.amazonaws.com/ip-ranges.json
+	* Or use managed prefix lists : https://docs.aws.amazon.com/vpc/latest/userguide/working-with-aws-managed-prefix-lists.html#available-aws-managed-prefix-lists
+
+==== Changing instance type ====
+1. Stop instance
+2. Change type in settings
+3. Start instance (will launch a new one on another host)
+4. No data loss because we did not change the EBS volumes
+
+==== Enhanced networking ====
+* Better networking performances for EC2 instances
+* Two options :
+	* SR-IOV : higher bandwith and PPS, lower latency
+		* for newer generations of ec2 instances (t3, m3...)
+		* Intel 82599 VF for up to 10gbps
+		* ENA for up to 100gbps
+	* EFA :
+		* Improved ENA for HPC, linux only
+		* Leverages Messages Passing Interface (MPI) that bypasses the OS to provide low-latency, reliable transport
+* The ENA module is loaded by default on instances, but only used on supported ones : **modinfo ena**
+* To check if it is supported on an interface (i.e. enX0) : **ethtool -i enX0**
+	* The driver in the output must be ENA
+
+==== Placement groups ====
+* Control instances placement strategy
+* Three strategies :
+	* Cluster : low-latency group in single AZ - HPC, Fast Big Data
+	* Spread : spreads across underlying hardware, max 7 per group per AZ - Critical apps
+	* Partition : spreads across many different partitions (up to 7 per AZ), which rely on different set of racks, within an AZ. Up to 100s of instances  per group - Hadoop, Cassandra, Kafka
+		* Partitions can span across multiple AZs in the same region
+		* Instances get access to the partition information as metadata
+* Create the placement group
+2. Launch instance in the placement group by selecting it in the Advanced details section
+
+==== Shutdown behavior ====
+* Controls how the instance react if shutdown is done using the OS only
+* Default is Stop, can be set to Terminate
+
+==== Termination protection ====
+* Controls how the instance reacts if terminate is done using the console or CLI only
+
+==== Launch issues ====
+* **InstanceLimitExceeded**: max number of vCPU per region reached only for on-demand and spot instances
+	* Launch instances in another region
+	* Or request AWS to increase the limit of the region
+	* Limits can be seen on EC2 console or using the Service Quotas console
+* **InsufficientInstanceCapacity**: AWS does not have that enough on-demand capacity in the particular AZ where the instance is launched
+	* Wait a few minutes before requesting
+	* Or request in another AZ
+* **Instance terminates immediately (goes from pending to terminated)**: 
+	* EBS volume limit reached
+	* EBS snapshot corrupted
+	* Root EBS volume encrypted, no permissions to access KMS key for decryption
+	* The instance store-backed AMI used to launch the instance is missing a required part
+	* **Look in the EC2 console instances description for the State transition reason label**
+
+==== On-demand instances ====
+* Pay for what you use:
+	* Linux and windows are billed per second after the first minute
+	* All other OS are billed per hour
+* Highest cost with no upfront payment, no long-term commitment
+* Recommended for short-term and un-interrupted workload where you can't predict how the application will behave
+
+==== Reserved instances ====
+* Up to 72% discount compared to On-demand
+* Reserve a specific instance attributes (type, region/zone, tenancy, OS) for 1y or 3y
+* Pay no, partial or total upfront
+* Recommanded for steady-state usage apps like databases
+* Can be bought and sold in the reserved instance marketplace
+* Use **Convertible Reserved Instances** to be able to change attributes (not region/zone) with less discount (66%)
+
+==== Savings plans ====
+* Get discount based on long-term usage like on Reserved Instances
+* Commit to a certain type of usage ($10/h for 1y or 3y)
+* Usage beyond is billed at On-demand
+* Locked to a specific instance family & AWS region like M5 in us-east-1
+* Flexible across instance size, OS and tenancy
+
+==== Spot instances ====
+* Up to 90% discount, can be lost at any point of time if your max price is less than the current spot one
+* Useful for workloads that are resilient to failure (Batch jobs, Data analysis, Image processing, Distributed workload, Workloads with flexible start and end time)
+* **Spot requests** can be one-time, or persistent
+	* Terminating a spot request does not terminate the instances assiociated
+* **Spot fleets** can be used to request a set of spot instances + optional on-demand ones that meet certain constraints
+	* Define multiple pools so it can choose
+	* Stops launching instances when reaching capacity or max costs
+	* Strategies to allocate spot instances are lowestPrice, diversified, capacityOptimized, priceCapacityOptimized
+
+==== Dedicated hosts ====
+* Physical server with EC2 instance capacity fully dedicated
+* To apply compliance requirements and use server-bound software licenses
+* On-demand or reserved, the most expensive
+
+==== Dedicated instances ====
+* Instances that run on hardware dedicated to you, but shareable (tenancy)
+* No control over instance placement (can move after stop/start)
+
+==== Capacity reservation ====
+* Reserve On-demand instances in specific AZ for any duration, no time commitment, no billing discounts
+* Combine with Regional Reserved Instances and Savings Plans for discounts
+* Charged at On-demand rate whether you run instances or not
+* For short-term, un-interrupted workloads that needs to be in a specific AZ
+
+==== IPv4 public addresses charges ====
+* $0.005/h of public IPv4, $3.6/month on average
+* No free tier apart of EC2 instances
+* Use AWS Bill and AWS Public IP Insights services to troubleshoot
+
+==== Burstable instances (t2/t3) ====
+* Uses burst credits to burst
+* Burst credits are accumulated when it does not burst to reach a fixed maximum
+* CPU becomes BAD when all credits are gone
+	* Can use unlimited burst credit balance to avoid losing performance by paying extra money then
+
+==== CloudWatch metrics for EC2 ====
+* AWS provided:
+	* Basic monitoring (free): every 5mn
+	* Detailed monitoring (paid): every 1mn
+	* CPU, Network, Disk and Status check
+	* Disk (only for instance store)
+* Custom (push yours):
+	* Basic Resolution: every 1mn
+	* High Resolution: all the way to 1s
+	* RAM, app level metrics, logs, additional system-level metrics
+	* Use an Instance Role with IAM permissions to send metrics to CW
+	* Can use the **Unified CloudWatch Agent** for that (**procstat** plugin for details on processes)
+		* Must be installed and configured on the instance, will use the instance IAM role
+		* Can leverage **AWS SSM** to share the config with agents on other instances
+
+==== Status checks ====
+* System:
+	* Problems with AWS systems like software/hardware issues on physical host, loss of system power
+	* Check **Personal Health Dashboard** for any scheduled critical maintenance by AWS to your instance's host
+	* Stop and start an instance to migrate it to a new host
+* Instance:
+	* Software/network conf issues
+	* Reboot instance or change configuration
+* Attached EBS status:
+	* Reachable and complete I/O ops
+	* Reboot instance or replace affected volumes
+* CloudWatch Metrics Detailed Monitoring and CloudWatch Recovery:
+	* StatusCheckFailed_System, StatusCheckFailed_Instance, StatusCheckFailed_AttachedEBS, StatusCheckFailed for any
+	* Trigger CloudWatch Alarm that will trigger a **Recover** action and/or send notfication to SNS topic (keep IP addresses)
+		* Can simulate by setting the alarm state manually
+	* Or use ASG with min/max/desired to one to recover instance without keeping IP addresses

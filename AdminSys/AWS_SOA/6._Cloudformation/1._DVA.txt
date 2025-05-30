@@ -1,0 +1,89 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-03-18T18:38:12+01:00
+
+====== 1. DVA ======
+Created mardi 18 mars 2025
+
+===== CREATE STACK =====
+* **Resources** is the only mandatory parameter in a Template
+
+===== UPDATE & DELETE STACK =====
+* To update you can use the current template, edit or replace it
+
+===== RESOURCES =====
+* The only mandatory parameter
+* Identifiers are of the form: service-provider::service-name::data-type-name
+* Can create a dynamic number of resources using macros and transforms
+* Use CloudFormation Custom Resources for non-supported resources
+
+===== PARAMETERS =====
+* Ways to provide inputs to templates
+* Can be an AWS-specific parameter, an SSM parameter, ...
+* Use **!Ref** to reference parameters and resources
+* Some pseudo parameters exist and can be used (**AWS:AccountId**, **AWS:Region, AWS:StackId, AWS:StackName, AWS:NotificationARNs, AWS:NoValue)**
+
+===== MAPPINGS =====
+* Dictionnaries used to map values
+Mappings:
+  AWSInstanceType2Arch:
+	c1.medium:
+	  Arch: HVM64
+	c1.xlarge:
+	  Arch: HVM64
+
+* To find the architecture for c1.medium : **!FindInMap [AWSInstanceType2Arch, !Ref InstanceType, Arch]**
+* Work great with AMIs
+
+===== OUTPUTS & EXPORTS =====
+* Output values that can be exported to other stacks
+* Define the export part with the name to export it or not
+* Import with : **!ImportValue <export_name>**
+
+===== CONDITIONS =====
+* **!And**, **!Equals**, **!If**, **!Not**, **!Or**
+* Can be applied to resources, outputs, etc, with the keyword **Condition**
+
+===== INTRINSIC FUNCTIONS =====
+* To know: **Ref, !GetAtt, !FindInMap, !ImportValue, !Base64, Conditions**
+* Others: **!Join, !Sub, !ForEach, !ToJsonString, !Cidr, !GetAZs, !Select, !Split, !Transform, !Length**
+
+===== ROLLBACKS =====
+* Enabled by default for stack creation and update failure, can just look at the logs
+* Disable to troubleshoot
+* In case of rollback failure, fix resources manually and issue **ContinueUpdateRollback API** from Console/CLI
+
+===== SERVICE ROLES =====
+* IAM roles to allow a service to perform actions on resources on your behalf
+
+===== CAPABILITIES =====
+* **CAPABILITY_NAMED_IAM** and **CAPABILITY_IAM**: to allow CloudFormation to update IAM resources
+* **CAPABILITY_AUTO_EXPAND**: for templates with macros and nested stacks to perform dynamic transformations
+* **insufficientCapabilitiesException**: exception to be thrown if the capabilities haven't been aknowledged
+
+===== DELETION POLICY =====
+* Control what happens to a resource when the stack is deleted or when it is removed from the template
+* Default is **Delete** except for a non-empty S3 bucket
+* Can be **Retain** to keep it
+* Can be **Snapshot** (EBS, Elasticache, Databases) to take a final snapshot before deletion
+
+===== STACK POLICY =====
+* Json document that defines what actions to allow on specific resources during a stack update
+* Used to prevent some actions on some resources
+* Specify an **explicit ALLOW** for resources that can be updated
+
+===== TERMINATION PROTECTION =====
+* Activate to prevent unintentional delete
+
+===== CUSTOM RESOURCES =====
+* For resources not supported yet or resources outside of CloudFormation
+* To have custom scripts run through lambda functions
+* Define in template using: **Custom:<resource_type_name>**
+* Backed by a lambda function or an SNS topic:
+	* **ServiceToken** specifies where CloudFormation sends requests to
+
+===== DYNAMIC REFERENCES =====
+* Retrieve values stored in SSM Parameter Store or Secrets Manager
+* SSM: 
+* SSM Secure: 
+* Secrets Manager: 

@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:32:05+01:00
+
+====== 4. EC2 HA & Scalability ======
+Created mardi 07 janvier 2025
+
+===== LOAD BALANCERS =====
+* Gateway load-balancers (Layer 3 - IP protocol)
+	* For firewalls, IDS, IPS, Deep Packet Inspection Systems, payload manipulation
+	* GENEVE protocol on port 6081
+	* Targets EC2 instances and private IPs
+
+===== TARGET GROUPS =====
+
+===== AUTO-SCALING GROUPS =====

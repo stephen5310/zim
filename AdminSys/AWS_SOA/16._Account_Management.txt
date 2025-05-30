@@ -1,0 +1,121 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:36:00+01:00
+
+====== 16. Account Management ======
+Created mardi 07 janvier 2025
+
+===== Health Dashboard =====
+
+* Service health
+	* All regions and services health
+	* General status of AWS services
+	* Historical info for each day
+	* RSS feed
+* Account health
+	* Alerts and remediation guidance for AWS events that may impact you
+	* Performance and availability of AWS services underlying your resources
+	* Helps manage events in progress and provides proactive notification to help plan scheduled activities
+* Organization health
+	* Organization wide info
+* Integration with EventBridge and HealthWare
+
+===== Organizations =====
+
+* Manage multiple AWS accounts:
+	* The main account is the management account
+	* Others are members
+	* Member accounts can only be part of one organization
+	* Consolidated billing, pricing benefits, reserved instances and Savings plans sharing
+		* Can be disabled per account
+	* API for automation
+	* LDAP-like structure (OU)
+	* Global and Free service
+* Advantages:
+	* Multi account
+	* Use tagging standards for billing purposes
+	* Enable CloudTrail on all accounts, send logs to a central S3 account. Same for CloudWatch Logs.
+	* Establish Cross Account Roles for Admin purposes
+	* Leverage Service Control Policies:
+		* IAM policies applied to OU or Accounts to restrict Users and Roles
+		* Do not apply to the management account
+		* Must have an explicit allow 
+	* Use **aws:PrincipalOrgID condition key** to target all IAM principals in organization
+	* Use tag policies to ensure consistent tags, audit tagged resources, maintain proper resources categorization
+
+===== Control Tower =====
+
+* Easy way to set up and govern a secure and compliant multi-account AWS environment based on best practices
+* Works by creating landing zones
+* Allows to :
+	* Automate the setup of envs, ongoing policy management using guardrails
+	* Detect policy violations and remediate them
+	* Monitor compliance through an interactive dashboard
+	* Automatically set up Organizations to organize accounts and implement SCPs
+	* Configure a log archive account and an audit account
+* When used, manage everything in Control Tower instead of Organizations
+
+===== Service Catalog =====
+
+* Self-service portal to launch a set of authorized products pre-defined by admins
+* Products are CloudFormation Templates, a Portfolio is a collection of products
+* Use IAM to control access to Portfolios
+* Users will use product list to launch provisioned products properly configured and tagged
+* Portfolios can be shared with accounts or organizations
+* Use TagOptions Library to automatically associate tags with products in Portfolios
+
+===== Billing Alarms =====
+
+* Stored in CloudWatch us-east-1
+* For overall worldwide AWS costs
+* For actual cost, not project costs
+* Enable Billing Alerts to have access the Billing metrics
+
+===== Cost Explorer =====
+
+* Visualize, understand and manage AWS costs and usage over time
+* Create custom reports to analyze cost and usage data
+* Analyze data at a high level: total costs and usage across all accounts
+* Or Monthly, hourly, resource level granularity
+* Helps choosing an optimal Savings Plan, and Forecast usage up to 12 months bases on previous usage
+
+===== Budgets =====
+
+* Create budget and send alarms when costs exceeds the budget
+* 4 types of budgets: Usage, Cost, Reservation, Savings Plans
+* For Reserved Instances:
+	* Track utilization
+	* Supports EC2, ElastiCache, RDS, Redshift
+* Up to 5 SNS notifications per budget
+* Can filter by Service, Linked Account, Tag, Purchase Option, Instance Type, Region, Availability Zone, API Operation, etc...
+* Same options as Cost Explorer
+* 2 budgets are free
+
+===== Cost Allocation Tags =====
+
+* Specific tags to track costs on a detailed level
+* AWS generated:
+	* Automatically applied, must be activated first
+	* Starts with **aws:**
+* User-defined:
+	* Defined by the user, must be activated first
+	* Starts with **user:**
+
+===== Cost and Usage Reports =====
+
+* Contains the most comprehensive set of AWS cost and usage data available
+* Includes additional metadata about services, pricing and reservations
+* Lists AWS usage for each:
+	* Service category used by an account
+	* in hourly or daily line items
+	* any tags activated for cost allocation purposes
+* Can be configured for daily exports to S3 and analyzed with Athena, Redshift or QuickSight
+
+===== Compute Optimizer =====
+
+* Reduce costs and improve performance by recommending optimal resources for your workloads
+* Helps choose optimal configs and right-size your workloads
+* Uses ML to analyze resources configurations and their utilization CloudWatch metrics
+* Supports EC2 instances and ASGs, EBS volumes and Lambda functions
+* Lower costs by up to 25%
+* Recommendations can be exported to S3

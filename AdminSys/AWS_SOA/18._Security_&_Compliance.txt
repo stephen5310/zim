@@ -1,0 +1,31 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:36:34+01:00
+
+====== 18. Security & Compliance ======
+Created mardi 07 janvier 2025
+
+===== Inspector =====
+* Continuous scanning of running EC2 instances, ECR & Lambdas
+	* Instances must be added to SSM Fleet Manager first
+* Reports to Security Hub and events sent to Eventbridge
+
+===== Security Hub =====
+
+===== Trusted Advisor =====
+* No need to install anything, high level account assessment
+* Analyze accounts and provides recommendation on 6 categories:
+	* Cost optimization
+	* Performance
+	* Security
+	* Fault tolerance
+	* Service limits
+	* Operational Excellence
+* Business & Enterprise Support Plan for:
+	* Full Set of Checks
+	* Programmatic Access using AWS Support API
+
+===== Artifact =====
+* Reports from auditors like AWS ISO certifications, Pyament Card Industry, System and Organization Control
+* Agreements such as Business Associate Addendum, Health Insurance Portability and Accountability Act
+* Support internal audit or compliance

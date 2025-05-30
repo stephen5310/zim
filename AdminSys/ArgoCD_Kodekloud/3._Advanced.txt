@@ -1,0 +1,118 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-02-02T19:39:04+01:00
+
+====== 3. Advanced ======
+Created dimanche 02 février 2025
+
+==== RBAC ====
+* Policies are in csv
+* A poilicy is for either:
+	* Apps, logs, and exec (belong to a project): p, <role/user/group>, <resource>, <action>, <project>/<object>
+	* All other resources: p, <role/user/group>, <resource>, <action>, <object>
+* Add a policy by patching the configmap **argocd-rbac-cm** :
+kubectl -n argocd patch configmap argo-cd-rbac-cm --patch='{"data": {"policy.csv": "p, role:create-cluster, clusters, create, *, allow\ng, jai, role:create-cluster"}}'
+
+* Test a role for a user:
+	* Log in as the user
+	* Execute the command: argocd account can-i create clusters '*'
+
+* Two predefined roles: role:readonly and role:admin
+* Set default role: 
+kubectl -n argocd patch configmap argo-cd-rbac-cm --patch='{"data": {"policy.default": "role:readonly"}}'
+
+==== User management ====
+* An admin user with all rights is created at installation
+* Two types of users can be created:
+	* Local users added to argo-cd-cm configmap : --patch='{"data": {"accounts.<username>": "apiKey,login"}}'
+		* apiKey capability allows JWT creation for API access
+		* login capability allows login via UI
+	* SSO users using an SSO provider
+		* Dex is available by default to authenticate through OIDC, SAML, LDAP, SWA
+* Udate a user password: argocd account update-password --account <username>
+
+==== Bitnami sealed secrets ====
+* A sealed-secrets controller is installed in the k8s cluster
+* Use a tool called kubeseal to encrypt a secret before storing it in the repo
+	* Installed as a linux binary
+	* Connects to the k8s cluster and retrieves the sealed-secrets certificate to encryp the secrets
+	* Create the secret manifest file then encrypt it with kubeseal
+	* The certificate can be passed with the --cert flag : kubeseal --scope cluster-wide --cert sealedSecret-publicCert.crt -o yaml < mysql-password_k8s-secret.yaml > mysql-password_sealed-secret.yaml
+	* The encrypted secret can be committed to the git repo
+
+==== Hashicorp Vault plugin ====
+* Secrets stored in hashicorp Vault can be retrieved in k8s Secrets
+* Argocd vault plugin can be installed to leverage that
+	* To decrypt a secret manually: argocd-vault-plugin generate -c vaut.env - < mysql-secret.yaml
+	* To decrypt a secret within an argocd app:
+		* We can  add the plugin as a sidecar to the repo server pod
+		* Or we add the plugin config to the argocd-cm config so that the argocd server will be able to decrypt the secrets
+
+1. First modify the argocd-repo-server pod
+containers: 
+	- name: argocd-repo-server
+	  volumeMounts:
+		- name: custom-tools
+		  mountPath: /usr/local/bin/argocd-vault-plugin
+volumes:
+	- name: custom-tools
+	  emptyDir: {}
+initContainers:
+	- name: download-tools
+	  image: 'alpine:3.8'
+	  command: [- sh, -c ]
+	  args:
+		- wget -O argocd-vault-plugin https://github.com/../argocd-vault-plugin/v1.10.1 && chmod +x argocd-vault-plugin && mv argocd-vault-plugin /custom/tools/ 
+	volumeMounts:
+		- mountPath: /custom-tools
+		  name: custom-tools
+
+2. Then modify the argocd-cm configmap
+data:
+	configManagementPlugins: |-
+		- name: argocd-vault-plugin
+		  generate:
+			command: ["argocd-vault-plugin"]
+			args: ["generate", "./"]
+
+==== Prometheus + Grafana monitoring ====
+* Argocd exposes prometheus metrics endpoints out-of-the-box for the services:
+	* argocd-repo-server
+	* argocd-metrics
+	* argocd-applicationset-controller
+	* argocd-server-metrics
+* We have to create ServiceMonitor resources to allow Prometheus Monitoring CRD to detect the services and scrape them
+	* The metadata.labels.release must correspond to the name of label selected by Prometheus (name of the release for helm installation)
+	* You can get the serviceMonitorSelector with : kubectl get prometheus.monitoring.coreos.com -n monitoring -o yaml | grep -i serviceMonitorSelector -A5
+
+==== Prometheus + Alertmanager alerting ====
+* We add rules in alertmanager prometheusrules resource for argocd
+* The alerts will show up in Alertmanager UI and execute actions defined in PrometheusRule definition
+* Get the prometheusrules resources: kubectl get prometheusrules -n monitoring
+	* The alertmanager rules are in the list of prometheusrules resources
+	* Add rules for argocd by editing it: kubectl edit prometheusrules <alertmanager-rules> -n monitoring
+	* See argocd documentation for rules examples
+
+==== Notifications ====
+* Apply the argocd catalog yaml from the documentation to update the argocd-notifications-cm configmap with triggers, alerts and templates
+* Can send notifications to Teams, Slack, Mail, Github, Grafana, Telegram, Mattermost, RocketChat
+* For slack:
+	* Generate a bot token in slack with chat:write and chat:write.customize authorizations
+	* Store the token in argocd-notifications-secret: .stringData.slack-token=<secret>
+	* Add the conf to the configmap argocd-notifications-cm with a trigger for notifs that will send them using a notification template: 
+data:
+	service\.slack: |
+		token: $slack-token
+		username: argocd-bot
+		icon: ":rocket:"
+trigger.on-sync-succeeded: |
+	- when: app.status.sync.status == 'Synced'
+	  send: [app-sync-suceeded-slack]
+template.app-sync-succeeded-slack: |
+	message: |
+		Application {{.app.metadata.name}} sync in {{.app.status.sync.status}}
+	slack: |
+		attachments:
+			[( "title": "{{.app.metadata.name}}", ... )]
+
+	* Add an annotation to the argocd-application to activate: notifications.argoproj.io/subscribe.on-sync-succeeded.slack: <slack-channel>

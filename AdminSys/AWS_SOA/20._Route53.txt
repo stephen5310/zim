@@ -1,0 +1,27 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:37:24+01:00
+
+====== 20. Route53 ======
+Created mardi 07 janvier 2025
+
+===== Traffic Flow =====
+* Use policies to define traffic beahaviour
+	* Can be versioned
+	* Visual editor available
+
+===== Resolver Endpoints =====
+* Associated with one or more VPCs in the same Region
+* Create in two AZs for HA
+* Each Endpoint supports 10,000 queries / second / IP address
+
+==== Inbound ====
+* Forward DNS queries to Route 53 Resolver
+* Allows to resolve domain names for AWS resources and records in Route 53 Private Hosted Zones
+
+==== Outbound ====
+* Conditionally forwards DNS queries to your resolvers
+* Use Resolver Rules to forward DNS queries to your DNS Resolvers
+	* Rules can be Conditional, System or Auto-defined
+	* If multiple rules matched, Route 53 Resolver chooses the most specific match
+	* Can be shared across accounts using AWS RAM

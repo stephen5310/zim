@@ -1,0 +1,115 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:31:36+01:00
+
+====== 3. SSM ======
+Created mardi 07 janvier 2025
+
+* Free service to manage EC2 and On-premises systems at scale
+* Get operational insights about performance
+* Easily detect problems
+* Patching automation for enhanced compliance
+* Supports Linux and Windows
+* Integrated with CW Metrics and Dashboards, AWS Config
+* The SSM Agent must be installed on the instance
+
+==== SSM Agent installation and registration ====
+
+==== Fleet Manager ====
+* Register instances to manage them
+* Start instances with SSM Agent installed and an IAM Role with **AmazonSSMManagedInstanceCore** policy attached to register automatically
+* No need for SG
+
+==== Tags and Resource grouping ====
+* Tags are used for:
+	* Resource grouping
+	* Automation
+	* Cost allocation
+* Use AWS Resource Groups service to create a resource group using
+	* Tags
+	* CloudFormation stack
+
+==== SSM Documents ====
+* json or yaml docs with parameters and actions on fleets/groups
+* Used to :
+	* Just run a command 
+	* Use State Manager
+	* Use Patch Manager
+	* Automate stuff
+	* Retrieve data from parameter store
+
+==== SSM Run Commands ====
+* Use docs to execute script or command
+* Rate control / Error control
+* Integrated with IAM & Cloudtrail
+* See output in console, send to S3 or CW Logs
+* Send notifications to SNS about statuses
+* Invoke with EventBridge
+
+==== SSM Automation ====
+* Simplifies common maintenance and deployment tasks of AWS resources
+	* Restart instances
+	* Create AMI, EBS snapshots
+* The SSM Document is called **Automation Runbook**
+* Triggered :
+	* Manually using console, cli or sdk
+	* EventBridge / AWS Config for rules remediation
+	* On a schedule using Maintenance Windows
+
+==== SSM Parameter Store ====
+* Secure hierarchal storage for configuration and secrets, optional encryption with KMS
+* Serverless, scalable, durable, easy to use, versioned
+* Security with IAM, notifs with EventBridge
+* Integrated with CloudFormation
+* Can retrieve Secrets Manager secrets with : **/aws/reference/secretsmanager/[secret_id_in_secrets_manager]**
+* Can retrieve public parameters like the latest amazon linux AMI ID
+* Two tiers:
+	* Standard (free):
+		* 10,000 params / account / region
+		* Max 4KB
+		* No params policies
+	* Advanced ($0.05 per param per month):
+		* 100,000 params / account / region
+		* Max 8KB
+		* Params policies available
+* Parameter policies:
+	* TTL for expiration to force updating or deletion
+	* Can send notifications to EventBridge
+
+==== SSM Inventory ====
+* Collect metadata from managed instances (softwares, drivers, confs, updates, running services...)
+	* Disabled by default, Must be enabled
+* View in console, store in S3 (Resource Data Sync), query and analyze using Athena and QuickSight
+* Specify collection interval
+* Query data from multiple accounts and regions
+* Create Custom Inventory for custom metadata (rack location)
+
+==== State Manager ====
+* Automate the process of keeping instances in defined state
+* Define a state and specify a schedule to apply the configuration
+* Use SSM Documents to create an association
+
+==== Patch Manager ====
+* Automate the process of patching instances (updates)
+* Supports Linux, Windows ans MacOS
+* Patch on-demand or on a schedule using Maintenance Windows
+* Scan instances and generate a patch compliance report
+* **Patch Baseline**:
+	* Defines patches that should / shouldn't be installed on instances
+	* Patches can be auto-approved within days of release
+	* By default only critical patches and patches related to security are installed
+* **Patch Group**:
+	* Associate a set of instances with a specific patch baseline
+	* Instances should be defined with the **tag key Patch Group**
+	* An instance can only be in one patch group, and a patch group can be registered with only one patch baseline
+
+==== Maintenance Window ====
+* Defines a schedule to perform actions on instances
+* Contains Schedule, Duration, Set of registered instances, Set of registered tasks
+
+==== Session Manager ====
+* SSH on instances through console, cli, or Session Manager SDK
+* No SSH access / keys / bastion, just IAM permissions and SSM Agent
+* Logs of connections and commands history, can be sent to s3 or CW Logs
+* Use CloudTrail to intercept a StartSession event
+	* Can restrict commands that can be run in a session and stop it

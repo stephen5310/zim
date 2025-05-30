@@ -1,0 +1,31 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:32:54+01:00
+
+====== 7. Lambda ======
+Created mardi 07 janvier 2025
+
+* Easy to get more resources per functions (up to 10GB Ram)
+* Increasing Ram also increases CPU and network
+* Pay per calls/duration
+
+===== S3 Event Notifications =====
+* Enable bucket versioning to make sure a notification will be sent for each event
+
+===== X-Ray Tracing =====
+* Runs the X-Ray daemon
+* Use the X-Ray SDK in Code
+* Ensure Lambda has rights to write in X-Ray
+* Env vars to communicate with X-Ray:
+	* _X_AMZN_TRACE_ID: tracing header
+	* AWS_XRAY_CONTEXT_MISSING: by default, LOG_ERROR
+	* AWS_XRAY_DAEMON_ADDRESS: X-Ray daemon IP_ADDRESS:PORT
+
+===== CONFIG =====
+* Timeout range from 3s(default) to 15mn(maximum)
+* Can reuse execution context between lambda invocations
+	* Includes the /tmp (max 10GB)
+	* Initialize variables that will be reused outside of the handler to leverage that
+* Configure throttling with **reserved concurrency** at the function level (1000 max)
+* Use **provisioned concurrency** to avoid cold starts
+	* Can be managed by App auto-scaling

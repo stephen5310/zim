@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:33:52+01:00
+
+====== 9. S3 Intro ======
+Created mardi 07 janvier 2025
+
+* There is no chaining of replication
+* Leverage Intelligent Tiering for small monthly monitoring and auto-tiering fee

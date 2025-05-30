@@ -1,0 +1,32 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2025-01-07T19:31:27+01:00
+
+====== 2. AMI ======
+Created mardi 07 janvier 2025
+
+* Region bound, can be copied to another
+* AWS Marketplace AMI to download or buy
+* Make our own with tools like Packer, EC2 Image Builder, or using the Console
+* Can be created with the No-Reboot option to avoid reboot:
+	* Risk of loss for fs integrity
+	* OS Buffers not flushed to disk
+* Can use snapshots with AWS Backup to create:
+	* fs integrity not guaranteed because the No-Reboot option is enabled by default
+	* Can provide the reboot parameter while taking images (EventBridge + Lambda + CreateImage API with reboot)
+* Use to migrate EC2 instances between AZ/Region
+
+==== Cross-account ====
+* Can share with another account only AMIs with non-encrypted or customer encrypted volumes
+* Can be shared publicly
+* Can copy an AMI to another account to create a new one
+
+==== EC2 Image Builder ====
+* Automate creation, maintain, validate and test AMIs and container images
+	* SSM Agent must be installed on the image
+* Regional service that can distribute the built images to multiple regions
+* Free, schedulable
+
+==== In Prod ====
+* Can force users to launch instances for only approved AMIs (tagged) using IAM policies
+* Combine with AWS Config to find non-compliant instances
